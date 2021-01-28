@@ -1,10 +1,21 @@
 const { token, default_prefix } = require('./config.json');
 const { badwords } = require('./data.json');
 const { config } = require('dotenv');
+var express = require('express');
+var app = express();
+const http = require('http');
 const discord = require('discord.js'); //Vou usar o Módulo Discord.js
 const client = new discord.Client({
 	disableEveryone: true // o que essa coisa de desabilitar faz?
 });
+//Faz o bot ficar online
+app.get("/", (request, response) => {
+  response.sendStatus(200); //responde quando recebe ping
+  console.log("ping recebido!");
+
+
+});
+app.listen(process.env.PORT);
 
 const db = require('quick.db'); //STAREMOS USANDO O QUICK.DB
 const { addexp } = require('./handlers/xp.js');
@@ -18,17 +29,18 @@ const canva = new CanvasSenpai();
 	require(`./handlers/${handler}`)(client);
 });
 
+
 client.on('ready', () => {
 	let activities = [
 			`use k!help para obter ajuda!`,
-			`em ${client.channels.cache.size} canais!`,
-			`para ${client.users.cache.size} usuários!`
+			`${client.channels.cache.size} canais!`,
+			`${client.users.cache.size} usuários!`
 		],
 		i = 0;
 	setInterval(
 		() =>
 			client.user.setActivity(`${activities[i++ % activities.length]}`, {
-				type: 'STREAMING'
+				type: 'PLAYING'
 			}),
 		1000 * 60
 	);
@@ -52,6 +64,8 @@ function is_url(str) {
 client.on('message', async message => {
 	if (message.author.bot) return;
 	//START
+
+
 
 	//END
 	if (!message.guild) return;
@@ -88,7 +102,11 @@ client.on('message', async message => {
 
 	return addexp(message);
 });
+//inicio
 
+
+
+//final
 //VAI USAR O EVENTO AQUI
 
 client.on('guildMemberAdd', async member => {

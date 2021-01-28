@@ -1,61 +1,63 @@
-//LETS GET STARTED
-const { get } = require("request-promise-native");
-const { MessageEmbed } = require("discord.js")
+const Discord = require("discord.js");
+const { MessageEmbed } = require("discord.js");
+const Color = `#00FF7F`; 
+const Scraper = require("mal-scraper"); //npm i mal-scraper
+
 
 module.exports = {
-name: "anime",
-  category: "utilidade",
-  description: "Obtenha informações sobre anime",
-  usage: "anime <nome_anime>",
-  run: (client, message, args) => {
-    
-    
-    
-    if(!args.length) {
-      return message.channel.send("Por favor, dê o nome do anime")
-    }
-    //DEFINIR OPÇÕES
-    
-    let option = {
-      url: `https://kitsu.io/api/edge/anime?filter[text]=${args.join(" ")}`,
-      method: `GET`,
-      headers: {
-        'Content-Type': "application/vnd.api+json",
-        'Accept': "application/vnd.api+json"
+    name: "anime",
+    category: "utilidade",
+    description: "Informações sobre Anime!",
+    usage: "anime <nome>",
+    run: async (client, message, args) => {
 
-      },
-      json: true
-    }
-    
-    
-    message.channel.send("Buscando as informações").then(msg => {
-      get(option).then(body => {
-       try {
-        let embed = new MessageEmbed()
-        .setTitle(body.data[0].attributes.titles.en)
-        .setColor("00BFFF")
-        .setDescription(body.data[0].attributes.synopsis)
-        .setThumbnail(body.data[0].attributes.posterImage.original)
-        .addField("Avaliações", body.data[0].attributes.averageRating)
-        .addField("TOTAL DE EPISÓDIOS", body.data[0].attributes.episodeCount)
-        //.setImage(body.data[0].attributes.coverImage.large)
-        //try it
-        
-        
-        message.channel.send(embed)
-        msg.delete();
-        
-       } catch (err) {
-        msg.delete();
-         return message.channel.send("Incapaz de encontrar este anime");
-       }
-        
-        
-        
-      }                 
-                       
-    )})
-    
-  }
+        //Start
 
-}
+        let Text = args.join(" ");
+
+        if (!Text) return message.channel.send(`Por favor, diga o nome do anime!`);
+
+        if (Text.length > 200) return message.channel.send(`Limite de Texto - 200`);
+
+        let Msg = await message.channel.send(`**Procurando por você 🔮**`);
+
+        let Replaced = Text.replace(/ +/g, " ");
+
+        await Msg.delete();
+
+        let Anime;
+
+        let Embed;
+
+        try {
+
+        Anime = await Scraper.getInfoFromName(Replaced);
+
+        if (!Anime.genres[0] || Anime.genres[0] === null) Anime.genres[0] = "None";
+
+        Embed = new MessageEmbed()
+        .setColor(Color || "#00FF7F")
+        .setURL(Anime.url)
+        .setTitle(Anime.title)
+        .setDescription(Anime.synopsis)
+        .addField(`Tipo`, Anime.type, true)
+        .addField(`Status`, Anime.status, true)
+        .addField(`Estreou`, Anime.premiered, true)
+        .addField(`Episódios`, Anime.episodes, true)
+        .addField(`Duração`, Anime.duration, true)
+        .addField(`Popularidade`, Anime.popularity, true)
+        .addField(`Generos`, Anime.genres.join(", "))
+        .setThumbnail(Anime.picture)
+        .setFooter(`score - ${Anime.score}`)
+        .setTimestamp();
+
+        } catch (error) {
+          return message.channel.send(`Nenhum anime encontrado!`);
+        };
+
+        return message.channel.send(Embed);
+
+        //End
+
+    }
+};

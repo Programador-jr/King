@@ -10,7 +10,8 @@ const Discord = require("discord.js");
 
 			var list = [
 		
-				'https://cdn.discordapp.com/attachments/791681520762486814/802626701027704863/WhatsApp_e_viado_240P.mp4'
+				'https://cdn.discordapp.com/attachments/791681520762486814/802626701027704863/WhatsApp_e_viado_240P.mp4',
+				''
 ];      
 			var rand = list[Math.floor(Math.random() * list.length)];
 

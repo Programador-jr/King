@@ -38,7 +38,12 @@ const Discord = require("discord.js");
     "https://cdn.discordapp.com/attachments/680920566517334061/705430605067714670/IMG_20200414_224316.jpg",
     "https://cdn.discordapp.com/attachments/537436830644174888/705162921503752272/FB_IMG_1588194307864.jpg",
     "https://cdn.discordapp.com/attachments/537436830644174888/704860877450379324/55d219dd7fa833780433b0afbf721f21.jpg",
-    "https://cdn.discordapp.com/attachments/297732013006389252/704467536405856366/IMG_20190903_131522.jpg"
+    "https://cdn.discordapp.com/attachments/297732013006389252/704467536405856366/IMG_20190903_131522.jpg",
+		"https://media.discordapp.net/attachments/784840761069142016/804378878453874688/52ce6767e7f6051eeba42db04e35bf0f.jpg?width=406&height=406",
+		"https://media.discordapp.net/attachments/784840761069142016/804378878192779264/c6187228501015f23eee85341aca0df2.jpg?width=408&height=406",
+		"https://media.discordapp.net/attachments/784840761069142016/804378877748969502/IMG-20201222-WA0005-2-1.jpg?width=487&height=406",
+		"https://media.discordapp.net/attachments/784840761069142016/804378488411783178/2327474e7267cddd67e2f1197f1296e6.jpg?width=416&height=406",
+		"https://media.discordapp.net/attachments/784840761069142016/804378308900421702/56ebfe779cd5956d2a37618d63c08198.jpg?width=187&height=405",
 ];
 
 	var rand = list[Math.floor(Math.random() * list.length)];

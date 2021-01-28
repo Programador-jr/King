@@ -7,16 +7,14 @@ module.exports = {
   usage: "ban <@user> <motivo>",
   run: async (client, message, args) => {
     
+		
     if(!message.member.hasPermission("BAN_MEMBERS")) {
       return message.channel.send(`**${message.author.username}**, Você não tem permissão para banir alguém`)
     }
     
+		
     if(!message.guild.me.hasPermission("BAN_MEMBERS")) {
       return message.channel.send(`**${message.author.username}**, Eu não tenho permissão para banir alguém`)
-    }
-
-		if(user.id === message.guild.owner.id) {
-      return message.channel.send("Seu idiota, como você pode banir o dono do servidor -_-")
     }
     
     const target = message.mentions.members.first();

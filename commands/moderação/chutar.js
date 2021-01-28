@@ -16,9 +16,6 @@ module.exports = {
       return message.channel.send(`**${message.author.username}**, Eu não tenho permissão o suficiente para usar este comando`)
     }
 
-		if(user.id === message.guild.owner.id) {
-      return message.channel.send("Seu idiota, como você pode expulsar o dono do servidor -_-")
-    }
     
     let target = message.mentions.members.first();
     
