@@ -2,6 +2,7 @@ const db = require("quick.db")
 
 module.exports = {
   name: "warnings",
+	usage:"warnings | warnings <@user>",
 	aliases: ["advertencias", "avisos"],
   description: "Receba os avisos seus ou da pessoa mencionada",
   category: "moderação",

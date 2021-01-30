@@ -6,8 +6,38 @@ var app = express();
 const http = require('http');
 const discord = require('discord.js'); //Vou usar o Módulo Discord.js
 const client = new discord.Client({
-	disableEveryone: true // o que essa coisa de desabilitar faz?
+	disableEveryone: true, // o que essa coisa de desabilitar faz?
+	partials : ["MESSAGE", "CHANNEL", "REACTION"]
 });
+
+
+client.on('AddReacaoMensagem', async(reaction, user) => {
+    if(reaction.message.partial) await reaction.message.fetch();
+    if(reaction.partial) await reaction.fetch();
+    if(user.bot) return;
+    if(!reaction.message.guild) return;
+    if(reaction.message.id === '<mensagemID>'){
+        if(reaction.emoji.name === '<emoji>') {
+            await reaction.message.guild.members.cache.get(user.id).roles.add('<cargoID>')
+            user.send('Você obteve uma função!')
+        }
+    }
+})
+client.on('RemoverReacaoMensagem', async(reaction, user) => {
+    if(reaction.message.partial) await reaction.message.fetch();
+    if(reaction.partial) await reaction.fetch();
+    if(user.bot) return;
+    if(!reaction.message.guild) return;
+    if(reaction.message.id === '<menssagemID>'){
+        if(reaction.emoji.name === '<emoji>') {
+            await reaction.message.guild.members.cache.get(user.id).roles.remove('<cargoID>')
+            user.send('Uma de suas funções foi removida!')
+        }
+    }
+})
+
+
+
 //Faz o bot ficar online
 app.get("/", (request, response) => {
   response.sendStatus(200); //responde quando recebe ping
@@ -129,5 +159,77 @@ client.on('guildMemberAdd', async member => {
 			'**${member.user}**, bem-vindo(a) ao servidor **${guild.name}**! Atualmente estamos com **${member.guild.memberCount} membros**, divirta-se conosco! :heart:'
 		);
 });
+
+//NOVO EVENTO
+
+const usersMap = new Map();
+const LIMIT = 5;
+const TIME = 7000;
+const DIFF = 3000;
+
+client.on('message', async(message) => {
+    if(message.author.bot) return;
+    if(usersMap.has(message.author.id)) {
+        const userData = usersMap.get(message.author.id);
+        const { lastMessage, timer } = userData;
+        const difference = message.createdTimestamp - lastMessage.createdTimestamp;
+        let msgCount = userData.msgCount;
+        console.log(difference);
+
+        if(difference > DIFF) {
+            clearTimeout(timer);
+            console.log('Limpo de tempo limite');
+            userData.msgCount = 1;
+            userData.lastMessage = message;
+            userData.timer = setTimeout(() => {
+                usersMap.delete(message.author.id);
+                console.log('Removido do mapa.')
+            }, TIME);
+            usersMap.set(message.author.id, userData)
+        }
+        else {
+            ++msgCount;
+            if(parseInt(msgCount) === LIMIT) {
+                let muterole = message.guild.roles.cache.find(role => role.name === 'mutado');
+                if(!muterole) {
+                    try{
+                        muterole = await message.guild.roles.create({
+                            name : "mutado",
+                            permissions: []
+                        })
+                        message.guild.channels.cache.forEach(async (channel, id) => {
+                            await channel.createOverwrite(mutadorole, {
+                                SEND_MESSAGES: false,
+                                ADD_REACTIONS : false
+                            })
+                        })
+                    }catch (e) {
+                        console.log(e)
+                    }
+                }
+                message.member.roles.add(mutadorole);
+                message.channel.send('Você foi silenciado!');
+                setTimeout(() => {
+                    message.member.roles.remove(mutadorole);
+                    message.channel.send('Você foi reativado!')
+                }, TIME);
+            } else {
+                userData.msgCount = msgCount;
+                usersMap.set(message.author.id, userData);
+            }
+        }
+    }
+    else {
+        let fn = setTimeout(() => {
+            usersMap.delete(message.author.id);
+            console.log('Removido do mapa.')
+        }, TIME);
+        usersMap.set(message.author.id, {
+            msgCount: 1,
+            lastMessage : message,
+            timer : fn
+        });
+    }
+})
 
 client.login(token);

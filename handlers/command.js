@@ -1,7 +1,6 @@
 const { readdirSync } = require("fs");
 
 const ascii = require("ascii-table");
-
 // Crie uma nova tabela Ascii
 let table = new ascii("Comandos");
 table.setHeading("Comando", "Status");
@@ -30,6 +29,7 @@ module.exports = (client) => {
             if (pull.aliases && Array.isArray(pull.aliases)) pull.aliases.forEach(alias => client.aliases.set(alias, pull.name));
         }
     });
+
     //Registrar a mesa
     console.log(table.toString());
 }

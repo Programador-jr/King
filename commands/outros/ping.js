@@ -2,7 +2,7 @@ const discord = require("discord.js");
 
 module.exports = {
   name: "ping",
-  category: "utilidade",
+  category: "outros",
   description: "Obter ping do bot",
   usage: "ping",
   run: async (client, message, args) => {

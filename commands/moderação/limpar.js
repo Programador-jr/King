@@ -2,7 +2,7 @@ const Discord = require("discord.js");
 
 	module.exports = {
     name: "limpar",
-		usage: "limpar <valor> ou limpar <@user>",
+		usage: "limpar <valor>",
 		aliases: ["apagar", "clean"],
 		description: "Apague até 99 mensagens de um canal",
     category: "moderação",

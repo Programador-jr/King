@@ -3,6 +3,7 @@ const discord = require("discord.js");
 module.exports = {
   name: "ban",
   category: "moderação",
+	aliases:["banir"],
   description: "Banir qualquer pessoa do servidor ",
   usage: "ban <@user> <motivo>",
   run: async (client, message, args) => {
