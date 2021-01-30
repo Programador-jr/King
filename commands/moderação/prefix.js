@@ -5,6 +5,7 @@ module.exports = {
   name: "prefix",
   category: "moderação",
   usage: "prefix <novo-prefixo>",
+	aliases:["newprefix", "prefixo"],
   description: "Mude meu prefixo neste servidor",
   run: async (client, message, args) => {
     //PERMISSION

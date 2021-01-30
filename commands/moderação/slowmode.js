@@ -2,7 +2,7 @@ module.exports = {
     name: "slowmode",
 		category: "moderação",
 		usage: "slowmode <tempo>",
-		aliases:["slow"],
+		aliases:["slow", "modolento"],
     description: "Permite definir o modo lento no canal",
     run: (client, message, args) => {
         const amount = parseInt(args[0])

@@ -3,6 +3,7 @@ const db = require("quick.db")
 module.exports = {
   name: "delcmd",
   usage: "delcmd <nome_cmd>",
+	aliases:["excluircomando", "delcommand", "deletecommand"],
   description: "Exclua o comando personalizado",
   category: "moderação",
   run: (client, message, args) => {

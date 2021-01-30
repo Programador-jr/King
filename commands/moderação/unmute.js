@@ -1,38 +1,23 @@
-module.exports = {
-  name: "unmute",
-  category: "moderação",
-  run: async (client, message, args) => {
-    if (!message.member.hasPermission("MANAGE_ROLES")) {
-      return message.channel.send(
-        "Desculpe, mas você não tem permissão para ativar o som de ninguém"
-      );
-    }
+const { Message } = require('discord.js')
 
-    if (!message.guild.me.hasPermission("MANAGE_ROLES")) {
-      return message.channel.send("Eu não tenho permissão para gerenciar funções.");
-    }
+module.exports=  {
+    name : "unmute",
+		category: "moderação",
+		usage: "unmute <@user>",
+		aliases:["desmutar", "desilenciar"],
+		description: "Desmutar um membro do servidor", 
+    /**
+     * @param {Message} message
+     */
+    run : async(client, message, args) => {
+        const Member = message.mentions.members.first() || message.guild.members.cache.get(args[0])
 
-    const user = message.mentions.members.first();
+        if(!Member) return message.channel.send('Membro não encontrado')
 
-    if (!user) {
-      return message.channel.send(
-        "Mencione o membro para quem você deseja ativar o som"
-      );
-    }
-    
-    let muterole = message.guild.roles.cache.find(x => x.name === "Mutado")
-    
-    
- if(user.roles.cache.has(muterole)) {
-      return message.channel.send("Dado que o usuário não tem função muda, então o que devo assumir")
-    }
-    
-    
-    user.roles.remove(muterole)
-    
-    await message.channel.send(`**${message.mentions.users.first().username}** não está mudo`)
-    
-    user.send(`Agora você está sem som de **${message.guild.name}**`)
+        const role = message.guild.roles.cache.find(r => r.name.toLowerCase() === 'mutado');
 
-  }
-};
+        await Member.roles.remove(role)
+
+        message.channel.send(`${Member.displayName} agora pode falar novamente`)
+    }
+}

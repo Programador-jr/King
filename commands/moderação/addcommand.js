@@ -2,7 +2,8 @@ const db = require("quick.db")
 
 module.exports = {
   name: "adcmd",
-  usage: "adcmd <cmd_nome> <cmd_responder>",
+  usage: "adcmd <cmd_nome> <cmd_resposta>",
+	aliases:["novocomando", "newcommand", "adicionarcomando"],
   description: "adicionar comandos personalizados de guilda",
   category: "moderação",
   run: (client, message, args) => {
