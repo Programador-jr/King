@@ -1,4 +1,4 @@
-const discord = require('discord.js')
+const {MessageEmbed} = require("discord.js")
 const fetch = require('node-fetch')
 
 module.exports = {
@@ -20,7 +20,7 @@ module.exports = {
     
     const data = await fetch(`https://vacefron.nl/api//ejected?name=${user.username}&impostor=${imposter}&crewmate=${crewmate}`)
     
-    const embed = new discord.MessageEmbed()
+    const embed = new MessageEmbed()
       .setAuthor(message.author.username + "#" + message.author.discriminator, message.author.displayAvatarURL())
       .setTitle(`${message.author.username} Ejetou ${user.username}`)
       .setColor('#000000')

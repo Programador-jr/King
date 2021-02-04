@@ -5,7 +5,7 @@ const Discord = require("discord.js");
 		usage: "atirar <@user>",
 		aliases: ["shoot", "matar", "kill", "bang"],
 		description: "mostra um gif de tiro",
-    category: "diversão",
+    category: "encenação",
     run: async (client, message, args) => {
 
 			var list = [

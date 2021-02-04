@@ -5,7 +5,7 @@ const Discord = require("discord.js");
 		usage: "abraçar <@user>",
 		aliases: ["hug", "abraço", "abracar", "abraco"],
 		description: "Dê um web abraço em um membro do servidor ",
-    category: "diversão",
+    category: "encenação",
     run: async (client, message, args) => {
 			var list = [
 			'https://i.pinimg.com/originals/08/de/7a/08de7ad3dcac4e10d27b2c203841a99f.gif',

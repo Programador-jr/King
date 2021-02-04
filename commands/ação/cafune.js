@@ -5,7 +5,7 @@ const Discord = require("discord.js");
 		usage: "cafune <@user>",
 		aliases: ["pat"],
 		description: "Faça um cafuné em alguém do servidor",
-    category: "diversão",
+    category: "encenação",
     run: async (client, message, args) => {
 
 			var list = [
