@@ -5,7 +5,7 @@ const Discord = require("discord.js");
 		usage: "morder <@user>",
 		aliases: ["bite"],
 		description: "",
-    category: "diversão",
+    category: "encenação",
     run: async (client, message, args) => {
 
 			var list = [

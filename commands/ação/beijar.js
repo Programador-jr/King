@@ -5,7 +5,7 @@ const Discord = require("discord.js");
 		usage: "beijar <@user>",
 		aliases: ["kiss", "beijo"],
 		description: "Dê um web beijo em um membro do servidor",
-    category: "diversão",
+    category: "encenação",
     run: async (client, message, args) => {
 
 			var list = [
@@ -14,8 +14,12 @@ const Discord = require("discord.js");
 				'https://i.imgur.com/YbNv10F.gif',
 				'https://i.imgur.com/uobBW9K.gif',
 				'https://66.media.tumblr.com/3a416d5c991dbef68b6eaf8a06682d3d/tumblr_inline_ol29wgtBjL1u0103a_500.gif',
-				'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSeXVx6A7XezridbTUNbs0I93cSJ94oXc_Z4g&usqp=CAU',
-				'https://pa1.narvii.com/5826/ad5c1b1fc9b5ebe938c815139813bc0e4c00b046_hq.gif'
+				'https://i.imgur.com/ABwjzgD.gif',
+				'https://pa1.narvii.com/5826/ad5c1b1fc9b5ebe938c815139813bc0e4c00b046_hq.gif',
+				'https://i.imgur.com/XBmddwd.gif',
+				'https://cutewallpaper.org/21/kissing-anime-pictures/Koi-To-Uso-Anime-GIF-KoiToUso-Anime-Kiss-Discover-and-Share-GIFs.gif',
+				'https://i.imgur.com/ino4kbN.gif',
+				'https://cutewallpaper.org/21/cute-anime-kiss/Anime-Cute-GIF-Anime-Cute-Kiss-Discover-and-Share-GIFs.gif'
 
 ];
 
