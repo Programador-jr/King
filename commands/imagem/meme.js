@@ -43,7 +43,8 @@ const Discord = require("discord.js");
 	 "https://i.pinimg.com/236x/81/0c/cd/810ccd0f2d1709e041d52be113a05fc8.jpg",
 	 "https://i.pinimg.com/236x/49/18/80/491880d4c255f69c34795e053780413a.jpg",
 	 "https://i.pinimg.com/236x/e9/8a/15/e98a157e9e71b1dcd225aeaa1ea8bbb3.jpg",
-	 "https://i.pinimg.com/236x/ad/85/be/ad85be487bd89ccfa8ad6c97eacf1d21.jpg"
+	 "https://i.pinimg.com/236x/ad/85/be/ad85be487bd89ccfa8ad6c97eacf1d21.jpg",
+	 "https://cdn.maioresemelhores.com/imagens/mm-meme-8-quarentena-busao.jpg",
 ];
 
 	var rand = list[Math.floor(Math.random() * list.length)];

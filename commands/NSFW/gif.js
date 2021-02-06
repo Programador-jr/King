@@ -7,7 +7,10 @@ const Discord = require("discord.js");
 
 			 var superagent = require('superagent');
 
-    if (!message.channel.nsfw) return message.channel.send('Você deve usar este comando em uma sala nsfw 🔞!') 
+    if (!message.channel.nsfw) return message.channel.send(new Discord.MessageEmbed()
+		.setColor("#ff0000")
+		.setTitle('🔐 Você deve usar este comando em uma sala nsfw!')
+		); 
 
     var lo = new Discord.MessageEmbed()
                 .setDescription(`Por favor, espere...`)

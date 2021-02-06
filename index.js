@@ -59,24 +59,6 @@ const canva = new CanvasSenpai();
 	require(`./handlers/${handler}`)(client);
 });
 
-
-client.on('ready', () => {
-	let activities = [
-			`use k!help para obter ajuda!`,
-			`${client.channels.cache.size} canais!`,
-			`${client.users.cache.size} usuários!`
-		],
-		i = 0;
-	setInterval(
-		() =>
-			client.user.setActivity(`${activities[i++ % activities.length]}`, {
-				type: 'PLAYING'
-			}),
-		1000 * 60
-	);
-	client.user.setStatus('online').catch(console.error);
-	console.log('Estou Online!');
-});
 //é função URL - START
 
 function is_url(str) {

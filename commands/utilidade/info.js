@@ -2,7 +2,7 @@ const Discord = require("discord.js"),
 os = require('os');
 module.exports = {
 	name: "info",
-	category: "outros",
+	category: "utilidade",
 	description: "Veja as informações detalhadas do bot",
 	
 	run: async = (client, message, args) => {
