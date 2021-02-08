@@ -2,7 +2,7 @@
 Meu primeiro bot para o discord feito usando o node js e o repl.it
 <br>
 ******************
-              DIVERSÃO
+              Classes de comandos ativos
 | Comandos    | status |
 | ----|---|
 | Ação  	| ✔ |
