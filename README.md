@@ -1,29 +1,15 @@
 # King_bot
-Meu primeiro bot para o discord feito usando o node js e o repl.it o bot comtem comandos de moderação, diversão e mais.
-<br>
+Meu primeiro bot para o discord feito usando o node js e o repl.it
 <br>
 ******************
               DIVERSÃO
-| Comandos        | Descrição      | status |
-| ----|---|---|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔ 	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|
-|   	|  	|  ✔	|  
+| Comandos    | status |
+| ----|---|
+| Ação  	| ✔ |
+| Diversão  	| ✔	|
+| Games  	| ✔	|
+| Imagem  	| ✔	|
+| Moderação  	| ✔	|
+| Musica 	| ✔	|
+| NSFW 🔞	| ✔	|
+| Utilidade 	| ✔	|
