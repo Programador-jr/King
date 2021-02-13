@@ -13,6 +13,15 @@ const Discord = require("discord.js");
 			'https://img-9gag-fun.9cache.com/photo/aRXAYzQ_460sv.mp4',
 			'https://img-9gag-fun.9cache.com/photo/aEpnw0O_460sv.mp4',
 			'https://img-9gag-fun.9cache.com/photo/anQ1qOq_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/amPzL3X_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/aEpn1mM_460sv.mp4',
+			'https://img-9gag-fun.9cache.com/photo/ad8XYZQ_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/aV7ePbM_460sv.mp4',
+			'https://img-9gag-fun.9cache.com/photo/aGpDDM0_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/aDdGz6Z_460sv.mp4',
+			'https://img-9gag-fun.9cache.com/photo/a7Edozx_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/anQ1Mr0_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/aEpn1mM_460svvp9.webm',
 ]
 
 const BallNum = Math.floor(Math.random() * respostas.length); 

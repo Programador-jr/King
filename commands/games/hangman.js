@@ -5,11 +5,10 @@ const words = require('../../assets/json/words.json');
 let serversmap = new Map();
 
 module.exports = {
-    
     name:"hangman",
 		aliases:["forca"],
-    
-    run: async (client, msg, args) => {
+		description:"Jogue uma partida de jogo da forca", 
+run: async(client, msg, args) => {
   if (serversmap.has(msg.guild.id)) {
     return msg.channel.send(
       new MessageEmbed()
@@ -92,4 +91,4 @@ module.exports = {
     return msg.reply(`Erro: \`${err.message}\``);
   }
 }
-};
+}

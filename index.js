@@ -11,33 +11,6 @@ const client = new discord.Client({
 });
 
 
-client.on('AddReacaoMensagem', async(reaction, user) => {
-    if(reaction.message.partial) await reaction.message.fetch();
-    if(reaction.partial) await reaction.fetch();
-    if(user.bot) return;
-    if(!reaction.message.guild) return;
-    if(reaction.message.id === '<mensagemID>'){
-        if(reaction.emoji.name === '<emoji>') {
-            await reaction.message.guild.members.cache.get(user.id).roles.add('<cargoID>')
-            user.send('Você obteve uma função!')
-        }
-    }
-})
-client.on('RemoverReacaoMensagem', async(reaction, user) => {
-    if(reaction.message.partial) await reaction.message.fetch();
-    if(reaction.partial) await reaction.fetch();
-    if(user.bot) return;
-    if(!reaction.message.guild) return;
-    if(reaction.message.id === '<menssagemID>'){
-        if(reaction.emoji.name === '<emoji>') {
-            await reaction.message.guild.members.cache.get(user.id).roles.remove('<cargoID>')
-            user.send('Uma de suas funções foi removida!')
-        }
-    }
-})
-
-
-
 //Faz o bot ficar online
 app.get("/", (request, response) => {
   response.sendStatus(200); //responde quando recebe ping
