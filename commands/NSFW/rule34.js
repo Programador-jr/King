@@ -5,6 +5,7 @@ const booru = require('booru');
 
 module.exports = {
     name: "rule34",
+		aliases:["r34"],
     category: "NSFW",
   run: async (bot, message, args) => {
   //command
@@ -32,7 +33,8 @@ module.exports = {
       .then(images => {
           for (let image of images) {
               const embed = new Discord.MessageEmbed()
-              .setTitle("Você conhece a regra 34 da internet?...👀")
+							.setTitle("A imagem não está carregando? Clique aqui")
+							.setDescription('**Aqui está sua imagem...👀**')
               .setImage(image.common.file_url)
               .setColor('#FF1493')
               .setFooter(`Tags: r34 ${query}`)
