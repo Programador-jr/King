@@ -15,21 +15,21 @@ module.exports = {
     message.delete()
 
     var embedInicial = new Discord.MessageEmbed()
-    .setTitle(`📬ㅤOlá preciso de ajuda? Aqui estão todos os meus comandos:`)
-    .addField(`🎭ㅤ**AÇÃO**ㅤ🎭`, `Comandos para mandar gifs aleátorios no chat`)
-    .addField(`🎉ㅤ**DIVERSÃO**ㅤ🎉`, `Comandos de diversão`)
-    .addField(`🎮ㅤ**GAMES**ㅤ🎮`,`Comandos para jogos`)
-    .addField(`🖼️ㅤ**IMAGEM**ㅤ🖼️`,`Comandos para pothoshop e memes`)
-    .addField(`🛠️ㅤ**MODERAÇÃO**ㅤ🛠️`,`Comandos para moderadores`)
-    .addField(`🎵ㅤ**MUSICA**ㅤ🎵`,`Comandos para ouvir musicas`)
-    .addField(`🔞ㅤ**NSFW**ㅤ🔞`,`Comandos de uso adulto`)
-    .addField(`🔧ㅤ**UTILIDADE**ㅤ🔧`,`Alguns comandos úteis para você usar`)
+    .setDescription(`**📬ㅤOlá ${message.author}, preciso de ajuda? Aqui estão todos os meus comandos:**`)
+    .addField(`<:RolePlay:810231968297517106>ㅤ**AÇÃO**`,`ㅤ`)
+    .addField(`<a:fun:810254327372316713>ㅤ**DIVERSÃO**`,`ㅤ`)
+    .addField(`<:game:810254416635494400>ㅤ**GAMES**`,`ㅤ`)
+    .addField(`<:photos:810249979905572864>ㅤ**IMAGEM**`,`ㅤ`)
+    .addField(`<a:moderation:810250044888317952>ㅤ**MODERAÇÃO**`,`ㅤ`)
+    .addField(`<:musica:810233712334995496>ㅤ**MUSICA**`,`ㅤ`)
+    .addField(`<:nsfw2:810232533462810666>ㅤ**NSFW**`,`ㅤ`)
+    .addField(`<:utility:810250009894584351>ㅤ**UTILIDADE**`,`ㅤ`)
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
     .setFooter(`Requerido por ${message.author.tag}`,message.author.displayAvatarURL({ dynamic: true }))
   
     let embed1 = new Discord.MessageEmbed()
-    .setDescription(`🎭ㅤ**ACÃO**:\n
+    .setDescription(`<:RolePlay:810231968297517106>ㅤ**ACÃO**:\n
 • **${config.default_prefix}abraçar**
 • **${config.default_prefix}aplaudir**
 • **${config.default_prefix}atirar**
@@ -49,7 +49,7 @@ module.exports = {
     .setColor(roleColor)
     
     let embed2 = new Discord.MessageEmbed()
-.setDescription(`🎉ㅤ**DIVERSÃO**:\n
+.setDescription(`<a:fun:810254327372316713>ㅤ**DIVERSÃO**:\n
 • **${config.default_prefix}ascii** - Retorna um texto em formato ascii
 • **${config.default_prefix}chatbot** - Converse comigo ^-^
 • **${config.default_prefix}coinflip** - Gire uma moeda e veja se irá cair cara ou coroa!
@@ -60,7 +60,7 @@ module.exports = {
     .setColor(roleColor)
     
     let embed3 = new Discord.MessageEmbed()
-    .setDescription(`🎮ㅤ**GAMES**:\n
+    .setDescription(`<:game:810254416635494400>ㅤ**GAMES**:\n
 • **${config.default_prefix}hangman** - Jogue uma partida de jogo da forca
 • **${config.default_prefix}ppt** - "Pedra papel tesoura/ Jogue jokenpô com o bot
 • **${config.default_prefix}tictac** - Jogue uma partida de jogo da velha com um membro do servidor`)
@@ -68,7 +68,7 @@ module.exports = {
     .setColor(roleColor)
         
     let embed4 = new Discord.MessageEmbed()
-.setDescription(`🖼️ㅤ**IMAGEM**:\n
+.setDescription(`<:photos:810249979905572864>ㅤ**IMAGEM**:\n
 • **${config.default_prefix}changemymind** - Coloque sua frase dentro de uma imagem Change my mind
 • **${config.default_prefix}meme** - Gera imagens com memes aleátorios
 • **${config.default_prefix}memevideo** - Videos de memes aleátorios
@@ -77,7 +77,7 @@ module.exports = {
     .setColor(roleColor)    
    
     let embed5 = new Discord.MessageEmbed()
-    .setDescription(`🛠️ㅤ**MODERAÇÃO**:\n
+    .setDescription(`<a:moderation:810250044888317952>ㅤ**MODERAÇÃO**:\n
 • **${config.default_prefix}addcargo** - Adicione um cargo para um membro do servidor
 • **${config.default_prefix}removecargo** - Retira um cargo do usuario mencionado
 • **${config.default_prefix}adcmd** - adicionar comandos personalizados de guilda
@@ -97,7 +97,7 @@ module.exports = {
     .setColor(roleColor)
         
     let embed6 = new Discord.MessageEmbed()
-    .setDescription(`🎵ㅤ**MUSICA**:\n
+    .setDescription(`<:musica:810233712334995496>ㅤ**MUSICA**:\n
 • **${config.default_prefix}aleatorio** - Colocar a fila no aleatorio
 • **${config.default_prefix}fila** - Mostra a fila de músicas e o que está tocando agora.
 • **${config.default_prefix}filtro** - Definir áudio - efeitos
@@ -120,7 +120,7 @@ module.exports = {
     .setColor(roleColor)
     
     let embed7 = new Discord.MessageEmbed()
-    .setDescription(`🔞ㅤ**NSFW**:\n
+    .setDescription(`<:nsfw2:810232533462810666>ㅤ**NSFW**:\n
 • **${config.default_prefix}4k**
 • **${config.default_prefix}ass**
 • **${config.default_prefix}gif**
@@ -131,7 +131,7 @@ module.exports = {
     .setColor(roleColor)
     
     let embed8 = new Discord.MessageEmbed()
-    .setDescription(`🔧ㅤ**UTILIDADE**:\n
+    .setDescription(`<:utility:810250009894584351>ㅤ**UTILIDADE**:\n
 • **${config.default_prefix}anime** - Informações sobre Animes!
 • **${config.default_prefix}avatar** - Exibe o seu avatar ou de um outro usuário
 • **${config.default_prefix}clima** - Veja o clima de qualquer lugar do mundo
@@ -150,26 +150,26 @@ module.exports = {
     
     message.channel.send(embedInicial).then(async msg => {
   
-    await msg.react("🏠")
-    await msg.react("🎭")
-    await msg.react("🎉")
-    await msg.react("🎮")
-    await msg.react("🖼️")
-    await msg.react("🛠️")
-    await msg.react("🎵")
-    await msg.react("🔞")    
-    await msg.react("🔧")    
+    await msg.react("810254382549565530")
+    await msg.react("810231968297517106")
+    await msg.react("810254327372316713")
+    await msg.react("810254416635494400")
+    await msg.react("810249979905572864")
+    await msg.react("810250044888317952")
+    await msg.react("810233712334995496")
+    await msg.react("810232533462810666")    
+    await msg.react("810250009894584351")    
    
 
-    const inicio = msg.createReactionCollector((r, u) => r.emoji.name === "🏠" && u.id === message.author.id, { time: 60000});
-    const aca = msg.createReactionCollector((r, u) => r.emoji.name === "🎭" && u.id === message.author.id, { time: 120000 });
-    const diver = msg.createReactionCollector((r, u) => r.emoji.name === "🎉" && u.id === message.author.id, { time: 120000 });
-    const game = msg.createReactionCollector((r, u) => r.emoji.name === "🎮" && u.id === message.author.id, { time: 120000 });
-    const image = msg.createReactionCollector((r, u) => r.emoji.name === "🖼️" &&u.id === message.author.id, { time: 120000 });
-    const mod = msg.createReactionCollector((r, u) => r.emoji.name === "🛠️" &&u.id === message.author.id, {time: 120000});
-    const music = msg.createReactionCollector((r, u)  => r.emoji.name === "🎵" &&u.id === message.author.id, {time:120000});    
-    const nsfw = msg.createReactionCollector((r, u) => r.emoji.name === "🔞" &&u.id === message.author.id, {time:120000});
-    const util = msg.createReactionCollector((r, u) => r.emoji.name === "🔧" &&u.id === message.author.id, {time:120000});    
+    const inicio = msg.createReactionCollector((r, u) => r.emoji.id === "810254382549565530" && u.id === message.author.id, { time: 60000});
+    const aca = msg.createReactionCollector((r, u) => r.emoji.id === "810231968297517106" && u.id === message.author.id, { time: 120000 });
+    const diver = msg.createReactionCollector((r, u) => r.emoji.id === "810254327372316713" && u.id === message.author.id, { time: 120000 });
+    const game = msg.createReactionCollector((r, u) => r.emoji.id === "810254416635494400" && u.id === message.author.id, { time: 120000 });
+    const image = msg.createReactionCollector((r, u) => r.emoji.id === "810249979905572864" &&u.id === message.author.id, { time: 120000 });
+    const mod = msg.createReactionCollector((r, u) => r.emoji.id === "810250044888317952" &&u.id === message.author.id, {time: 120000});
+    const music = msg.createReactionCollector((r, u)  => r.emoji.id === "810233712334995496" &&u.id === message.author.id, {time:120000});    
+    const nsfw = msg.createReactionCollector((r, u) => r.emoji.id === "810232533462810666" &&u.id === message.author.id, {time:120000});
+    const util = msg.createReactionCollector((r, u) => r.emoji.id === "810250009894584351" &&u.id === message.author.id, {time:120000});    
     inicio.on('collect', async r => {
       msg.edit(embedInicial)
       
