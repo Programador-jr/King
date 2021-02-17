@@ -4,7 +4,7 @@ const errors = require('../../assets/json/errors');
 const neko = new client();
 
 module.exports = {
-  name: "hentaigif",
+  name: "boobs",
   category: "NSFW",
   run: async (client, message, args) => {
 		message.delete({timeout: 5000})
@@ -19,7 +19,7 @@ module.exports = {
         }
 
         async function work() {
-        let owo = (await neko.nsfw.randomHentaiGif());
+        let owo = (await neko.nsfw.boobs());
 
         const hentaigif = new Discord.MessageEmbed()
         .setTitle("A imagem não está carregando? Clique aqui")

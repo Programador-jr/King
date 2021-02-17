@@ -1,24 +1,22 @@
 const Discord = require("discord.js");
+const errors = require('../../assets/json/errors');
 module.exports = {
 	name: "lewd",
 	category: "NSFW",
 	run:async (client, message, args) => {
-
+		message.delete({timeout: 5000})
     var superagent = require('superagent');
 
-  var errMessage =(new Discord.MessageEmbed()
-	.setColor('#FF0000')
-	.setTitle("🔐 Você deve usar este comando em uma sala nsfw!")
-	);
-  if (!message.channel.nsfw) {
-      message.react('💢');
-
-      return message.reply(errMessage)
-      .then(msg => {
-      msg.delete({ timeout: 4000 })
+        var errMessage = errors[Math.round(Math.random() * (errors.length - 1))];
+        if (!message.channel.nsfw) {
+            message.react('💢');
+            return message.channel.send(new Discord.MessageEmbed()
+						.setColor('#ff0000')
+						.setTitle(errMessage)).then(msg => {
+      msg.delete({ timeout: 5000 })
       })
-      
-  }
+        }
+
     var lo = new Discord.MessageEmbed()
                 .setDescription(`Por favor, espere...`)
                 .setTimestamp()

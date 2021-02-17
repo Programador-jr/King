@@ -2,7 +2,7 @@ const Discord = require("discord.js");
 
 	module.exports = {
     name: "memevideo",
-		aliases: ["video"],
+		aliases: ["video", "videomeme"],
 		description: "Videos de memes aleátorios",
     category: "imagem",
     run: async (client, message, args) => {
@@ -22,6 +22,8 @@ const Discord = require("discord.js");
 			'https://img-9gag-fun.9cache.com/photo/a7Edozx_460svvp9.webm',
 			'https://img-9gag-fun.9cache.com/photo/anQ1Mr0_460svvp9.webm',
 			'https://img-9gag-fun.9cache.com/photo/aEpn1mM_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/a8Epj4Y_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/a7Edozx_460svvp9.webm',
 ]
 
 const BallNum = Math.floor(Math.random() * respostas.length); 

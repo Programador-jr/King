@@ -15,7 +15,7 @@ module.exports = {
     message.delete()
 
     var embedInicial = new Discord.MessageEmbed()
-    .setDescription(`**📬ㅤOlá ${message.author}, preciso de ajuda? Aqui estão todos os meus comandos:**`)
+    .setDescription(`**📬ㅤOlá ${message.author}, precisa de ajuda? Aqui estão todos os meus comandos:**`)
     .addField(`<:RolePlay:810231968297517106>ㅤ**AÇÃO**`,`ㅤ`)
     .addField(`<a:fun:810254327372316713>ㅤ**DIVERSÃO**`,`ㅤ`)
     .addField(`<:game:810254416635494400>ㅤ**GAMES**`,`ㅤ`)
@@ -55,15 +55,20 @@ module.exports = {
 • **${config.default_prefix}coinflip** - Gire uma moeda e veja se irá cair cara ou coroa!
 • **${config.default_prefix}ejetar** - ejete alguém da nave - Among Us
 • **${config.default_prefix}emojify** - Retorna um texto em forma de emoji
-• **${config.default_prefix}king** - Faça uma pergunta para o bot e ele irá responder você da Melhor forma possível.`)
+• **${config.default_prefix}king** - Faça uma pergunta para o bot e ele irá responder você da Melhor forma possível.
+• **${config.default_prefix}morse** - codifique ou decodifique um codigo morse
+• **${config.default_prefix}ratewaifu** - vote em sua waifu favorita
+• **${config.default_prefix}say** - você fala e eu repito
+• **${config.default_prefix}ship** - ship um casal ou veja qual a probabilidade de você dar certo com seu crush`)
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
     
     let embed3 = new Discord.MessageEmbed()
     .setDescription(`<:game:810254416635494400>ㅤ**GAMES**:\n
+• **${config.default_prefix}fight** - lute com alguém do servidor e veja quem sai vitorioso		
 • **${config.default_prefix}hangman** - Jogue uma partida de jogo da forca
 • **${config.default_prefix}ppt** - "Pedra papel tesoura/ Jogue jokenpô com o bot
-• **${config.default_prefix}tictac** - Jogue uma partida de jogo da velha com um membro do servidor`)
+• **${config.default_prefix}tictactoe** - Jogue uma partida de jogo da velha com um membro do servidor`)
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
         
@@ -72,6 +77,7 @@ module.exports = {
 • **${config.default_prefix}changemymind** - Coloque sua frase dentro de uma imagem Change my mind
 • **${config.default_prefix}meme** - Gera imagens com memes aleátorios
 • **${config.default_prefix}memevideo** - Videos de memes aleátorios
+• **${config.default_prefix}wallpaper** - obtenha uma imagem neko
 • **${config.default_prefix}wasted** - Retornna uma imagem wasted!`)
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)    
@@ -82,13 +88,16 @@ module.exports = {
 • **${config.default_prefix}removecargo** - Retira um cargo do usuario mencionado
 • **${config.default_prefix}adcmd** - adicionar comandos personalizados de guilda
 • **${config.default_prefix}delcmd** - Exclua o comando personalizado
-• **${config.default_prefix}ban** - Banir qualquer pessoa do servidor
+• **${config.default_prefix}ban** - Banir um usuario que tenha quebrado as regras 
+• **${config.default_prefix}unban** - Desbanir aquele usuário que você baniu
 • **${config.default_prefix}chutar** - Expulse qualquer membro do servidor
 • **${config.default_prefix}limpar** - Apague até 99 mensagens de um canal
+• **${config.default_prefix}lock** - Bloqueie um canal
+• **${config.default_prefix}unlock** - Desbloquie o canal bloqueado
 • **${config.default_prefix}mute** - Silencie um membro do servidor ideal para aqueles que gostam de quebrar as regras
 • **${config.default_prefix}unmute** - Desmutar um membro do servidor
-• **${config.default_prefix}default_prefix** - Mude meu default_prefixo neste servidor
 • **${config.default_prefix}tempmute** - Defina o tempo que um membro vai permanecer mutado
+• **${config.default_prefix}prefix** - Mude meu default_prefixo neste servidor
 • **${config.default_prefix}slowmode** - Permite definir o modo lento no canal
 • **${config.default_prefix}warn** - Advertir quem não obedece às regras
 • **${config.default_prefix}warnings** - Veja os avisos seus ou da pessoa mencionada
@@ -122,11 +131,17 @@ module.exports = {
     let embed7 = new Discord.MessageEmbed()
     .setDescription(`<:nsfw2:810232533462810666>ㅤ**NSFW**:\n
 • **${config.default_prefix}4k**
+• **${config.default_prefix}anal**
 • **${config.default_prefix}ass**
 • **${config.default_prefix}gif**
 • **${config.default_prefix}hentai**
+• **${config.default_prefix}hentaigif**
+• **${config.default_prefix}holo**
+• **${config.default_prefix}lewd**
 • **${config.default_prefix}neko**
-• **${config.default_prefix}pussy**`)
+• **${config.default_prefix}pussy**
+• **${config.default_prefix}rule34**
+• **${config.default_prefix}thigh**`)
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
     
@@ -134,6 +149,7 @@ module.exports = {
     .setDescription(`<:utility:810250009894584351>ㅤ**UTILIDADE**:\n
 • **${config.default_prefix}anime** - Informações sobre Animes!
 • **${config.default_prefix}avatar** - Exibe o seu avatar ou de um outro usuário
+• **${config.default_prefix}calculadora** - Faça 
 • **${config.default_prefix}clima** - Veja o clima de qualquer lugar do mundo
 • **${config.default_prefix}convite** - Para me adicionar / convidar o bot para o seu servidor
 • **${config.default_prefix}covid** - Receba atualizações de todo o mundo dos casos de covid 19
@@ -144,6 +160,7 @@ module.exports = {
 • **${config.default_prefix}level** - Veja o nível do autor ou usuario mencionado
 • **${config.default_prefix}ping** - Obter ping do bot
 • **${config.default_prefix}sugerir** - Envie uma sugestão, ideal para usar em canais de sugestões
+• **${config.default_prefix}tradutor** - Traduza uma frase ou um texto para o seu idioma
 • **${config.default_prefix}userinfo** - Obtenha estatísticas avançadas de determinada pessoa ou de você mesmo`)
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)

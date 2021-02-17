@@ -1,4 +1,5 @@
 const request = require('node-fetch');
+const errors = require('../../assets/json/errors');
 const fs = require("fs");
 const Discord = require('discord.js');
 const booru = require('booru');
@@ -9,21 +10,17 @@ module.exports = {
     category: "NSFW",
   run: async (bot, message, args) => {
   //command
-
+		message.delete({timeout: 5000})
   //Checks channel for nsfw
-  var errMessage =(new Discord.MessageEmbed()
-	.setColor('#FF0000')
-	.setTitle("🔐 Você deve usar este comando em uma sala nsfw!")
-	);
-  if (!message.channel.nsfw) {
-      message.react('💢');
-
-      return message.reply(errMessage)
-      .then(msg => {
-      msg.delete({ timeout: 4000 })
+        var errMessage = errors[Math.round(Math.random() * (errors.length - 1))];
+        if (!message.channel.nsfw) {
+            message.react('💢');
+            return message.channel.send(new Discord.MessageEmbed()
+						.setColor('#ff0000')
+						.setTitle(errMessage)).then(msg => {
+      msg.delete({ timeout: 5000 })
       })
-      
-  }
+        }
 
   if (message.content.toUpperCase().includes('LOLI') || message.content.toUpperCase().includes('GORE')) return message.channel.send('Esse tipo de coisa não é permitido! Nem mesmo em canais NSFW!');
 
