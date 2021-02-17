@@ -11,33 +11,6 @@ const client = new discord.Client({
 });
 
 
-client.on('AddReacaoMensagem', async(reaction, user) => {
-    if(reaction.message.partial) await reaction.message.fetch();
-    if(reaction.partial) await reaction.fetch();
-    if(user.bot) return;
-    if(!reaction.message.guild) return;
-    if(reaction.message.id === '<mensagemID>'){
-        if(reaction.emoji.name === '<emoji>') {
-            await reaction.message.guild.members.cache.get(user.id).roles.add('<cargoID>')
-            user.send('Você obteve uma função!')
-        }
-    }
-})
-client.on('RemoverReacaoMensagem', async(reaction, user) => {
-    if(reaction.message.partial) await reaction.message.fetch();
-    if(reaction.partial) await reaction.fetch();
-    if(user.bot) return;
-    if(!reaction.message.guild) return;
-    if(reaction.message.id === '<menssagemID>'){
-        if(reaction.emoji.name === '<emoji>') {
-            await reaction.message.guild.members.cache.get(user.id).roles.remove('<cargoID>')
-            user.send('Uma de suas funções foi removida!')
-        }
-    }
-})
-
-
-
 //Faz o bot ficar online
 app.get("/", (request, response) => {
   response.sendStatus(200); //responde quando recebe ping
@@ -59,24 +32,6 @@ const canva = new CanvasSenpai();
 	require(`./handlers/${handler}`)(client);
 });
 
-
-client.on('ready', () => {
-	let activities = [
-			`use k!help para obter ajuda!`,
-			`${client.channels.cache.size} canais!`,
-			`${client.users.cache.size} usuários!`
-		],
-		i = 0;
-	setInterval(
-		() =>
-			client.user.setActivity(`${activities[i++ % activities.length]}`, {
-				type: 'PLAYING'
-			}),
-		1000 * 60
-	);
-	client.user.setStatus('online').catch(console.error);
-	console.log('Estou Online!');
-});
 //é função URL - START
 
 function is_url(str) {
@@ -132,33 +87,60 @@ client.on('message', async message => {
 
 	return addexp(message);
 });
-//inicio
 
-
-
-//final
 //VAI USAR O EVENTO AQUI
+client.on("guildMemberAdd", async (member) => {
+  let chx = db.get(`welchannel_${member.guild.id}`);
+  
+  if(chx === null) {
+    return;
+  }
+  
+  let default_url = `https://cdn.discordapp.com/attachments/696417925418057789/716197399336583178/giphy.gif`
+  
+  let default_msg = `━━━━━━━━━━━━━━━━━━━━━━━━
+  | WELCOME ${member} TO ${member.guild}
+        
+━━━━━━━━━━━━━━━━━━━━━━━━
+ | BE SURE THAT YOU HAVE READ    
+           |RULES
+━━━━━━━━━━━━━━━━━━━━━━━━
+ | USERNAME ${member.username}  
+|RANK is ${member.member_count}  ━━━━━━━━━━━━━━━━━━━━━━━━
+ | YOU CAN ENJOY IN  CHATTING 
+━━━━━━━━━━━━━━━━━━━━━━━━
+            THANKS FOR JOINING US
+`
+  
+  let m1 = db.get(`msg_${member.guild.id}`)
 
-client.on('guildMemberAdd', async member => {
-	let chx = db.get(`welchannel_${member.guild.id}`);
+const msg = m1
+.replace("{member}", member.user)
+.replace("{member.guild}", member.guild)
+.replace("(:HEART)",`<a:BH:731369456634429493>`)
 
-	if (chx === null) {
-		return;
-	}
+  
+  let url = db.get(`url_${member.guild.id}`)
+  if(url === null) url = default_url
+  
+   let data = await canva.welcome(member, { link: "https://wallpapercave.com/wp/wp5128415.jpg" })
+ 
+    const attachment = new discord.MessageAttachment(
+      data,
+      "welcome-image.png"
+    );
 
-	let data = await canva.welcome(member, {
-		link:
-			'https://img.freepik.com/vetores-gratis/abstrato-amarelo-em-quadrinhos-zoom_1409-923.jpg?size=626&ext=jpg'
-	});
+  let wembed = new discord.MessageEmbed()
+  .setAuthor(member.user.username, member.user.avatarURL({dynamic: true, size: 2048}))
+  .setThumbnail(member.user.displayAvatarURL({dynamic: true, size: 2048}))
+  .setColor("RANDOM")
+  .setImage()
+  .setDescription(msg);
+  
+  client.channels.cache.get(chx).send(wembed)
+  client.channels.cache.get(chx).send(attachment)
+})
 
-	const attachment = new discord.MessageAttachment(data, 'welcome-image.png');
-
-	client.channels.cache
-		.get(chx)
-		.send(
-			'**${member.user}**, bem-vindo(a) ao servidor **${guild.name}**! Atualmente estamos com **${member.guild.memberCount} membros**, divirta-se conosco! :heart:'
-		);
-});
 
 //NOVO EVENTO
 

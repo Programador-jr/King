@@ -1,4 +1,4 @@
-const { Message } = require('discord.js')
+const discord = require('discord.js')
 
 module.exports = {
     name : "removecargo",
@@ -16,9 +16,9 @@ module.exports = {
         if(!message.member.hasPermission("MANAGE_ROLES")) return message.channel.send('Você não tem permissões de gerênciar cargos!')
         //em seguida, definimos algumas variáveis
         const target = message.mentions.members.first() //membro = menções
-        if(!target) return message.channel.send('No member specified') //quando nenhum membro é pingado
+        if(!target) return message.channel.send('Nenhum membro especificado') //quando nenhum membro é pingado
         const role = message.mentions.roles.first() // cargo = menções
-        if(!role) return message.channel.send('No role specified') //quando nenhuma função é especificada ou pingada
+        if(!role) return message.channel.send('Nenhum membro especificado') //quando nenhuma função é especificada ou pingada
         //agora o código!
         await target.roles.remove(role) //removendo a função para o usuário
         message.channel.send(`${target.user.username} cargo removido!`) //isso é opcional e editável

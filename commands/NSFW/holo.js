@@ -1,11 +1,11 @@
 const Discord = require("discord.js");
 const errors = require('../../assets/json/errors');
-module.exports = {
-	name: "ass",
-	category: "NSFW",
-	run:async (client, message, args) => {
+	module.exports = {
+    name: "holo",
+		category: "NSFW",
+    run: async (client, message, args) => {
 		message.delete({timeout: 5000})
-    var superagent = require('superagent');
+			 var superagent = require('superagent');
 
         var errMessage = errors[Math.round(Math.random() * (errors.length - 1))];
         if (!message.channel.nsfw) {
@@ -23,12 +23,11 @@ module.exports = {
 
     message.channel.send(lo).then(m => {
 
-        superagent.get('https://nekobot.xyz/api/image').query({ type: 'ass'}).end((err, response) => {
+        superagent.get('https://nekobot.xyz/api/image').query({ type: 'holo'}).end((err, response) => {
 
             var embed_nsfw = new Discord.MessageEmbed()
-								.setTitle('Aqui está sua imagem...👀')
                 .setDescription(`**[A imagem não está carregando? Clique aqui](${response.body.message})**`)
-								.setColor('#FF1493')
+								.setColor('	#FF1493')
                 .setTimestamp()
                 .setImage(response.body.message)
             

@@ -1,4 +1,4 @@
-const Discord = require("discord.js");
+const {MessageEmbed} = require("discord.js");
 
 	module.exports = {
     name: "king",
@@ -34,6 +34,10 @@ const Discord = require("discord.js");
 const BallNum = Math.floor(Math.random() * respostas.length); 
 const delay = (msec) => new Promise((resolve) => setTimeout(resolve, msec)); 
 
+if(!args[0])return message.channel.send(new MessageEmbed()
+.setColor("#ff0000")
+.setTitle("Você deve me faxer uma pergunta ao executar o comando")
+)
 msg = await message.channel.send('Pergunta difícil, vamos ver...');
 await delay(1000); 
 msg.edit(respostas[BallNum]);

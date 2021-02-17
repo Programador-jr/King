@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const errors = require('../../assets/json/errors');
 module.exports = {
-	name: "ass",
+	name: "lewd",
 	category: "NSFW",
 	run:async (client, message, args) => {
 		message.delete({timeout: 5000})
@@ -15,7 +15,7 @@ module.exports = {
 						.setTitle(errMessage)).then(msg => {
       msg.delete({ timeout: 5000 })
       })
-        } 
+        }
 
     var lo = new Discord.MessageEmbed()
                 .setDescription(`Por favor, espere...`)
@@ -23,13 +23,14 @@ module.exports = {
 
     message.channel.send(lo).then(m => {
 
-        superagent.get('https://nekobot.xyz/api/image').query({ type: 'ass'}).end((err, response) => {
+        superagent.get('https://nekobot.xyz/api/image').query({ type: 'lewd'}).end((err, response) => {
 
             var embed_nsfw = new Discord.MessageEmbed()
-								.setTitle('Aqui está sua imagem...👀')
-                .setDescription(`**[A imagem não está carregando? Clique aqui](${response.body.message})**`)
-								.setColor('#FF1493')
                 .setTimestamp()
+								.setFooter(message.author.username)
+								.setTitle('Aqui está sua imagem...👀')
+								.setColor('#FF1493')
+								.setDescription(`**[A imagem não está carregando? Clique aqui](${response.body.message})**`)
                 .setImage(response.body.message)
             
             m.edit(embed_nsfw);
