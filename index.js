@@ -1,19 +1,53 @@
 const { token, default_prefix } = require('./config.json');
 const { badwords } = require('./data.json');
+const {DiscordUNO} = require('discord-uno');
+const discordUNO = new DiscordUNO('YELLOW');
 const { config } = require('dotenv');
 var express = require('express');
 var app = express();
 const http = require('http');
 const discord = require('discord.js'); //Vou usar o Módulo Discord.js
 const client = new discord.Client({
-	disableEveryone: true, // o que essa coisa de desabilitar faz?
+	disableEveryone: false, // o que essa coisa de desabilitar faz?
 	partials : ["MESSAGE", "CHANNEL", "REACTION"]
 });
+//uno
 
+client.on("ready", () => console.log("ready"));
+
+client.on("message", async(message) => {
+	if(message.content.toLowerCase() === "k!criargame") await discordUNO.createGame(message);
+
+	else if (message.content.toLowerCase() === "k!entrar") await discordUNO.addUser(message);
+
+	else if (message.content.toLowerCase() === "k!sair") await discordUNO.removeUser(message);
+
+	else if (message.content.toLowerCase() === "k!mão") await discordUNO.viewCards(message);
+
+	else if (message.content.toLowerCase() === "k!startgame") await discordUNO.startGame(message);
+
+	else if (message.content.toLowerCase() === "k!play") await discordUNO.playCard(message);
+
+	else if (message.content.toLowerCase() === "k!fechargame") await discordUNO.closeGame(message);
+
+	else if (message.content.toLowerCase() === "k!endgame") await discordUNO.endGame(message);
+
+	else if (message.content.toLowerCase() === "k!puxar") await discordUNO.draw(message);
+
+	else if (message.content.toLowerCase() === "k!configurar") await discordUNO.updateSettings(message);
+
+	else if (message.content.toLowerCase() === "k!verconfiguração") await discordUNO.viewSettings(message);
+
+	else if (message.content.toLowerCase() === "k!uno") await discordUNO.UNO(message);
+
+	else if (message.content.toLowerCase() === "k!mesa") await discordUNO.viewTable(message);
+})
+
+//
 
 //Faz o bot ficar online
 app.get("/", (request, response) => {
-  response.sendStatus(200); //responde quando recebe ping
+  response.sendStatus(100); //responde quando recebe ping
   console.log("ping recebido!");
 
 
@@ -115,8 +149,8 @@ client.on("guildMemberAdd", async (member) => {
   let m1 = db.get(`msg_${member.guild.id}`)
 
 const msg = m1
-.replace("{member}", member.user)
-.replace("{member.guild}", member.guild)
+.replace(`${member}`, `${member.user}`)
+.replace(`${member.guild}`, `${member.guild}`)
 .replace("(:HEART)",`<a:BH:731369456634429493>`)
 
   
@@ -143,75 +177,5 @@ const msg = m1
 
 
 //NOVO EVENTO
-
-const usersMap = new Map();
-const LIMIT = 5;
-const TIME = 7000;
-const DIFF = 3000;
-
-client.on('message', async(message) => {
-    if(message.author.bot) return;
-    if(usersMap.has(message.author.id)) {
-        const userData = usersMap.get(message.author.id);
-        const { lastMessage, timer } = userData;
-        const difference = message.createdTimestamp - lastMessage.createdTimestamp;
-        let msgCount = userData.msgCount;
-        console.log(difference);
-
-        if(difference > DIFF) {
-            clearTimeout(timer);
-            console.log('Limpo de tempo limite');
-            userData.msgCount = 1;
-            userData.lastMessage = message;
-            userData.timer = setTimeout(() => {
-                usersMap.delete(message.author.id);
-                console.log('Removido do mapa.')
-            }, TIME);
-            usersMap.set(message.author.id, userData)
-        }
-        else {
-            ++msgCount;
-            if(parseInt(msgCount) === LIMIT) {
-                let muterole = message.guild.roles.cache.find(role => role.name === 'mutado');
-                if(!muterole) {
-                    try{
-                        muterole = await message.guild.roles.create({
-                            name : "mutado",
-                            permissions: []
-                        })
-                        message.guild.channels.cache.forEach(async (channel, id) => {
-                            await channel.createOverwrite(mutadorole, {
-                                SEND_MESSAGES: false,
-                                ADD_REACTIONS : false
-                            })
-                        })
-                    }catch (e) {
-                        console.log(e)
-                    }
-                }
-                message.member.roles.add(mutadorole);
-                message.channel.send('Você foi silenciado!');
-                setTimeout(() => {
-                    message.member.roles.remove(mutadorole);
-                    message.channel.send('Você foi reativado!')
-                }, TIME);
-            } else {
-                userData.msgCount = msgCount;
-                usersMap.set(message.author.id, userData);
-            }
-        }
-    }
-    else {
-        let fn = setTimeout(() => {
-            usersMap.delete(message.author.id);
-            console.log('Removido do mapa.')
-        }, TIME);
-        usersMap.set(message.author.id, {
-            msgCount: 1,
-            lastMessage : message,
-            timer : fn
-        });
-    }
-})
 
 client.login(token);

@@ -5,7 +5,7 @@ module.exports = {
   name: "user",
   aliases: ["userinfo"],
   category: "info",
-  description: "Get info of any user",
+  description: "Obtenha inf",
   run: async (client, message, args) => {
     
     let target
@@ -36,14 +36,14 @@ module.exports = {
     let joined = Math.floor(y / 86400000);
     
     const member = message.guild.member(target);
-    let nickname = member.nickname !== undefined && member.nickname !== null ? member.nickname : "Nenhum apelido nesse servidor";
+    let nickname = member.nickname !== undefined && member.nickname !== null ? member.nickname : "Vazio";
     let status = target.presence.status;
     let avatar = target.avatarURL({ dynamic: true, size: 2048 });
     let aicon = message.author.avatarURL({ dynamic: true, size: 2048 });
     let createdate = moment.utc(target.createdAt).format("DD MM YYYY");
     let joindate = moment.utc(target.joinedAt).format(" DD MM YYYY");
     let flags = target.flags.toArray();
-    if(target.flags.toArray() < 1) flags = "Não possui nenhum emblema";
+    if(target.flags.toArray() < 1) flags = "Vazio";
 
 
     const embed = new MessageEmbed()

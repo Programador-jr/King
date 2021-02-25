@@ -51,7 +51,7 @@ module.exports = {
     let embed2 = new Discord.MessageEmbed()
 .setDescription(`<a:fun:810254327372316713>ㅤ**DIVERSÃO**:\n
 • **${config.default_prefix}ascii** - Retorna um texto em formato ascii
-• **${config.default_prefix}chatbot** - Converse comigo ^-^
+• **${config.default_prefix}chat** - Converse comigo ^-^
 • **${config.default_prefix}coinflip** - Gire uma moeda e veja se irá cair cara ou coroa!
 • **${config.default_prefix}ejetar** - ejete alguém da nave - Among Us
 • **${config.default_prefix}emojify** - Retorna um texto em forma de emoji

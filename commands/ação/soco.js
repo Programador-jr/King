@@ -26,6 +26,7 @@ const Discord = require("discord.js");
 
 var rand = list[Math.floor(Math.random() * list.length)];
 let user = message.mentions.users.first() || client.users.cache.get(args[0]);
+if (message.mentions.users.first().id === "") return message.reply('Por que deseja me bater? O que eu te fiz?!');
 if (!user) {
 return message.reply('lembre-se de mencionar um usuário válido para executar essa ação!');
 }

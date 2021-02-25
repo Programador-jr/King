@@ -24,6 +24,8 @@ const Discord = require("discord.js");
 			'https://img-9gag-fun.9cache.com/photo/aEpn1mM_460svvp9.webm',
 			'https://img-9gag-fun.9cache.com/photo/a8Epj4Y_460svvp9.webm',
 			'https://img-9gag-fun.9cache.com/photo/a7Edozx_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/a5EZwMr_460svvp9.webm',
+			'https://img-9gag-fun.9cache.com/photo/aMK897W_460svvp9.webm',
 ]
 
 const BallNum = Math.floor(Math.random() * respostas.length); 

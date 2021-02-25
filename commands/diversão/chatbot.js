@@ -1,4 +1,5 @@
-const { chatBot } = require('reconlx') 
+const alexa = require('alexa-bot-api');
+var chatbot = new alexa('aw2plm'); 
 
 module.exports = {
     name : "chatbot",
@@ -6,7 +7,11 @@ module.exports = {
 		description: "Converse comigo ^-^",
 		category:"diversão",
     run : async(client, message, args) => {
-				if(!args.join("")) return message.channel.send("Inicie uma conversa, que tal começar com um, Oi? | **Por favor evite user acentuações graficas porque meu sistema não considera isso um códico valido 😔**");
-        chatBot(message, args.join(" "))
+	if (message.author.bot) return;
+	let content = message.content;
+	if(!content)return;
+	if(!args.join(" ")) return message.channel.send("Inicie uma conversa, que tal começar com um, Oi?")	
+
+	chatbot.getReply(content).then(r => message.channel.send(r));
     }
 }
