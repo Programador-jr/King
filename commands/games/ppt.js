@@ -1,24 +1,35 @@
-const { MessageEmbed } = require("discord.js");
-
+const Discord = require('discord.js');
+const default_prefix = require('../../config.json');
 module.exports = {
-    name: "ppt",
-		usage: "ppt <pedra/papel/tesoura>",
-    description: "Pedra papel tesoura",
-    category: "jogos",
-   run: async (client, message, args) => {
-        const replies = ["pedra", "papel", "tesoura"];
+	name:"ppt",
+	category:"games",
+	aliases:["jokenpo", "jokenpô"],
+	run:async (client, message, args, defaut_prefix) => {
+    const sp = args.join(" ")
+    const rand = Math.floor(Math.random() * 6)
+    if(!args.join(" ")) return message.channel.send(`${message.author}, eu preciso que você escreva algo após o comando \`${default_prefix}ppt <pedra/papel/tesoura>\``)
+    if(rand === 0 || rand === 1)  {
+        chs = `pedra`
+    }
 
-        const reply = replies[Math.floor(Math.random() * replies.length)];
-				if(!args.join(""))
-				return message.channel.send("**pedra , papel ou tesoura? Escolha um -_-**")
+    if(rand === 2 || rand === 3)  {
+        chs = `tesoura`
+    }
 
-        const embed = new MessageEmbed()
-            .setTitle("Pedra Papel Tesoura")
-            .setColor("GREEN")
-            .addField(`Minha escolha`, `${reply}`)
-						.addField(`Sua escolha`,`${args.join("")}`)
-            .setFooter(message.author.username);
+    if(rand === 4 || rand === 5 )  {
+        chs = `papel`
+    }
 
-        message.channel.send(embed);
-    },
-};
+    if(sp == `papel` && chs == `papel` || sp == `pedra` && chs == `pedra` || sp == 'tesoura' && chs == 'tesoura') {
+        message.channel.send(`Você escolheu **${sp}** e eu escolhi **${chs}**`)
+    }
+
+    if(sp == `papel` && chs == `pedra` || sp == `pedra` && chs == `tesoura` || sp == `tesoura` && chs == `papel`){
+        message.channel.send(`${message.author}, Você escolheu **${sp}** e eu escolhi **${chs}**`)
+    }
+
+    if(sp == `papel` && chs == `tesoura` || sp == `pedra` && chs == `papel` || sp == `tesoura` && chs == `pedra`){
+        message.channel.send(`${message.author}, Você escolheu **${sp}** e eu escolhi **${chs}**`)
+    }
+}
+}

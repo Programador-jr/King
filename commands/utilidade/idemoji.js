@@ -4,7 +4,7 @@ module.exports ={
 	name:"idemoji",
 	usage:"idemoji <emoji>",
 	category:"utilidade",
-	aliases:["emoji", "emojiid"],
+	aliases:["emojiid"],
 
 	run:async (client, message, args) => {
   message.delete();

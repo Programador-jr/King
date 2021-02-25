@@ -20,7 +20,7 @@ module.exports = {
       })
     }
     
-    let channel = message.guild.channels.cache.find((x) => (x.name === "sugestão" || x.name === "sugestões"))
+    let channel = message.guild.channels.cache.find((x) => (x.name === "sugestão" || x.name === "sugestões" || x.name === "💡⎮sugestões"))
     
     
     if(!channel) {
