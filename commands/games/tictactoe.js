@@ -39,7 +39,7 @@ module.exports = {
       message2 => message2.author.id === mention.id,
       {
         max: 1,
-        time: 60000,
+        time: 12000,
         errors: ["time"]
       }
     );
@@ -82,7 +82,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -105,7 +105,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 1;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", mention)
       .replace("%author", message.author);
     const noAnswerEmbed = new MessageEmbed()
@@ -130,7 +130,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -153,7 +153,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 2;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", message.author)
       .replace("%author", mention);
     const noAnswerEmbed = new MessageEmbed()
@@ -180,7 +180,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -203,7 +203,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 1;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", mention)
       .replace("%author", message.author);
     const noAnswerEmbed = new MessageEmbed()
@@ -228,7 +228,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -251,7 +251,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 2;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", message.author)
       .replace("%author", mention);
     const noAnswerEmbed = new MessageEmbed()
@@ -278,7 +278,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -301,7 +301,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 1;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", mention)
       .replace("%author", message.author);
     const noAnswerEmbed = new MessageEmbed()
@@ -326,7 +326,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -349,7 +349,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 2;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", message.author)
       .replace("%author", mention);
     const noAnswerEmbed = new MessageEmbed()
@@ -494,7 +494,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -517,7 +517,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 1;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", mention)
       .replace("%author", message.author);
     const noAnswerEmbed = new MessageEmbed()
@@ -655,7 +655,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -678,7 +678,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 2;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", message.author)
       .replace("%author", mention);
     const noAnswerEmbed = new MessageEmbed()
@@ -818,7 +818,7 @@ module.exports = {
         validation[message2.content - 1] === 0,
       {
         max: 1,
-        time: 15000,
+        time: 30000,
         errors: ["time"]
       }
     );
@@ -841,7 +841,7 @@ module.exports = {
     });
     validation[response1.first().content - 1] = 1;
   } catch (error) {
-    const noanswer = "%author não respondeu por 15 segundos e %user ganhou a rodada."
+    const noanswer = "%author não respondeu por 30 segundos e %user ganhou a rodada."
       .replace("%user", mention)
       .replace("%author", message.author);
     const noAnswerEmbed = new MessageEmbed()

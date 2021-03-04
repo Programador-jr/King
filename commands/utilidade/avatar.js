@@ -13,9 +13,9 @@ run: async (client, message, args) => {
   let avatar = user.avatarURL({ dynamic: true, format: "png", size: 1024 });
 
   let embed = new Discord.MessageEmbed() 
-    .setColor(`RANDOM`) 
+    .setColor('#00bfff') 
     .setTitle(`Avatar de ${user.username}`)
-		.setDescription(`[Download](${message.author.avatarURL({ dynamic: true, size: 1024 })})`)
+		.setDescription(`[Download](${avatar})`)
     .setImage(avatar) 
     .setFooter(`• Autor: ${message.author.tag}`, message.author.displayAvatarURL({format: "png"}));
  await message.channel.send(embed);

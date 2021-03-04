@@ -21,7 +21,7 @@ module.exports = {
     .addField(`<:game:810254416635494400>ㅤ**GAMES**`,`ㅤ`)
     .addField(`<:photos:810249979905572864>ㅤ**IMAGEM**`,`ㅤ`)
     .addField(`<a:moderation:810250044888317952>ㅤ**MODERAÇÃO**`,`ㅤ`)
-    .addField(`<:musica:810233712334995496>ㅤ**MUSICA**`,`ㅤ`)
+    .addField(`<:musica:810233712334995496>ㅤ**MUSICA**`,`❗|Em manutenção`)
     .addField(`<:nsfw2:810232533462810666>ㅤ**NSFW**`,`ㅤ`)
     .addField(`<:utility:810250009894584351>ㅤ**UTILIDADE**`,`ㅤ`)
     .setThumbnail(client.user.avatarURL)
@@ -50,12 +50,12 @@ module.exports = {
     
     let embed2 = new Discord.MessageEmbed()
 .setDescription(`<a:fun:810254327372316713>ㅤ**DIVERSÃO**:\n
+• **${config.default_prefix}8ball** - Faça uma pergunta para o bot e ele irá responder você da Melhor forma possível.
 • **${config.default_prefix}ascii** - Retorna um texto em formato ascii
 • **${config.default_prefix}chat** - Converse comigo ^-^
 • **${config.default_prefix}coinflip** - Gire uma moeda e veja se irá cair cara ou coroa!
 • **${config.default_prefix}ejetar** - ejete alguém da nave - Among Us
 • **${config.default_prefix}emojify** - Retorna um texto em forma de emoji
-• **${config.default_prefix}king** - Faça uma pergunta para o bot e ele irá responder você da Melhor forma possível.
 • **${config.default_prefix}morse** - codifique ou decodifique um codigo morse
 • **${config.default_prefix}ratewaifu** - vote em sua waifu favorita
 • **${config.default_prefix}say** - você fala e eu repito
@@ -149,7 +149,7 @@ module.exports = {
     .setDescription(`<:utility:810250009894584351>ㅤ**UTILIDADE**:\n
 • **${config.default_prefix}anime** - Informações sobre Animes!
 • **${config.default_prefix}avatar** - Exibe o seu avatar ou de um outro usuário
-• **${config.default_prefix}calculadora** - Faça 
+• **${config.default_prefix}calculadora** - Resolva um calculo matematico
 • **${config.default_prefix}clima** - Veja o clima de qualquer lugar do mundo
 • **${config.default_prefix}convite** - Para me adicionar / convidar o bot para o seu servidor
 • **${config.default_prefix}covid** - Receba atualizações de todo o mundo dos casos de covid 19
@@ -184,7 +184,7 @@ module.exports = {
     const game = msg.createReactionCollector((r, u) => r.emoji.id === "810254416635494400" && u.id === message.author.id, { time: 120000 });
     const image = msg.createReactionCollector((r, u) => r.emoji.id === "810249979905572864" &&u.id === message.author.id, { time: 120000 });
     const mod = msg.createReactionCollector((r, u) => r.emoji.id === "810250044888317952" &&u.id === message.author.id, {time: 120000});
-    const music = msg.createReactionCollector((r, u)  => r.emoji.id === "810233712334995496" &&u.id === message.author.id, {time:120000});    
+    const music = msg.createReactionCollector((r, u)  => r.emoji.name === "810233712334995496" &&u.id === message.author.id, {time:120000});    
     const nsfw = msg.createReactionCollector((r, u) => r.emoji.id === "810232533462810666" &&u.id === message.author.id, {time:120000});
     const util = msg.createReactionCollector((r, u) => r.emoji.id === "810250009894584351" &&u.id === message.author.id, {time:120000});    
     inicio.on('collect', async r => {

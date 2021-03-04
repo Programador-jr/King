@@ -41,7 +41,7 @@ module.exports = {
     let avatar = target.avatarURL({ dynamic: true, size: 2048 });
     let aicon = message.author.avatarURL({ dynamic: true, size: 2048 });
     let createdate = moment.utc(target.createdAt).format("DD MM YYYY");
-    let joindate = moment.utc(target.joinedAt).format(" DD MM YYYY");
+    let joindate = moment.utc(target.joinedAt).format("DD MM YYYY");
     let flags = target.flags.toArray();
     if(target.flags.toArray() < 1) flags = "Não possui nenhum emblema";
 

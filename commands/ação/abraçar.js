@@ -3,9 +3,9 @@ const Discord = require("discord.js");
 	module.exports = {
     name: "abraçar",
 		usage: "abraçar <@user>",
-		aliases: ["hug", "abraço", "abracar", "abraco"],
+		aliases: ["hug", "abraço", "abraçar"],
 		description: "Dê um web abraço em um membro do servidor ",
-    category: "encenação",
+    category: "ação",
     run: async (client, message, args) => {
 			var list = [
 			'https://i.pinimg.com/originals/08/de/7a/08de7ad3dcac4e10d27b2c203841a99f.gif',

@@ -3,7 +3,7 @@ var chatbot = new alexa('aw2plm');
 
 module.exports = {
     name : "chatbot",
-		aliases: ["chat", "bot"],
+		aliases: ["chat", "bot", "king"],
 		description: "Converse comigo ^-^",
 		category:"diversão",
     run : async(client, message, args) => {

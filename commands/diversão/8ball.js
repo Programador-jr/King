@@ -1,9 +1,9 @@
 const {MessageEmbed} = require("discord.js");
 
 	module.exports = {
-    name: "king",
-		usage: "king <pergunta>",
-		aliases: ["k", "guru", "8ball"],
+    name: "8ball",
+		usage: "8ball <pergunta>",
+		aliases: ["guru"],
 		description: "Faça uma pergunta para o bot e ele irá responder você da Melhor forma possível.",
     category: "diversão",
     run: async (client, message, args) => {

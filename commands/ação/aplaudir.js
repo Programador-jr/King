@@ -3,8 +3,7 @@ const Discord = require('discord.js');
 module.exports = {
 	name:"aplaudir",
 	category:"ação",
-	aliases:["clap"],
-
+	aliases:["clap", "aplauso", "palmas"],
 	run: async(client, message, args) => {
 		var list = [
 
