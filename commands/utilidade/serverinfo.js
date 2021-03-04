@@ -35,32 +35,33 @@ module.exports = {
       .setTitle(message.guild)
       .setDescription(
         `
-<:arrow2:812770296289427549>**PROPRIETÁRIO**
+<:king2:814342839735287851> **PROPRIETÁRIO**
 ${message.guild.owner.user.tag}
-<:arrow2:812770296289427549>**ID DO SERVIDOR**
+<:id:814337350762233866> **ID DO SERVIDOR**
 ${message.guild.id}
-<:arrow2:812770296289427549>**REGIÃO**
+<:region:814337618199969802> **REGIÃO**
 ${message.guild.region}
-<:arrow2:812770296289427549>**TOTAL DE MEMBROS  **
+<:people:814336053648949268> **MEMBROS  **
 ${message.guild.memberCount}
-<:arrow2:812770296289427549>**TOTAL DE CANAIS **
+<:channel:814339037325164544> **CANAIS **
  ${message.guild.channels.cache.size}
-<:arrow2:812770296289427549>**TOTAL DE CARGOS**
+<:role:814339727258943498> **CARGOS**
 ${message.guild.roles.cache.size}
-<:arrow2:812770296289427549>**TOTAL DE EMOJIS **
+<:alias:807391421656334398> **EMOJIS **
 ${message.guild.emojis.cache.size}
-<:arrow2:812770296289427549>**SERVIDOR CRIADO EM**
-${message.guild.created}
-<:arrow2:812770296289427549>**SERVER BOOST**
+<:date:814336828727361576> **SERVIDOR CRIADO EM**
+${message.guild.createdAt.toLocaleDateString("pt-br")}
+<:boost3:812908518562201650> **SERVER BOOST**
 ${message.guild.premiumSubscriptionCount} 
-<:arrow2:812770296289427549>**NÍVEL DO BOOST**
+<:boost2:812908146636226591> **NÍVEL DO BOOST**
 ${boostlevel} 
-<:arrow2:812770296289427549>**SEGURANÇA** 
+<:securit:814335706079166484> **NÍVEL DE SEGURANÇA** 
 ${message.guild.verificationLevel}
 `)
       .setThumbnail(message.guild.iconURL())
       .setColor("#00bfff")
       .setFooter(`${message.author.username}`)
+			.setTimestamp()
 
     message.channel.send(embed);
   }

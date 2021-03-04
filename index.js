@@ -1,58 +1,24 @@
 const { token, default_prefix } = require('./config.json');
 const { badwords } = require('./data.json');
-const {DiscordUNO} = require('discord-uno');
-const discordUNO = new DiscordUNO('YELLOW');
 const { config } = require('dotenv');
 var express = require('express');
 var app = express();
 const http = require('http');
 const discord = require('discord.js'); //Vou usar o Módulo Discord.js
 const client = new discord.Client({
-	disableEveryone: false, // o que essa coisa de desabilitar faz?
+	disableEveryone: true, // o que essa coisa de desabilitar faz?
 	partials : ["MESSAGE", "CHANNEL", "REACTION"]
 });
-//uno
-
-client.on("ready", () => console.log("ready"));
-
-client.on("message", async(message) => {
-	if(message.content.toLowerCase() === "k!criargame") await discordUNO.createGame(message);
-
-	else if (message.content.toLowerCase() === "k!entrar") await discordUNO.addUser(message);
-
-	else if (message.content.toLowerCase() === "k!sair") await discordUNO.removeUser(message);
-
-	else if (message.content.toLowerCase() === "k!mão") await discordUNO.viewCards(message);
-
-	else if (message.content.toLowerCase() === "k!startgame") await discordUNO.startGame(message);
-
-	else if (message.content.toLowerCase() === "k!play") await discordUNO.playCard(message);
-
-	else if (message.content.toLowerCase() === "k!fechargame") await discordUNO.closeGame(message);
-
-	else if (message.content.toLowerCase() === "k!endgame") await discordUNO.endGame(message);
-
-	else if (message.content.toLowerCase() === "k!puxar") await discordUNO.draw(message);
-
-	else if (message.content.toLowerCase() === "k!configurar") await discordUNO.updateSettings(message);
-
-	else if (message.content.toLowerCase() === "k!verconfiguração") await discordUNO.viewSettings(message);
-
-	else if (message.content.toLowerCase() === "k!uno") await discordUNO.UNO(message);
-
-	else if (message.content.toLowerCase() === "k!mesa") await discordUNO.viewTable(message);
-})
-
-//
 
 //Faz o bot ficar online
 app.get("/", (request, response) => {
-  response.sendStatus(100); //responde quando recebe ping
+  response.sendStatus(200); //responde quando recebe ping
   console.log("ping recebido!");
 
 
 });
 app.listen(process.env.PORT);
+
 
 const db = require('quick.db'); //STAREMOS USANDO O QUICK.DB
 const { addexp } = require('./handlers/xp.js');
@@ -149,8 +115,8 @@ client.on("guildMemberAdd", async (member) => {
   let m1 = db.get(`msg_${member.guild.id}`)
 
 const msg = m1
-.replace(`${member}`, `${member.user}`)
-.replace(`${member.guild}`, `${member.guild}`)
+.replace("member", member.user)
+.replace("member.guild", member.guild)
 .replace("(:HEART)",`<a:BH:731369456634429493>`)
 
   
@@ -174,8 +140,5 @@ const msg = m1
   client.channels.cache.get(chx).send(wembed)
   client.channels.cache.get(chx).send(attachment)
 })
-
-
-//NOVO EVENTO
 
 client.login(token);
