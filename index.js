@@ -1,4 +1,8 @@
 const { token, default_prefix } = require('./config.json');
+const emojis = ["👍", "👎", "❔", "🤔", "🙄", "❌"];
+const isPlaying = new Set();
+const { Client, MessageEmbed } = require("discord.js");
+const { Aki } = require("aki-api");
 const { badwords } = require('./data.json');
 const { config } = require('dotenv');
 var express = require('express');
@@ -88,57 +92,82 @@ client.on('message', async message => {
 	return addexp(message);
 });
 
-//VAI USAR O EVENTO AQUI
-client.on("guildMemberAdd", async (member) => {
-  let chx = db.get(`welchannel_${member.guild.id}`);
-  
-  if(chx === null) {
-    return;
-  }
-  
-  let default_url = `https://cdn.discordapp.com/attachments/696417925418057789/716197399336583178/giphy.gif`
-  
-  let default_msg = `━━━━━━━━━━━━━━━━━━━━━━━━
-  | WELCOME ${member} TO ${member.guild}
+
+//AKINATOR
+client.on("message", async message => {
+    if (message.author.bot || !message.guild) return;
+
+    if (!message.content.startsWith(default_prefix + "aki")) return;
+
+    if (isPlaying.has(message.author.id)) {
+      return message.channel.send(":x: | Um jogo já está em andamento..");
+    }
+
+    isPlaying.add(message.author.id);
+
+    const aki = new Aki("pt"); // Lista completa de idiomas em: https://github.com/jgoralcz/aki-api
+
+    await aki.start();
+
+    const msg = await message.channel.send(new MessageEmbed()
+      .setTitle(`${message.author.username}, Questão ${aki.currentStep + 1}`)
+      .setColor("#00bfff")
+      .setDescription(`**${aki.question}**\n${aki.answers.map((an, i) => `${an} | ${emojis[i]}`).join("\n")}`));
+
+    for (const emoji of emojis) await msg.react(emoji);
+
+    const collector = msg.createReactionCollector((reaction, user) => emojis.includes(reaction.emoji.name) && user.id == message.author.id, {
+      time: 60000 * 6
+    });
+
+    collector
+      .on("end", () => isPlaying.delete(message.author.id))
+      .on("collect", async ({
+        emoji,
+        users
+      }) => {
+        users.remove(message.author).catch(() => null);
+
+        if (emoji.name == "❌") return collector.stop();
+
+        await aki.step(emojis.indexOf(emoji.name));
+
+        if (aki.progress >= 70 || aki.currentStep >= 78) {
+
+          await aki.win();
+
+          collector.stop();
+
+          message.channel.send(new MessageEmbed()
+            .setTitle("Este é o seu personagem?")
+            .setDescription(`**${aki.answers[0].name}**\n${aki.answers[0].description}\nRanking**#${aki.answers[0].ranking}**\n\n[yes (**y**) / no (**n**)]`)
+            .setImage(aki.answers[0].absolute_picture_path)
+            .setColor("#00bfff"));
+
+          const filter = m => /(yes|no|y|n)/i.test(m.content) && m.author.id == message.author.id;
+
+          message.channel.awaitMessages(filter, {
+              max: 1,
+              time: 30000,
+              errors: ["time"]
+            })
+            .then(collected => {
+              const isWinner = /yes|y/i.test(collected.first().content);
+              message.channel.send(new MessageEmbed()
+                .setTitle(isWinner ? "Excelente! Acertei mais uma vez":"Uh. você é o vencedor!")
+                .setColor("#00bfff")
+                .setDescription("Eu amo brincar com você"));
+            }).catch(() => null);
         
-━━━━━━━━━━━━━━━━━━━━━━━━
- | BE SURE THAT YOU HAVE READ    
-           |RULES
-━━━━━━━━━━━━━━━━━━━━━━━━
- | USERNAME ${member.username}  
-|RANK is ${member.member_count}  ━━━━━━━━━━━━━━━━━━━━━━━━
- | YOU CAN ENJOY IN  CHATTING 
-━━━━━━━━━━━━━━━━━━━━━━━━
-            THANKS FOR JOINING US
-`
-  
-  let m1 = db.get(`msg_${member.guild.id}`)
+        } else {
+          msg.edit(new MessageEmbed()
+            .setTitle(`${message.author.username}, Questão ${aki.currentStep + 1}`)
+            .setColor("#00bfff")
+            .setDescription(`**${aki.question}**\n${aki.answers.map((an, i) => `${an} | ${emojis[i]}`).join("\n")}`));
+        }
+      });
+  })
 
-const msg = m1
-.replace("member", member.user)
-.replace("member.guild", member.guild)
-.replace("(:HEART)",`<a:BH:731369456634429493>`)
-
-  
-  let url = db.get(`url_${member.guild.id}`)
-  if(url === null) url = default_url
-  
-   let data = await canva.welcome(member, { link: "https://wallpapercave.com/wp/wp5128415.jpg" })
- 
-    const attachment = new discord.MessageAttachment(
-      data,
-      "welcome-image.png"
-    );
-
-  let wembed = new discord.MessageEmbed()
-  .setAuthor(member.user.username, member.user.avatarURL({dynamic: true, size: 2048}))
-  .setThumbnail(member.user.displayAvatarURL({dynamic: true, size: 2048}))
-  .setColor("RANDOM")
-  .setImage()
-  .setDescription(msg);
-  
-  client.channels.cache.get(chx).send(wembed)
-  client.channels.cache.get(chx).send(attachment)
-})
+  //FIM
 
 client.login(token);

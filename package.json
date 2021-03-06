@@ -13,6 +13,7 @@
   "dependencies": {
     "@k3rn31p4nic/google-translate-api": "^1.1.1",
     "akaneko": "^5.0.1",
+    "aki-api": "^5.2.1",
     "alexa-bot-api": "^0.2.1",
     "anime-scraper": "^3.1.3",
     "ascii-table": "0.0.9",
@@ -31,6 +32,7 @@
     "discordjs-ytdl": "^2.2.0",
     "distube": "^2.8.10",
     "dotenv": "^8.2.0",
+    "eris": "^0.14.0",
     "express": "^4.17.1",
     "fetch": "^1.1.0",
     "ffmpeg": "0.0.4",
