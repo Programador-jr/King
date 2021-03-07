@@ -3,7 +3,7 @@ const Discord = require('discord.js')
 module.exports = {
 	name:"vaporwave",
 	run:async (client, message, args, default_prefix) => {
-    if(!args.join(" ")) return message.channel.send(`${emoji.nao} ${message.author}, eu preciso que você escreva algo após o comando \`${prefix}vaporonda <texto bacana>\``)
+    if(!args.join(" ")) return message.channel.send(`${message.author}, eu preciso que você escreva algo após o comando`)
     const vaporwavefield = args.join(" ").split(" / ")[0].split('').map(char => {
         const code = char.charCodeAt(0);
 
