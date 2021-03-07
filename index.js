@@ -10,8 +10,7 @@ var app = express();
 const http = require('http');
 const discord = require('discord.js'); //Vou usar o Módulo Discord.js
 const client = new discord.Client({
-	disableEveryone: true, // o que essa coisa de desabilitar faz?
-	partials : ["MESSAGE", "CHANNEL", "REACTION"]
+	disableEveryone: false, // o que essa coisa de desabilitar faz?
 });
 
 //Faz o bot ficar online

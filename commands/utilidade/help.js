@@ -52,6 +52,8 @@ module.exports = {
 .setDescription(`<a:fun:810254327372316713>ㅤ**DIVERSÃO**:\n
 • **${config.default_prefix}8ball** - Faça uma pergunta para o bot e ele irá responder você da Melhor forma possível.
 • **${config.default_prefix}ascii** - Retorna um texto em formato ascii
+• **${config.default_prefix}binario** - Converta uma palavra para codigo binário
+• **${config.default_prefix}decode** - decodifique um codigo binario 
 • **${config.default_prefix}chat** - Converse comigo ^-^
 • **${config.default_prefix}coinflip** - Gire uma moeda e veja se irá cair cara ou coroa!
 • **${config.default_prefix}ejetar** - ejete alguém da nave - Among Us
@@ -59,24 +61,37 @@ module.exports = {
 • **${config.default_prefix}morse** - codifique ou decodifique um codigo morse
 • **${config.default_prefix}ratewaifu** - vote em sua waifu favorita
 • **${config.default_prefix}say** - você fala e eu repito
-• **${config.default_prefix}ship** - ship um casal ou veja qual a probabilidade de você dar certo com seu crush`)
+• **${config.default_prefix}ship** - ship um casal ou veja qual a probabilidade de você dar certo com seu crush
+• **${config.default_prefix}vaporwave** - Converta um texto em ｖａｐｏｒｗａｖｅ
+`)
+
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
     
     let embed3 = new Discord.MessageEmbed()
     .setDescription(`<:game:810254416635494400>ㅤ**GAMES**:\n
 • **${config.default_prefix}fight** - lute com alguém do servidor e veja quem sai vitorioso		
-• **${config.default_prefix}hangman** - Jogue uma partida de jogo da forca
+• **${config.default_prefix}forca** - Jogue uma partida de jogo da forca
 • **${config.default_prefix}ppt** - "Pedra papel tesoura/ Jogue jokenpô com o bot
-• **${config.default_prefix}tictactoe** - Jogue uma partida de jogo da velha com um membro do servidor`)
+• **${config.default_prefix}velha** - Jogue uma partida de jogo da velha com um membro do servidor`)
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
         
     let embed4 = new Discord.MessageEmbed()
 .setDescription(`<:photos:810249979905572864>ㅤ**IMAGEM**:\n
+• **${config.default_prefix}bob** - Coloque uma frase dentro do meme Bob Esponja
 • **${config.default_prefix}changemymind** - Coloque sua frase dentro de uma imagem Change my mind
+• **${config.default_prefix}clyde** Faça o bot oficial do discord repetir sua frase
+• **${config.default_prefix}firstword** - Faça o bebe falar suas primeiras palavras
+• **${config.default_prefix}gif** - Procure um gif no Tenor
+• **${config.default_prefix}laranjo** - Uma foto do laranjo é gerado com asua frase
 • **${config.default_prefix}meme** - Gera imagens com memes aleátorios
 • **${config.default_prefix}memevideo** - Videos de memes aleátorios
+• **${config.default_prefix}monkey** - Gera uma imagem do macaquinho "suspeito" com sua frase personalizada
+• **${config.default_prefix}pablo** - Gera uma imagem do Pablo Escobar solitario com sua frase personalizada
+• **${config.default_prefix}stonks** - Gera uma imagem stonks com sua frase personalizada
+• **${config.default_prefix}supreme** - Converta sua frase em forma da logo SUPREME
+• **${config.default_prefix}trump** - O que você quer que o ex presidente twitte hoje?
 • **${config.default_prefix}wallpaper** - obtenha uma imagem neko
 • **${config.default_prefix}wasted** - Retornna uma imagem wasted!`)
     .setThumbnail(client.user.avatarURL)
@@ -148,18 +163,24 @@ module.exports = {
     let embed8 = new Discord.MessageEmbed()
     .setDescription(`<:utility:810250009894584351>ㅤ**UTILIDADE**:\n
 • **${config.default_prefix}anime** - Informações sobre Animes!
+• **baixar**- Agora você pode fazer o download de um video do youtube e o bot retorna ele em formato mp3 use| baixar + link_do_video
+• **${config.default_prefix}anunciar** - Faça um anuncio em seu servidor
 • **${config.default_prefix}avatar** - Exibe o seu avatar ou de um outro usuário
 • **${config.default_prefix}calculadora** - Resolva um calculo matematico
 • **${config.default_prefix}clima** - Veja o clima de qualquer lugar do mundo
 • **${config.default_prefix}convite** - Para me adicionar / convidar o bot para o seu servidor
 • **${config.default_prefix}covid** - Receba atualizações de todo o mundo dos casos de covid 19
+• **${config.default_prefix}emoji** - Receba uma lista de tos os emojis do seu servidor
 • **${config.default_prefix}idemoji** - Pegue um o ID de uma figurinha do seu servidor
 • **${config.default_prefix}help** - Mostra todos os comandos do bot disponíveis.
 • **${config.default_prefix}imdb** - Obtenha informações sobre séries e filmes
 • **${config.default_prefix}info** - Veja as informações detalhadas do bot
-• **${config.default_prefix}level** - Veja o nível do autor ou usuario mencionado
+• **${config.default_prefix}moeda** - Veja o valor da moeda nos principais países
 • **${config.default_prefix}ping** - Obter ping do bot
-• **${config.default_prefix}sugerir** - Envie uma sugestão, ideal para usar em canais de sugestões
+• **${config.default_prefix}qrcode** - Faça um QR Code de um link
+• **${config.default_prefix}serveravatar** - Retorna o logo do servidor sendo possivel fazer o download do mesmo
+• **${config.default_prefix}serverinfo** - Receba as informações do seu servidor
+• **${config.default_prefix}sugerir** - Enviar uma sugestão para o seu canal de sugestões
 • **${config.default_prefix}tradutor** - Traduza uma frase ou um texto para o seu idioma
 • **${config.default_prefix}userinfo** - Obtenha estatísticas avançadas de determinada pessoa ou de você mesmo`)
     .setThumbnail(client.user.avatarURL)
