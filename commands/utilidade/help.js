@@ -70,6 +70,7 @@ module.exports = {
     
     let embed3 = new Discord.MessageEmbed()
     .setDescription(`<:game:810254416635494400>ㅤ**GAMES**:\n
+• **${config.default_prefix}akinator** - Jogue uma partida com o gênio    
 • **${config.default_prefix}fight** - lute com alguém do servidor e veja quem sai vitorioso		
 • **${config.default_prefix}forca** - Jogue uma partida de jogo da forca
 • **${config.default_prefix}ppt** - "Pedra papel tesoura/ Jogue jokenpô com o bot
