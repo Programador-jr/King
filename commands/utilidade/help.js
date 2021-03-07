@@ -176,7 +176,7 @@ module.exports = {
 • **${config.default_prefix}help** - Mostra todos os comandos do bot disponíveis.
 • **${config.default_prefix}imdb** - Obtenha informações sobre séries e filmes
 • **${config.default_prefix}info** - Veja as informações detalhadas do bot
-• **${config.default_prefix}moeda** - Veja o valor da moeda nos principais países
+• **${config.default_prefix}moeda** - Veja o valor do real nas principais moedas
 • **${config.default_prefix}ping** - Obter ping do bot
 • **${config.default_prefix}qrcode** - Faça um QR Code de um link
 • **${config.default_prefix}serveravatar** - Retorna o logo do servidor sendo possivel fazer o download do mesmo
