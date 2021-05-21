@@ -12,6 +12,7 @@
   "license": "MIT",
   "dependencies": {
     "@k3rn31p4nic/google-translate-api": "^1.1.1",
+    "@replit/database": "^2.0.1",
     "akaneko": "^5.0.1",
     "aki-api": "^5.2.1",
     "alexa-bot-api": "^0.2.1",

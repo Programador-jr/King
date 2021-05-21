@@ -1,4 +1,4 @@
-const { token, default_prefix } = require('./config.json');
+const {token, default_prefix } = require('./config.json');
 const emojis = ["👍", "👎", "❔", "🤔", "🙄", "❌"];
 const isPlaying = new Set();
 const { Client, MessageEmbed } = require("discord.js");
@@ -169,4 +169,4 @@ client.on("message", async message => {
 
   //FIM
 
-client.login(token);
+client.login(process.env.TOKEN);
