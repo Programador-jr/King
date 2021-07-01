@@ -4,7 +4,6 @@ const fetch = require('node-fetch')
 module.exports = {
   name: "ejetar",
   description: "ejete alguém da nave - Among Us",
-	aliases: ["among"],
   usage: "ejetar <@user>",
   category: "diversão",
   run: async (client, message, args) => {

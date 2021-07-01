@@ -19,8 +19,7 @@ module.exports = {
 		const url = `http://api.qrserver.com/v1/create-qr-code/?data=${neb}&size=100x100`;
 
 		const embed = new discord.MessageEmbed()
-			.setColor('#00bfff')
-			.setTitle('QR CODE')
+			.setColor('GREEN')
 			.setImage(url);
 		await message.channel.send(embed);
 	}

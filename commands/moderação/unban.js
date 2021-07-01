@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 
 module.exports = {
 	name:"unban",
+	aliases:["desbanir"],
 
 	run: async(client, message, args) =>{
 		if(!message.member.hasPermission("BAN_MEMBERS")) {

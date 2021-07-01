@@ -3,6 +3,7 @@ var Jimp = require("jimp")
 
 module.exports = {
 	name:"firstword",
+	aliases:["first", "word", "primeirapalavra"],
 	run:async (bot, message, args) => {
 
     if (message.content.split(' ').slice(1).join(' ').length < 1) {

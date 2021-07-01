@@ -84,7 +84,7 @@ module.exports = {
 • **${config.default_prefix}changemymind** - Coloque sua frase dentro de uma imagem Change my mind
 • **${config.default_prefix}clyde** Faça o bot oficial do discord repetir sua frase
 • **${config.default_prefix}firstword** - Faça o bebe falar suas primeiras palavras
-• **${config.default_prefix}gif** - Procure um gif no Tenor
+• **${config.default_prefix}tgif** - Procure um gif no Tenor
 • **${config.default_prefix}laranjo** - Uma foto do laranjo é gerado com asua frase
 • **${config.default_prefix}meme** - Gera imagens com memes aleátorios
 • **${config.default_prefix}memevideo** - Videos de memes aleátorios

@@ -6,7 +6,7 @@ module.exports = {
     category: "diversão",
     run: async (client, message, args) => {
         const url = `http://some-random-api.ml/binary?text=${args}`;
-
+				if(!args.join(""))return message.channel.send('um')
         let response, data;
         try {
             response = await axios.get(url);

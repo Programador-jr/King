@@ -2,7 +2,7 @@ const discord = require("discord.js");
 const fetch = require("node-fetch");
 
 module.exports = {
-	name:"gif",
+	name:"tgif",
 	category:"imagem",
 
 	run:async (client, message, args) => {
