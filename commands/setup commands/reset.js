@@ -4,7 +4,7 @@ module.exports = {
   name: "reset",
   aliases: ["hardreset"],
   category: "setup commands",
-  description: "Resets / Deletes all of the Setups as well as the prefix!",
+  description: "Redefine / exclui todas as configurações, bem como o prefixo!",
   usage: "reset",
   run: async (client, message, args) => {
     if (message.member.guild.owner.id !== message.author.id) return functions.embedbuilder(client, "null", message, config.colors.no, "RESET", `❌ You don\'t have permission for this Command! *Only the Server-Owner*`)

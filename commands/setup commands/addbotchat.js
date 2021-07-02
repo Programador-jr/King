@@ -4,44 +4,36 @@ module.exports = {
   name: "addbotchat",
   aliases: ["addbotchannel"],
   category: "setup commands",
-  description: "Let's you enable a bot only chat where the community is allowed to use commands",
+  description: "Vamos habilitar um bate-papo apenas para bot, onde a comunidade tem permissão para usar comandos",
   useage: "addbotchat <#chat>",
   run: async (client, message, args) => {
     //command
-    if (!message.member.hasPermission("ADMINISTRATOR")) return functions.embedbuilder(client, "null", message, config.colors.no, "BOT-CHAT-SETUP", `❌ You don\'t have permission for this Command!`)
+    if (!message.member.hasPermission("ADMINISTRATOR")) return functions.embedbuilder(client, "null", message, config.colors.no, "BOT-CHAT-SETUP", `❌ Yocê não tem permissão para este comando!`)
 
     let channel = message.mentions.channels.first();
-    if (!channel) return functions.embedbuilder(client, "null", message, config.colors.no, `ERROR`, `Please add a Channel via ping, for example: #channel!`)
+    if (!channel) return functions.embedbuilder(client, "null", message, config.colors.no, `ERROR`, `Adicione um canal via ping, por exemplo: #channel!`)
     try {
       message.guild.roles.cache.get(channel.id)
     } catch {
-      return functions.embedbuilder(client, "null", message, config.colors.no, `ERROR`, `It seems that the Channel does not exist in this Server!`)
+      return functions.embedbuilder(client, "null", message, config.colors.no, `ERROR`, `Parece que o canal não existe neste servidor!`)
     }
-    if (client.settings.get(message.guild.id, `botchannel`).includes(channel.id)) return functions.embedbuilder(client, "null", message, config.colors.no, `ERROR`, `This Channel is alerady in the List!`)
+    if (client.settings.get(message.guild.id, `botchannel`).includes(channel.id)) return functions.embedbuilder(client, "null", message, config.colors.no, `ERROR`, `Este canal já está na lista!`)
 
     message.react("✅");
 
     client.settings.push(message.guild.id, channel.id, `botchannel`);
     let leftb = "";
-    if (client.settings.get(message.guild.id, `botchannel`).join("") === "") leftb = "no Channels, aka all Channels are Bot Channels"
+    if (client.settings.get(message.guild.id, `botchannel`).join("") === "") leftb = "nenhum canal, também conhecido como todos os canais são canais bot"
     else
       for (let i = 0; i < client.settings.get(message.guild.id, `botchannel`).length; i++) {
         leftb += "<#" + client.settings.get(message.guild.id, `botchannel`)[i] + "> | "
       }
     let botchatfromenmap = message.guild.channels.cache.get(client.settings.get(message.guild.id, `botchannel`)[client.settings.get(message.guild.id, `botchannel`).length])
 
-    return functions.embedbuilder(client, "null", message, config.colors.yes, "BOT-CHAT-SETUP ", `✅ Successfully added the Bot-Chat to ${botchatfromenmap}
-  All Bot Chats:
+    return functions.embedbuilder(client, "null", message, config.colors.yes, "BOT-CHAT-SETUP ", `✅ O Bot-Chat foi adicionado com sucesso a ${botchatfromenmap}
+  Todos os bate-papos de bot:
   > ${leftb}`)
 
   }
 };
-/**
- * @INFO
- * Bot Coded by Tomato#6966 | https://github.com/Tomato6966/discord-js-lavalink-Music-Bot-erela-js
- * @INFO
- * Work for Milrato Development | https://milrato.eu
- * @INFO
- * Please mention Him / Milrato Development, when using this Code!
- * @INFO
- */
+

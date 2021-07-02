@@ -1,3 +1,6 @@
+const ScrapeYt = require("scrape-yt");
+const spotify = require("spotify-url-info")
+const YTDL = require("discord-ytdl-core");
 const config = require("./config.json");
 var express =  require ('express');
 var app = express();
@@ -53,6 +56,56 @@ app.get("/", (request, response) => {
 
 });
 app.listen(process.env.PORT);
+
+client.on("message", async message => {
+
+    //Do not detect bots
+    if (message.author.bot) return;
+
+    //If '<prefix>download' is typed
+    if (message.content.startsWith(config.prefix + "baixar")) {
+
+        //Require args
+        let args = message.content.split(' ').slice(1);
+
+        //If no args is provided
+        if (!args[0]) return message.channel.send(`⛔ | ${message.author}, Insira o URL de uma música no YouTube!`);
+
+        //New infos & stream
+        let infos;
+        let stream;
+
+        try {
+            //The bot is trying to find the music provided
+            stream = YTDL(args.join(" "), { encoderArgs: ['-af','dynaudnorm=f=200'], fmt: 'mp3', opusEncoded: false });
+            infos = await ScrapeYt.search(args.join(" "));
+        } catch (e) {
+            //If the music is not found
+            return message.channel.send(`⛔ | ${message.author}, Não encontrei nada para : ${args.join(" ")} !`);
+        }
+
+        try {
+            //Confirmation message
+            message.channel.send(`:notes: | ${message.author},  Vou tentar enviar ${infos[0].title} quando o download terminar...`);
+
+            //Saving the file in the folder 'download'
+            stream.pipe(createWriteStream(__dirname + `/download/${infos[0].title}.mp3`)).on('finish', () => {
+
+                //Sending the mp3 file
+                try {
+                    message.channel.send(`🎵 | ${message.author}, musica : ${infos[0].title} em mp3.`, new Discord.MessageAttachment(__dirname + `/download/${infos[0].title}.mp3`, `${infos[0].title}.mp3`))
+                } catch (e) {
+                    return message.channel.send(`⛔ | ${message.author}, Não consegui mandar a música ... talvez seja muito pesada para o Discord? Ou talvez eu não tenha as permissões necessárias para fazer upload deste tipo de arquivo neste servidor...`);
+                }
+
+            })
+        } catch (e) {
+            //If the music is not found
+            return message.channel.send(`⛔ | ${message.author}, Não encontrei nada para : ${args.join(" ")} ! Talvez seja impossível recuperar esta música ...`);
+        }
+    }
+
+});
 
 client.setMaxListeners(0);
 require('events').defaultMaxListeners = 0;

@@ -10,22 +10,22 @@ module.exports = {
     run: async (client, message, args) => {
         //if not a dj, return error
         if (functions.check_if_dj(message))
-            return functions.embedbuilder(client, 6000, message, config.colors.no, "DJ-ROLE", `<:declined:780403017160982538> You don\'t have permission for this Command! You need to have: ${functions.check_if_dj(message)}`)
+            return functions.embedbuilder(client, 6000, message, config.colors.no, "DJ-ROLE", `<:declined:780403017160982538> Você não tem permissão para este comando! Você precisa ter: ${functions.check_if_dj(message)}`)
 
         //If Bot not connected, return error
-        if (!message.guild.me.voice.channel) return functions.embedbuilder(client, 3000, message, config.colors.no, "Nothing playing!")
+        if (!message.guild.me.voice.channel) return functions.embedbuilder(client, 3000, message, config.colors.no, "Nada tocando!")
 
         //if member not connected return error
-        if (!message.member.voice.channel) return functions.embedbuilder(client, 5000, message, config.colors.no, "`" + message.author.tag + "`" + " You must join a Voice Channel")
+        if (!message.member.voice.channel) return functions.embedbuilder(client, 5000, message, config.colors.no, "`" + message.author.tag + "`" + "Você deve entrar em um canal de voz")
 
         //if they are not in the same channel, return error
-        if (message.member.voice.channel.id != message.guild.me.voice.channel.id) return functions.embedbuilder(client, 5000, message, config.colors.no, "`" + message.author.tag + "`" + " You must join my Voice Channel: " + ` \`${message.guild.me.voice.channel.name ? message.guild.me.voice.channel.name : ""}\``)
+        if (message.member.voice.channel.id != message.guild.me.voice.channel.id) return functions.embedbuilder(client, 5000, message, config.colors.no, "`" + message.author.tag + "`" + "Você deve entrar no meu canal de voz: " + ` \`${message.guild.me.voice.channel.name ? message.guild.me.voice.channel.name : ""}\``)
 
         //get queue
         let queue = client.distube.getQueue(message);
 
         //if no queue return error
-        if (!queue) return functions.embedbuilder(client, 3000, message, config.colors.no, "There is nothing playing!");
+        if (!queue) return functions.embedbuilder(client, 3000, message, config.colors.no, "Não há nada tocando!");
 
         //get the filter from the content
         let filter = path.parse(__filename).name;
@@ -37,7 +37,7 @@ module.exports = {
         filter = await client.distube.setFilter(message, filter);
 
         //send information message
-        await functions.embedbuilder(client, 3000, message, config.colors.yes, "Adding filter!", filter)
+        await functions.embedbuilder(client, 3000, message, config.colors.yes, "Adicionando filtro!", filter)
     }
 };
 /**

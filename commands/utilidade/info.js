@@ -2,6 +2,7 @@ const Discord = require("discord.js"),
 os = require('os');
 module.exports = {
 	name: "info",
+	aliases:["i"],
 	category: "utilidade",
 	description: "Veja as informações detalhadas do bot",
 	

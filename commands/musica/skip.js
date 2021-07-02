@@ -1,43 +1,30 @@
-const functions = require("../../functions")
+﻿const functions = require("../../functions")
 const config = require("../../config.json")
-const path = require("path");
 module.exports = {
-
-    name: path.parse(__filename).name,
-    category: "MUSIC FILTERS",
-    useage: `<${path.parse(__filename).name}>`,
-    description: "*Adds a Filter named " + path.parse(__filename).name,
+    name: "skip",
+    category: "MUSIC COMMANDS",
+    aliases: ["s", "pular"],
+    useage: "skip",
+    description: "Skips current song",
     run: async (client, message, args) => {
         //if not a dj, return error
-        if (functions.check_if_dj(message))
-            return functions.embedbuilder(client, 6000, message, config.colors.no, "DJ-ROLE", `<:declined:780403017160982538> Você não tem permissão para este comando! Você precisa ter: ${functions.check_if_dj(message)}`)
-
+        if(functions.check_if_dj(message))
+        return functions.embedbuilder(client, 6000, message, config.colors.no, "DJ-ROLE", `❌ Você não tem permissão para este comando! Você precisa ter: ${functions.check_if_dj(message)}`)
+    
         //If Bot not connected, return error
         if (!message.guild.me.voice.channel) return functions.embedbuilder(client, 3000, message, config.colors.no, "Nada tocando!")
-
+        
         //if member not connected return error
         if (!message.member.voice.channel) return functions.embedbuilder(client, 5000, message, config.colors.no, "`" + message.author.tag + "`" + "Você deve entrar em um canal de voz")
-
+        
         //if they are not in the same channel, return error
         if (message.member.voice.channel.id != message.guild.me.voice.channel.id) return functions.embedbuilder(client, 5000, message, config.colors.no, "`" + message.author.tag + "`" + "Você deve entrar no meu canal de voz: " + ` \`${message.guild.me.voice.channel.name ? message.guild.me.voice.channel.name : ""}\``)
-
-        //get queue
-        let queue = client.distube.getQueue(message);
-
-        //if no queue return error
-        if (!queue) return functions.embedbuilder(client, 3000, message, config.colors.no, "Não há nada tocando!");
-
-        //get the filter from the content
-        let filter = path.parse(__filename).name;
-
-        //if its the same filter as the current one, use bassboost6
-        if (filter === queue.filter) filter = "bassboost6";
-
-        //set the new filter
-        filter = await client.distube.setFilter(message, filter);
-
+                
         //send information message
-        await functions.embedbuilder(client, 3000, message, config.colors.yes, "Adicionando filtro!", filter)
+        functions.embedbuilder(client, 3000, message, config.colors.yes, "PULADO!", `Pulou a música`)
+
+        //skip track
+        client.distube.skip(message);
     }
 };
 /**

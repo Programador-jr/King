@@ -69,11 +69,11 @@ function embedbuilder(client, deletetime, message, color, title, description, th
     } catch {}
     try {
         let embed = new Discord.MessageEmbed()
-            .setColor(color)
+            .setColor('#00BFFF')
             .setAuthor(message.author.tag, message.member.user.displayAvatarURL({
                 dynamic: true
-            }), "https://dc.musicium.eu")
-            .setFooter(client.user.username + " | by: milrato.eu", client.user.displayAvatarURL());
+            }), "https://kingbot.cf")
+            .setFooter(client.user.username + " | by: King", client.user.displayAvatarURL());
         if (title) embed.setTitle(title);
         if (description) embed.setDescription(description);
         if (thumbnail) embed.setThumbnail(thumbnail)
@@ -115,10 +115,10 @@ function QueueEmbed(client, queue) {
             k += 10;
             const info = current.map((track) => `**${j++} -** [\`${track.name}\`](${track.url}) - \`${track.formattedDuration}\``).join("\n")
             const embed = new Discord.MessageEmbed()
-                .setTitle("Server Queue")
+                .setTitle("Fila de servidor")
                 .setColor(config.colors.yes)
-                .setDescription(`**Current Song - [\`${qus[0].name}\`](${qus[0].url})**\n\n${info}`)
-                .setFooter(client.user.username + " | by: milrato.eu", client.user.displayAvatarURL())
+                .setDescription(`**Música atual - [\`${qus[0].name}\`](${qus[0].url})**\n\n${info}`)
+                .setFooter(client.user.username + " | by: King", client.user.displayAvatarURL())
             embeds.push(embed);
         }
         //returning the Embed
