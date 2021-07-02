@@ -165,6 +165,7 @@ module.exports = {
     .setDescription(`<:utility:810250009894584351>ㅤ**UTILIDADE**:\n
 • **${config.prefix}anime** - Informações sobre Animes!
 • **baixar**- Agora você pode fazer o download de um video do youtube e o bot retorna ele em formato mp3 use| baixar + link_do_video
+
 • **${config.prefix}anunciar** - Faça um anuncio em seu servidor
 • **${config.prefix}avatar** - Exibe o seu avatar ou de um outro usuário
 • **${config.prefix}calculadora** - Resolva um calculo matematico
@@ -184,6 +185,7 @@ module.exports = {
 • **${config.prefix}sugerir** - Enviar uma sugestão para o seu canal de sugestões
 • **${config.prefix}tradutor** - Traduza uma frase ou um texto para o seu idioma
 • **${config.prefix}userinfo** - Obtenha estatísticas avançadas de determinada pessoa ou de você mesmo`)
+    
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
     

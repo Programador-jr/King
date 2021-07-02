@@ -7,6 +7,8 @@
     "@discordjs/opus": "^0.3.3",
     "@k3rn31p4nic/google-translate-api": "^1.1.1",
     "@ksoft/api": "^3.1.9",
+    "@replit/database": "^2.0.1",
+    "akaneko": "^5.0.1",
     "aki-api": "^5.2.1",
     "alexa-bot-api": "^2.0.5",
     "ascii-table": "^0.0.9",
