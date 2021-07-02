@@ -10,7 +10,7 @@ module.exports = {
 	if (message.author.bot) return;
 	let content = message.content;
 	if(!content)return;
-	if(!args.join(" ")) return message.channel.send("Inicie uma conversa, que tal começar com um, Oi?")	
+	if(!args.join(" ")) return message.channel.send("Inicie uma conversa, que tal começar com um, Oi?")
 
 	chatbot.getReply(content).then(r => message.channel.send(r));
     }

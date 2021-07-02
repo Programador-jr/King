@@ -12,7 +12,7 @@ module.exports = {
     } = await axios.get(apiTotal);
 
     const embed = await new Discord.MessageEmbed()
-      .setTitle("Cotação do Real nas pricipais Moedas:")
+      .setTitle("Cotação das pricipais Moedas:")
       .setColor(config.color)
       .setFooter(`${message.author.tag}`, message.author.displayAvatarURL({ dynamic: true, size: 2048 }))
       .addFields(

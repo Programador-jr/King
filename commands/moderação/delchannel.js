@@ -2,7 +2,7 @@ module.exports = {
     name: 'delchannel',
     description: 'Delete a channel',
     guildOnly: true,
-    aliases: ['dchannel'],
+    aliases: ["dchannel", "apagarcanal", "deletarcanal"],
     usage: '[mentionChannel/channelId]',
     example: '#pokemon-spawn',
     cooldown: 5,

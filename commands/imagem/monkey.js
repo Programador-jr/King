@@ -2,6 +2,7 @@ const jimp = require("jimp")
 
 module.exports = {
 	name:"monkey",
+	aliases:["macaco"],
 	run:async (client, message, args, prefix) => {
         let img = jimp.read("https://media.discordapp.net/attachments/804379222025961505/816492068578263040/download_2.png?width=487&height=406")
         if (!args[0]) return message.channel.send("Você precisa escrever algo.")
