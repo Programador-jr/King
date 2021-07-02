@@ -184,6 +184,7 @@ module.exports = {
 • **${config.prefix}sugerir** - Enviar uma sugestão para o seu canal de sugestões
 • **${config.prefix}tradutor** - Traduza uma frase ou um texto para o seu idioma
 • **${config.prefix}userinfo** - Obtenha estatísticas avançadas de determinada pessoa ou de você mesmo`)
+
     .setThumbnail(client.user.avatarURL)
     .setColor(roleColor)
     
