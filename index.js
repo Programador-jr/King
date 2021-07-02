@@ -1,19 +1,54 @@
-const {token, default_prefix } = require('./config.json');
-const emojis = ["👍", "👎", "❔", "🤔", "🙄", "❌"];
-const isPlaying = new Set();
-const { Client, MessageEmbed } = require("discord.js");
-const { Aki } = require("aki-api");
-const { badwords } = require('./data.json');
-const { config } = require('dotenv');
-var express = require('express');
+const ScrapeYt = require("scrape-yt");
+const spotify = require("spotify-url-info")
+const YTDL = require("discord-ytdl-core");
+const config = require("./config.json");
+var express =  require ('express');
 var app = express();
-const http = require('http');
-const discord = require('discord.js'); //Vou usar o Módulo Discord.js
-const client = new discord.Client({
-	disableEveryone: false, // o que essa coisa de desabilitar faz?
+const {
+		Client,
+    Collection
+} = require("discord.js");
+const Discord = require('discord.js');
+const fs = require("fs");
+const DisTube = require("distube");
+require('canvas').registerFont("Genta.ttf", {
+    family: "Genta"
+}); //loading a font
+//creating the client
+const client = new Client({
+    fetchAllMembers: false,
+    restTimeOffset: 0,
+    shards: "auto",
+    disableEveryone: true
 });
 
-//Faz o bot ficar online
+client.commands = new Collection();
+client.queue = new Map();
+client.aliases = new Collection();
+const cooldowns = new Collection();
+//audiosetups
+
+
+const https = require('https-proxy-agent');
+const proxy = 'http://123.123.123.123:8080';
+const agent = https(proxy);
+client.distube = new DisTube(client, {
+    youtubeCookie: config.cookie,
+    requestOptions: {
+        agent
+    },
+    searchSongs: true,
+    emitNewSongOnly: true,
+    highWaterMark: 1024 * 1024 * 64,
+    leaveOnEmpty: true,
+    leaveOnFinish: true,
+    leaveOnStop: true,
+    searchSongs: false,
+    youtubeDL: true,
+    updateYouTubeDL: false,
+    customFilters: config.customs
+})
+
 app.get("/", (request, response) => {
   response.sendStatus(200); //responde quando recebe ping
   console.log("ping recebido!");
@@ -22,151 +57,194 @@ app.get("/", (request, response) => {
 });
 app.listen(process.env.PORT);
 
-
-const db = require('quick.db'); //STAREMOS USANDO O QUICK.DB
-const { addexp } = require('./handlers/xp.js');
-client.commands = new discord.Collection();
-client.aliases = new discord.Collection();
-
-const { CanvasSenpai } = require('canvas-senpai');
-const canva = new CanvasSenpai();
-
-['command'].forEach(handler => {
-	require(`./handlers/${handler}`)(client);
-});
-
-//é função URL - START
-
-function is_url(str) {
-	let regexp = /^(?:(?:https?|ftp):\/\/)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/\S*)?$/;
-	if (regexp.test(str)) {
-		return true;
-	} else {
-		return false;
-	}
-}
-
-//FINISH
-
-//STOP
-client.on('message', async message => {
-	if (message.author.bot) return;
-	//START
-
-
-
-	//END
-	if (!message.guild) return;
-	let prefix = db.get(`prefix_${message.guild.id}`);
-	if (prefix === null) prefix = default_prefix;
-
-	if (!message.content.startsWith(prefix)) return;
-
-	if (!message.member)
-		message.member = await message.guild.fetchMember(message);
-
-	const args = message.content
-		.slice(prefix.length)
-		.trim()
-		.split(/ +/g);
-	const cmd = args.shift().toLowerCase();
-
-	if (cmd.length === 0) return;
-
-	let cmdx = db.get(`cmd_${message.guild.id}`);
-
-	if (cmdx) {
-		let cmdy = cmdx.find(x => x.name === cmd);
-		if (cmdy) message.channel.send(cmdy.responce);
-	}
-
-	// Pegue o comando
-	let command = client.commands.get(cmd);
-	// Se nenhum for encontrado, tente encontrá-lo pelo alias
-	if (!command) command = client.commands.get(client.aliases.get(cmd));
-
-	// Se um comando for finalmente encontrado, execute o comando
-	if (command) command.run(client, message, args);
-
-	return addexp(message);
-});
-
-
-//AKINATOR
 client.on("message", async message => {
-    if (message.author.bot || !message.guild) return;
 
-    if (!message.content.startsWith(default_prefix + "aki")) return;
+    //Do not detect bots
+    if (message.author.bot) return;
 
-    if (isPlaying.has(message.author.id)) {
-      return message.channel.send(":x: | Um jogo já está em andamento..");
+    //If '<prefix>download' is typed
+    if (message.content.startsWith(config.prefix + "baixar")) {
+
+        //Require args
+        let args = message.content.split(' ').slice(1);
+
+        //If no args is provided
+        if (!args[0]) return message.channel.send(`⛔ | ${message.author}, Insira o URL de uma música no YouTube!`);
+
+        //New infos & stream
+        let infos;
+        let stream;
+
+        try {
+            //The bot is trying to find the music provided
+            stream = YTDL(args.join(" "), { encoderArgs: ['-af','dynaudnorm=f=200'], fmt: 'mp3', opusEncoded: false });
+            infos = await ScrapeYt.search(args.join(" "));
+        } catch (e) {
+            //If the music is not found
+            return message.channel.send(`⛔ | ${message.author}, Não encontrei nada para : ${args.join(" ")} !`);
+        }
+
+        try {
+            //Confirmation message
+            message.channel.send(`:notes: | ${message.author},  Vou tentar enviar ${infos[0].title} quando o download terminar...`);
+
+            //Saving the file in the folder 'download'
+            stream.pipe(createWriteStream(__dirname + `/download/${infos[0].title}.mp3`)).on('finish', () => {
+
+                //Sending the mp3 file
+                try {
+                    message.channel.send(`🎵 | ${message.author}, musica : ${infos[0].title} em mp3.`, new Discord.MessageAttachment(__dirname + `/download/${infos[0].title}.mp3`, `${infos[0].title}.mp3`))
+                } catch (e) {
+                    return message.channel.send(`⛔ | ${message.author}, Não consegui mandar a música ... talvez seja muito pesada para o Discord? Ou talvez eu não tenha as permissões necessárias para fazer upload deste tipo de arquivo neste servidor...`);
+                }
+
+            })
+        } catch (e) {
+            //If the music is not found
+            return message.channel.send(`⛔ | ${message.author}, Não encontrei nada para : ${args.join(" ")} ! Talvez seja impossível recuperar esta música ...`);
+        }
     }
 
-    isPlaying.add(message.author.id);
+});
 
-    const aki = new Aki("pt"); // Lista completa de idiomas em: https://github.com/jgoralcz/aki-api
+client.setMaxListeners(0);
+require('events').defaultMaxListeners = 0;
+//Externalfiles setups
+client.categories = fs.readdirSync("./commands/");
+["command"].forEach(handler => {
+    require(`./handlers/${handler}`)(client);
+});
+require("./handlers/slashcommands")(client);
 
-    await aki.start();
 
-    const msg = await message.channel.send(new MessageEmbed()
-      .setTitle(`${message.author.username}, Questão ${aki.currentStep + 1}`)
-      .setColor("#00bfff")
-      .setDescription(`**${aki.question}**\n${aki.answers.map((an, i) => `${an} | ${emojis[i]}`).join("\n")}`));
+require("./handlers/setups")(client)
+const functions = require("./functions")
+//databases setups
+const Enmap = require("enmap");
+client.settings = new Enmap({
+    name: "settings",
+    dataDir: "./databases/settings"
+});
+client.infos = new Enmap({
+    name: "infos",
+    dataDir: "./databases/infos"
+});
+client.custom = new Enmap({
+    name: "custom",
+    dataDir: "./databases/playlist"
+});
+client.custom2 = new Enmap({
+    name: "custom",
+    dataDir: "./databases/playlist2"
+});
+function escapeRegex(str) {
+    try {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`);
+    } catch (e) {
+      console.log(String(e.stack).bgRed)
+    }
+  }
+//registering a command setup
+client.on("message", async message => {
+    if (message.author.bot) return;
+    if (!message.guild) return;
+    //GET THE PREFIX
 
-    for (const emoji of emojis) await msg.react(emoji);
+    let prefix = client.settings.get(message.guild.id, `prefix`);
+    if (prefix === null) prefix = config.prefix; //if not prefix set it to standard prefix in the config.json file
+    const prefixRegex = new RegExp(`^(<@!?${client.user.id}>|${escapeRegex(prefix)})\\s*`);
+    if (!prefixRegex.test(message.content)) return;
+    const [, matchedPrefix] = message.content.match(prefixRegex);
+    prefix = matchedPrefix;
 
-    const collector = msg.createReactionCollector((reaction, user) => emojis.includes(reaction.emoji.name) && user.id == message.author.id, {
-      time: 60000 * 6
-    });
+    if (!message.content.startsWith(prefix) && message.content.includes(client.user.id))
+        if (!message.guild.me.permissionsIn(message.channel).has("EMBED_LINKS"))
+            message.reply(new Discord.MessageEmbed().setColor(config.colors.yes).setAuthor(`${message.author.username}, Meu prefixo é ${prefix}, Para começar: ${prefix}help`, message.author.displayAvatarURL({
+                dynamic: true
+            }), "https://dc.musicium.eu"));
+        else
+            message.reply(`${message.author.username}, Meu prefixo é ${prefix}, para começar ${prefix}help`)
+    if (!message.content.startsWith(prefix)) return;
 
-    collector
-      .on("end", () => isPlaying.delete(message.author.id))
-      .on("collect", async ({
-        emoji,
-        users
-      }) => {
-        users.remove(message.author).catch(() => null);
+    //if not allowed to send embeds, return that
+    if (!message.guild.me.permissionsIn(message.channel).has("EMBED_LINKS"))
+        return message.reply("**:x: Estou perdendo a permissão para `EMBED_LINKS`**")
 
-        if (emoji.name == "❌") return collector.stop();
-
-        await aki.step(emojis.indexOf(emoji.name));
-
-        if (aki.progress >= 70 || aki.currentStep >= 78) {
-
-          await aki.win();
-
-          collector.stop();
-
-          message.channel.send(new MessageEmbed()
-            .setTitle("Este é o seu personagem?")
-            .setDescription(`**${aki.answers[0].name}**\n${aki.answers[0].description}\nRanking**#${aki.answers[0].ranking}**\n\n[yes (**y**) / no (**n**)]`)
-            .setImage(aki.answers[0].absolute_picture_path)
-            .setColor("#00bfff"));
-
-          const filter = m => /(yes|no|y|n)/i.test(m.content) && m.author.id == message.author.id;
-
-          message.channel.awaitMessages(filter, {
-              max: 1,
-              time: 30000,
-              errors: ["time"]
-            })
-            .then(collected => {
-              const isWinner = /yes|y/i.test(collected.first().content);
-              message.channel.send(new MessageEmbed()
-                .setTitle(isWinner ? "Excelente! Acertei mais uma vez":"Uh. você é o vencedor!")
-                .setColor("#00bfff")
-                .setDescription("Eu amo brincar com você"));
-            }).catch(() => null);
-        
-        } else {
-          msg.edit(new MessageEmbed()
-            .setTitle(`${message.author.username}, Questão ${aki.currentStep + 1}`)
-            .setColor("#00bfff")
-            .setDescription(`**${aki.question}**\n${aki.answers.map((an, i) => `${an} | ${emojis[i]}`).join("\n")}`));
+    //CHECK IF IN A BOT CHANNEL OR NOT
+    if (client.settings.get(message.guild.id, `botchannel`).toString() !== "") {
+        if (!client.settings.get(message.guild.id, `botchannel`).includes(message.channel.id) && !message.member.hasPermission("ADMINISTRATOR")) {
+            let leftb = "";
+            for (let i = 0; i < client.settings.get(message.guild.id, `botchannel`).length; i++) {
+                leftb += "<#" + client.settings.get(message.guild.id, `botchannel`)[i] + "> / "
+            }
+            return functions.embedbuilder(client, 5000, message, config.colors.no, `Não no bate-papo do bot! `,` Há uma configuração de bate-papo do bot nesta GUILDA! tente usar os comandos do bot aqui: 
+            > ${leftb}`)
         }
-      });
-  })
+    }
 
-  //FIM
+    const args = message.content.slice(prefix.length).trim().split(/ +/g);
+    const cmd = args.shift().toLowerCase();
 
-client.login(process.env.TOKEN);
+    if (cmd.length === 0) return;
+    let command = client.commands.get(cmd);
+    if (!command) command = client.commands.get(client.aliases.get(cmd));
+    if (command) {
+        if (!cooldowns.has(command.name)) {
+            cooldowns.set(command.name, new Collection());
+        }
+
+        const now = Date.now();
+        const timestamps = cooldowns.get(command.name);
+        const cooldownAmount = (command.cooldown || 2) * 1000;
+
+        if (timestamps.has(message.author.id)) {
+            const expirationTime = timestamps.get(message.author.id) + cooldownAmount;
+
+            if (now < expirationTime) {
+                const timeLeft = (expirationTime - now) / 1000;
+                return message.reply(
+                    `Por favor aguarde ${timeLeft.toFixed(1)} mais alguns segundo(s) antes de reutilizar o comando \`${command.name}\``
+                );
+            }
+        }
+
+        timestamps.set(message.author.id, now);
+        setTimeout(() => timestamps.delete(message.author.id), cooldownAmount);
+
+        client.infos.set("global", Number(client.infos.get("global", "cmds")) + 1, "cmds");
+
+        message.react("✅").catch(e => console.log("NÃO PODEREI REAGIR F"))
+
+        try {
+            command.run(client, message, args);
+        } catch (error) {
+            console.error(error)
+            functions.embedbuilder(client, 5000, message, "RED", "ERROR: ", "```" + error.toString().substr(0, 100) + "```" + "\n\n**Erro enviado ao meu proprietário!**")
+            functions.errorbuilder(error.stack.toString().substr(0, 2000))
+        }
+    } else
+        return message.reply(`comando desconhecido, tente: ${prefix}help`)
+});
+
+client.login(config.token);
+
+
+
+process.on('unhandledRejection', (reason, p) => {
+    console.log('=== rejeição não tratada ==='.toUpperCase());
+});
+process.on("uncaughtException", (err, origin) => {
+    console.log('=== exceção não capturada ==='.toUpperCase());
+})
+process.on('uncaughtExceptionMonitor', (err, origin) => {
+    console.log('=== monitor de exceção não capturado ==='.toUpperCase());
+});
+process.on('beforeExit', (code) => {
+    console.log('=== antes de sair ==='.toUpperCase());
+});
+process.on('exit', (code) => {
+    console.log('=== sair ==='.toUpperCase());
+});
+process.on('multipleResolves', (type, promise, reason) => {
+    console.log('=== várias resoluções ==='.toUpperCase());
+});

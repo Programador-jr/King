@@ -1,7 +1,8 @@
 const Discord = require("discord.js");
 const mapping = {
-	'0': ':zero:',
-	'1': ':one:',
+	' ': ':zero:',
+	'0': ':one:',
+	'1': ':two:',
 	'2': ':two:',
 	'3': ':three:',
 	'4': ':four:',

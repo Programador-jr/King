@@ -1,6 +1,6 @@
 module.exports = { 
   name: "ratewaifu",
-  aliases: ['ratewaifu', 'avaliarwaifu'],
+  aliases: ['waifu', 'avaliarwaifu'],
 	category:"diversão",
   run:async(client, message, args) => {
 
@@ -10,7 +10,7 @@ module.exports = {
     return message.reply('lembre-se de mencionar um usuário válido para avaliar!');
     }
 
-  if (user == 794291443454836766) return message.channel.send('Eu dou nota **10** para <@794291443454836766> sim eu sou muito lindo 😘')
+  if (user == 794291443454836766) return message.channel.send('Eu dou nota **∞** para <@794291443454836766> sim eu sou muito lindo 😘')
       
   if(user == 718669518452293713) return message.channel.send(`Sobre ${user}... Eu dou nota **1000** para essa waifu. Se vc procurar definição de perfeição no dicionário aparece ${user}! <:cut:808443704028823574>`)
 

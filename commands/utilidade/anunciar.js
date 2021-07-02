@@ -6,7 +6,7 @@ name: "anunciar",
 aliases: ["announce", "a"],
 category: "Utility",
 usage: "embed <text to say>",
-description: "Returns provided text in Embed form.",
+description: "Retorna o texto fornecido em embed",
 run: async(client, message, args) => {
   if(!message.member.hasPermission("ADMINISTRATION")) return message.channel.send(`VOCÊ NÃO TEM PERMISSÃO`)
  await message.delete()

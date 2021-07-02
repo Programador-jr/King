@@ -62,7 +62,7 @@ module.exports = {
                             content: new MessageEmbed({
                                 title: `Clima semanal em: ${location.name}`,
                                 description: `**Dia:** ${forecast[0].date} (${forecast[0].day})\n**Max:** ${forecast[0].high} Cº\n**Min:** ${forecast[0].low} Cº\n**Chuva:** ${forecast[0].precip} %\n\n**Dia:** ${forecast[1].date} (${forecast[1].day})\n**Max:** ${forecast[1].high} Cº\n**Min:** ${forecast[1].low} Cº\n**Chuva:** ${forecast[1].precip} %\n\n**Dia:** ${forecast[2].date} (${forecast[2].day})\n**Max:** ${forecast[2].high} Cº\n**Min:** ${forecast[2].low} Cº\n**Chuva:** ${forecast[2].precip} %\n\n**Dia:** ${forecast[3].date} (${forecast[3].day})\n**Max:** ${forecast[3].high} Cº\n**Min:** ${forecast[3].low} Cº\n**Chuva:** ${forecast[3].precip} %\n\n**Dia:** ${forecast[4].date} (${forecast[4].day})\n**Max:** ${forecast[4].high} Cº\n**Min:** ${forecast[4].low} Cº\n**Chuva:** ${forecast[4].precip} %`,
-																color: 'blue',
+																color: '#00BFFF',
                                 footer: {
                                     text: `Reaja com (◀) para ver a previsão de hoje`
                                 }
