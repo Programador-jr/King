@@ -1,6 +1,5 @@
 const Discord = require('discord.js');
 const {MessageEmbed} = require("discord.js");
-const config = require("../../config.json");
 
 module.exports = {
     name: "tictactoe",
@@ -65,7 +64,7 @@ module.exports = {
       "``` 1 | 2 | 3 \n---|---|--  \n 4 | 5 | 6 \n---|---|--  \n 7 | 8 | 9```"
     )
     .setFooter(`${message.author.username} vs ${mention.user.username}`)
-    .setColor(config.color);
+    .setColor('#00BFFF');
   const game = await message.channel.send({
     embed: gameEmbed
   });
@@ -98,7 +97,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -114,7 +113,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#FFFF00');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -146,7 +145,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -162,7 +161,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('RED');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -196,7 +195,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -212,7 +211,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('RED');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -244,7 +243,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -260,7 +259,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('RED');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -294,7 +293,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -310,7 +309,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('RED');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -342,7 +341,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -358,7 +357,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -367,7 +366,7 @@ module.exports = {
   const winnerEmbed = new MessageEmbed()
     .setTitle("Game over!")
     .setFooter(`${message.author.username} vs ${mention.user.username}`)
-    .setColor(config.color);
+    .setColor('#00BFFF');
 
   if (validation[0] === 1 && validation[1] === 1 && validation[2] === 1) {
     const win = "%user ganhou essa rodada!".replace("%user", message.author);
@@ -510,7 +509,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -526,7 +525,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -671,7 +670,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -687,7 +686,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('RED');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -834,7 +833,7 @@ module.exports = {
       .setTitle("Jogo da Velha game")
       .setDescription(editedDescription)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('#00BFFF');
 
     await game.edit({
       embed: gameEmbed
@@ -850,7 +849,7 @@ module.exports = {
       )
       .setDescription(noanswer)
       .setFooter(`${message.author.username} vs ${mention.user.username}`)
-      .setColor(config.color);
+      .setColor('RED');
     return message.channel.send({
       embed: noAnswerEmbed
     });
@@ -974,7 +973,7 @@ module.exports = {
       "Ninguém ganhou, é empate! A próxima rodada pode ser melhor."
     )
     .setFooter(`${message.author.username} vs ${mention.user.username}`)
-    .setColor(config.color);
+    .setColor('GREEN');
 
   return message.channel.send({
     embed: drawEmbed

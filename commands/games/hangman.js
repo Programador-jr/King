@@ -16,7 +16,7 @@ run: async(client, msg, args) => {
         .setDescription(
           "Já existe uma instância do jogo rodando neste servidor."
         )
-        .setColor("RANDOM")
+        .setColor("RED")
     );
   }
 

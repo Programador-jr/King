@@ -1,10 +1,11 @@
 const {readdirSync} = require("fs");
+const c = require('colors')
 const config = require("../config.json")
 const ascii = require("ascii-table");
 let table = new ascii("Commands");
 const functions = require("../functions")
-table.setHeading("Command", "Load status");
-console.log("Bem-vindo ao SERVIÇO DE MANIPULAÇÃO")
+table.setHeading(c.brightCyan("Comando", "status"));
+console.log(c.brightCyan("Bem-vindo ao SERVIÇO DE MANIPULAÇÃO"))
 module.exports = (client) => {
     readdirSync("./commands/").forEach(dir => {
         const commands = readdirSync(`./commands/${dir}/`).filter(file => file.endsWith(".js"));
@@ -22,28 +23,6 @@ module.exports = (client) => {
     });
 
     const guildonlycounter = new Map();
-    client.on("ready", () => {
-        console.log(`Bot está logado em ${client.user.username} e está pronto para uso`);
-        client.user.setActivity('+help | musicium.eu', {
-            type: 'WATCHING'
-        });
-        setInterval(() => {
-            client.guilds.cache.forEach(async guild => {
-                await functions.delay(client.ws.ping);
-                let member = await client.guilds.cache.get(guild.id).members.cache.get(client.user.id)
-                //if not connected
-                if (!member.voice.channel)
-                    return;
-                if (member.voice.channel.members.size === 1) {
-                    if (!guildonlycounter.has(guild.id)) return guildonlycounter.set(guild.id);
-                    try {
-                        guildonlycounter.delete(guild.id);
-                        return member.voice.channel.leave();
-                    } catch {}
-                }
-            });
-        }, (30 * 1000));
-    });
 
 
     client.distube
@@ -202,6 +181,6 @@ module.exports = (client) => {
 			
 
     console.log(table.toString());
-    console.log("Bem-vindo ao SERVIÇO DE MANUTENÇÃO")
-    console.log("lOGANDO NO BOT DO USUÁRIO...");
+    console.log(c.brightCyan("Bem-vindo ao SERVIÇO DE MANUTENÇÃO"))
+    console.log(c.brightRed("lOGANDO NO BOT DO USUÁRIO..."));
 }

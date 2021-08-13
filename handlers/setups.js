@@ -1,94 +1,26 @@
+const db = require("quick.db")
 const config = require("../config.json")
 const {prefix } = require('../config.json');
+const c = require('colors')
 const emojis = ["👍", "👎", "❔", "🤔", "🙄", "❌"];
 const isPlaying = new Set();
 const { Client, MessageEmbed } = require("discord.js");
 const { Aki } = require("aki-api");
-console.log("Loading Setups")
+console.log(c.brightRed("Carregando Configurações"))
 const functions = require("../functions");
 module.exports = (client) => {
     const guildonlycounter = new Map();
     let stateswitch = false;
 		
-		//AKINATOR
-client.on("message", async message => {
-    if (message.author.bot || !message.guild) return;
-
-    if (!message.content.startsWith(prefix + "aki")) return;
-
-    if (isPlaying.has(message.author.id)) {
-      return message.channel.send(":x: | Um jogo já está em andamento..");
-    }
-
-    isPlaying.add(message.author.id);
-
-    const aki = new Aki("pt"); // Lista completa de idiomas em: https://github.com/jgoralcz/aki-api
-
-    await aki.start();
-
-    const msg = await message.channel.send(new MessageEmbed()
-      .setTitle(`${message.author.username}, Questão ${aki.currentStep + 1}`)
-      .setColor("#00bfff")
-      .setDescription(`**${aki.question}**\n${aki.answers.map((an, i) => `${an} | ${emojis[i]}`).join("\n")}`));
-
-    for (const emoji of emojis) await msg.react(emoji);
-
-    const collector = msg.createReactionCollector((reaction, user) => emojis.includes(reaction.emoji.name) && user.id == message.author.id, {
-      time: 60000 * 6
-    });
-
-    collector
-      .on("end", () => isPlaying.delete(message.author.id))
-      .on("collect", async ({
-        emoji,
-        users
-      }) => {
-        users.remove(message.author).catch(() => null);
-
-        if (emoji.name == "❌") return collector.stop();
-
-        await aki.step(emojis.indexOf(emoji.name));
-
-        if (aki.progress >= 70 || aki.currentStep >= 78) {
-
-          await aki.win();
-
-          collector.stop();
-
-          message.channel.send(new MessageEmbed()
-            .setTitle("Este é o seu personagem?")
-            .setDescription(`**${aki.answers[0].name}**\n${aki.answers[0].description}\nRanking**#${aki.answers[0].ranking}**\n\n[sim (**y**) / não (**n**)]`)
-            .setImage(aki.answers[0].absolute_picture_path)
-            .setColor("#00bfff"));
-
-          const filter = m => /(sim|não|s|n)/i.test(m.content) && m.author.id == message.author.id;
-
-          message.channel.awaitMessages(filter, {
-              max: 1,
-              time: 30000,
-              errors: ["time"]
-            })
-            .then(collected => {
-              const isWinner = /sim|s/i.test(collected.first().content);
-              message.channel.send(new MessageEmbed()
-                .setTitle(isWinner ? "Excelente! Acertei mais uma vez":"Uh. você é o vencedor!")
-                .setColor("#00bfff")
-                .setDescription("Eu amo brincar com você"));
-            }).catch(() => null);
-        
-        } else {
-          msg.edit(new MessageEmbed()
-            .setTitle(`${message.author.username}, Questão ${aki.currentStep + 1}`)
-            .setColor("#00bfff")
-            .setDescription(`**${aki.question}**\n${aki.answers.map((an, i) => `${an} | ${emojis[i]}`).join("\n")}`));
-        }
-      });
-  })
-
-  //FIM
-
-
-client.on('ready', () => {
+		
+		client.on('ready', () => {
+	console.log(`Logado em ${client.user.tag} atualmente em ${client.guilds.cache.size} Guildas`)
+	 	const Guilds = 
+	client.guilds.cache.array().map((G, I) => 
+	`${I+1}. ${G.name} - ${G.id}`).join("\n");
+		if (!Guilds) return console.log("Nenhuma Guilda");
+			return console.log(Guilds);
+			
     let status = [
         { name: `❓ Se você precisa de ajuda use ${prefix}help`, type: "PLAYING" },
         { name: `Me adicione usando ${prefix}convite`, type: "WATCHING" },
@@ -99,8 +31,8 @@ client.on('ready', () => {
         let randomStatus = status[Math.floor(Math.random() * status.length)];
         client.user.setPresence({ activity: randomStatus });
 		}, 10000 * 30);
-	client.user.setStatus('online').catch(console.error);
-	console.logyu
+	client.user.setStatus('online').catch(console.err);
+	console.log(err)
 });
 
     client.on("guildCreate", guild => {
@@ -166,15 +98,15 @@ client.on('ready', () => {
 
     function getAll(client, guild) {
         const embed = new MessageEmbed()
-            .setColor(config.colors.yes)
+            .setColor('#00bfff')
             .setTitle('Menu de Ajuda - OBRIGADO POR ME CONVIDAR!')
-            .addField("**__BOT BY:__**", `
-                >>> <@442355791412854784> \`Tomato#6966\` [\`Website\`](https://kingbot.cf) [\`CONVITE\`]()
+            .addField("**__BOT DE:__**", `
+                >>> \`KingKiller®#1889\` [\`Website\`](https://kingbot.cf) [\`CONVITE\`](https://discord.com/oauth2/authorize?client_id=794291443454836766&permissions=37080128&scope=bot)
                 `)
             .addField("**__Música - fontes suportadas__**", `
                 >>> \`Youtube\`, \`Soundcloud\`, [\`Mais\`](https://links.musicium.eu), ...
                 `)
-            .setFooter(`Para ver as descrições dos comandos e o tipo de uso, use ${config.prefix}help [CMD Name]`, client.user.displayAvatarURL())
+            .setFooter(`Para ver as descrições dos comandos e o tipo de uso, use ${config.prefix}ajuda [CMD Name]`, client.user.displayAvatarURL())
 
         const commands = (category) => {
             return client.commands
@@ -202,7 +134,7 @@ client.on('ready', () => {
                     (channel.name.includes("cmd") || channel.name.includes("command") || channel.name.includes("bot")) &&
                     channel.permissionsFor(newState.member.guild.me).has("SEND_MESSAGES")
                 );
-                channel.send("Não ative meu som !, mutei meu som novamente! Isso protege os dados para que você tenha uma experiência mais rápida e suave")
+                channel.send("Não ative meu som!, mutei meu som novamente! Isso protege os dados para que você tenha uma experiência mais rápida e suave")
                 newState.setDeaf(true);
             } catch (error) {
                 try {
@@ -211,7 +143,7 @@ client.on('ready', () => {
                         channel.type === "text" &&
                         channel.permissionsFor(newState.member.guild.me).has("SEND_MESSAGES")
                     );
-                    channel.send("Não ative meu som !, mutei meu som novamente! Isso protege os dados para que você tenha uma experiência mais rápida e suave")
+                    channel.send("Não ative meu som!, mutei meu som novamente! Isso protege os dados para que você tenha uma experiência mais rápida e suave")
                     newState.setDeaf(true);
                 } catch (error) {
                     newState.setDeaf(true);
@@ -219,5 +151,5 @@ client.on('ready', () => {
             }
         }
     });
-    console.log("Configurações carregadas")
+    console.log(c.green("Configurações carregadas"))
 }

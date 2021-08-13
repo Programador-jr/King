@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const default_prefix = require('../../config.json');
+const prefix = require('../../config.json');
 module.exports = {
 	name:"ppt",
 	category:"games",
@@ -7,7 +7,7 @@ module.exports = {
 	run:async (client, message, args, defaut_prefix) => {
     const sp = args.join(" ")
     const rand = Math.floor(Math.random() * 6)
-    if(!args.join(" ")) return message.channel.send(`${message.author}, eu preciso que você escreva algo após o comando \`${default_prefix}ppt <pedra/papel/tesoura>\``)
+    if(!args.join(" ")) return message.channel.send(`${message.author}, eu preciso que você escreva algo após o comando \`${prefix}ppt <pedra/papel/tesoura>\``)
     if(rand === 0 || rand === 1)  {
         chs = `pedra`
     }
