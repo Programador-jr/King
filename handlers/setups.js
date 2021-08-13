@@ -20,7 +20,10 @@ module.exports = (client) => {
 	`${I+1}. ${G.name} - ${G.id}`).join("\n");
 		if (!Guilds) return console.log("Nenhuma Guilda");
 			return console.log(Guilds);
-			
+})
+
+
+client.on('ready', () => {
     let status = [
         { name: `❓ Se você precisa de ajuda use ${prefix}help`, type: "PLAYING" },
         { name: `Me adicione usando ${prefix}convite`, type: "WATCHING" },
