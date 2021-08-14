@@ -19,7 +19,7 @@ module.exports = {
         .addField(`:pager: RAM`, `${Math.trunc((process.memoryUsage().heapUsed) / 1024 / 1000)} MB / ${Math.trunc(os.totalmem() / 1024 / 1000)} MB (${Math.round((Math.round(process.memoryUsage().heapUsed / 1024 / 1024) / Math.round(os.totalmem() / 1024 / 1024)) * 100)}%)`, true)
         .addField(`:dividers: Livraria`, `Discord.js ${Discord.version}`, true)
         .addField(`:alarm_clock: Conectado desde`, ""+(Math.round(client.uptime / (1000 * 60 * 60))) + " Hora(s), " + (Math.round(client.uptime / (1000 * 60)) % 60) + " minuto(s) e " + (Math.round(client.uptime / 1000) % 60) + " segundo(s)"+"")
-
+.setColor('#00bfff')
     message.channel.send(embed);
 }
 }

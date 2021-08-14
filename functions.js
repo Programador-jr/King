@@ -69,11 +69,11 @@ function embedbuilder(client, deletetime, message, color, title, description, th
     } catch {}
     try {
         let embed = new Discord.MessageEmbed()
-            .setColor('#00BFFF')
+            .setColor("#00bfff")
             .setAuthor(message.author.tag, message.member.user.displayAvatarURL({
                 dynamic: true
             }), "https://kingbot.cf")
-            .setFooter(client.user.username + " | by: King", client.user.displayAvatarURL());
+            .setFooter(client.user.username +  client.user.displayAvatarURL());
         if (title) embed.setTitle(title);
         if (description) embed.setDescription(description);
         if (thumbnail) embed.setThumbnail(thumbnail)
@@ -105,7 +105,7 @@ function errorbuilder(error) {
 
 function QueueEmbed(client, queue) {
     try {
-        let embeds = [];
+        let embeds = ["#00bfff"];
         let k = 10;
         //defining each Pages
         for (let i = 0; i < queue.songs.length; i += 10) {
@@ -118,7 +118,7 @@ function QueueEmbed(client, queue) {
                 .setTitle("Fila de servidor")
                 .setColor(config.colors.yes)
                 .setDescription(`**Música atual - [\`${qus[0].name}\`](${qus[0].url})**\n\n${info}`)
-                .setFooter(client.user.username + " | by: King", client.user.displayAvatarURL())
+                .setFooter(client.user.username +  client.user.displayAvatarURL())
             embeds.push(embed);
         }
         //returning the Embed
@@ -132,7 +132,7 @@ function QueueEmbed(client, queue) {
 function customplaylistembed(client, message, lyrics, song) {
     if (!lyrics) lyrics = "Nenhuma música na lista de reprodução!";
     try {
-        let embeds = [];
+        let embeds = ["#00bfff"];
         let k = 1000;
         for (let i = 0; i < lyrics.length; i += 1000) {
             const current = lyrics.slice(i, k);
@@ -153,7 +153,7 @@ function customplaylistembed(client, message, lyrics, song) {
 
 function lyricsEmbed(client, message, lyrics, song) {
     try {
-        let embeds = [];
+        let embeds = ["#00bfff"];
         let k = 1000;
         for (let i = 0; i < lyrics.length; i += 1000) {
             const current = lyrics.slice(i, k);
@@ -201,7 +201,7 @@ async function playsongyes(client, message, queue, song) {
                 dynamic: true
             }), "")
             .setThumbnail(`https://img.youtube.com/vi/${song.id}/mqdefault.jpg`)
-
+           .setColor("#00bfff")
         var playingMessage = await message.channel.send(embed1)
 
         client.settings.set(message.guild.id, playingMessage.id, "playingembed")

@@ -1,4 +1,4 @@
-﻿const functions = require("../../functions")
+const functions = require("../../functions")
 const config = require("../../config.json")
 module.exports = {
   name: "status",

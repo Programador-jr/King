@@ -1,3 +1,6 @@
+const canvacord = require("canvacord");
+const c = require("colors");
+const ranking = require("./ranking");
 const ScrapeYt = require("scrape-yt");
 const spotify = require("spotify-url-info")
 const YTDL = require("discord-ytdl-core");
@@ -19,7 +22,8 @@ const client = new Client({
     fetchAllMembers: false,
     restTimeOffset: 0,
     shards: "auto",
-    disableEveryone: true
+    disableEveryone: true,
+    owner: "718669518452293713"
 });
 
 client.commands = new Collection();
@@ -51,7 +55,7 @@ client.distube = new DisTube(client, {
 
 app.get("/", (request, response) => {
   response.sendStatus(200); //responde quando recebe ping
-  console.log("ping recebido!");
+  console.log(c.green("ping recebido!"));
 
 
 });
@@ -137,6 +141,8 @@ client.custom2 = new Enmap({
     name: "custom",
     dataDir: "./databases/playlist2"
 });
+client.points = new Enmap({
+	 name: "points" });
 function escapeRegex(str) {
     try {
       return str.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`);
@@ -161,7 +167,7 @@ client.on("message", async message => {
         if (!message.guild.me.permissionsIn(message.channel).has("EMBED_LINKS"))
             message.reply(new Discord.MessageEmbed().setColor(config.colors.yes).setAuthor(`${message.author.username}, Meu prefixo é ${prefix}, Para começar: ${prefix}help`, message.author.displayAvatarURL({
                 dynamic: true
-            }), "https://dc.musicium.eu"));
+            }), "https://kingbot.cf"));
         else
             message.reply(`${message.author.username}, Meu prefixo é ${prefix}, para começar ${prefix}help`)
     if (!message.content.startsWith(prefix)) return;
@@ -223,12 +229,12 @@ client.on("message", async message => {
             functions.errorbuilder(error.stack.toString().substr(0, 2000))
         }
     } else
-        return message.reply(`comando desconhecido, tente: ${prefix}help`)
+        return message(``)
 });
 
-client.login(config.token);
 
-
+ranking(client); 
+client.login(process.env.TOKEN);
 
 process.on('unhandledRejection', (reason, p) => {
     console.log('=== rejeição não tratada ==='.toUpperCase());

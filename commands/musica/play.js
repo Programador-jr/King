@@ -1,4 +1,4 @@
-﻿const functions = require("../../functions")
+const functions = require("../../functions")
 const config = require("../../config.json")
 var {
   getData,
@@ -9,7 +9,7 @@ let deezer = new DeezerPublicApi();
 module.exports = {
   name: "play",
   category: "MUSIC COMMANDS",
-  aliases: ["p"],
+  aliases: ["p", "tocar"],
   cooldown: 5,
   useage: "play <URL/NAME>",
   description: "Toca uma música do youtube, soundcloud ou qualquer outra coisa, ou pesquisa ou toca uma lista de reprodução",
@@ -45,7 +45,7 @@ module.exports = {
     
     //do things for deezer
     if (args.join(" ").includes("deezer")) {
-      //Get album list for the given artist id
+      //  list for the given artist id
       let track = args.join(" ").split("/")
 
       track = track[track.length - 1]

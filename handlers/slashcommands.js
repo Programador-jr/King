@@ -1,5 +1,6 @@
 const config = require("../config.json")
-console.log("LOADING SLASH COMMANDS...")
+const c = require('colors')
+console.log(c.brightRed("CARREGANDO COMANDOS SLASH ..."))
 const Discord = require("discord.js");
 module.exports = (client) => {
     ///////////////////////////////
@@ -178,5 +179,5 @@ module.exports = (client) => {
             files: apiMessage.files
         };
     }
-    console.log('Loaded Slash Commands');
+    console.log(c.green('Comandos Slash carregados'));
 }

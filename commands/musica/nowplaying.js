@@ -1,11 +1,11 @@
-﻿const functions = require("../../functions")
+const functions = require("../../functions")
 const config = require("../../config.json")
 const Canvas = require('canvas');
 const Discord = require("discord.js");
 module.exports = {
     name: "nowplaying",
     category: "MUSIC COMMANDS",
-    aliases: ["np", "current", "currentsong", "cursong"],
+    aliases: ["np", "current", "currentsong", "cursong", "pn", "agora"],
     useage: "nowplaying",
     description: "Shows current song",
     run: async (client, message, args) => {
@@ -68,13 +68,13 @@ module.exports = {
         
 
         var textString = songtitle.substr(0, 35);
-        ctx.font = 'bold 40px Genta';
+        ctx.font = 'bold 35px Genta';
         ctx.fillStyle = '#00BFFF';
         ctx.fillText(textString, 10 + 192 + 10, 10 + 25);
         let textStringt
         if (songtitle.length > 40) textStringt = songtitle.substr(35, 32) + "...";
         else textStringt = "";
-        ctx.font = 'bold 35px Genta';
+        ctx.font = 'b5px Genta';
         ctx.fillStyle = '#00BFFF';
         ctx.fillText(textStringt, 10 + 192 + 10, 10 + 25 + 40);
 

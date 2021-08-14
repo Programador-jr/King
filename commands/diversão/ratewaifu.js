@@ -18,6 +18,8 @@ module.exports = {
 
   if(user == 532413362940936213) return message.channel.send(`Sobre ${user}... Eu dou nota **1000** para essa waifu. Se vc procurar definição de perfeição no dicionário aparece ${user}! <:cut1:808444488086847538>`)
 
+  if(user == 757434569011232879) return message.channel.send(`Sobre ${user}... Eu dou nota **1000** para essa waifu. Se vc procurar definição de perfeição no dicionário aparece ${user}! <:cut1:808444488086847538>`)	
+
 	  if(user == 765113381094817812) return message.channel.send(`Sobre ${user}... Eu dou nota **1000** para essa waifu. Se vc procurar definição de perfeição no dicionário aparece ${user}! <:cut1:808444488086847538>`)
   
 var list = [
