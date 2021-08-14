@@ -11,15 +11,19 @@ const functions = require("../functions");
 module.exports = (client) => {
     const guildonlycounter = new Map();
     let stateswitch = false;
-		
+
+client.on("guildCreate", guild => {
+   guild.owner.send("Obrigado por me adicionar use k!help para ver meus comandos ou acesse meu Website https://kingbot.cf")
+	  console.log(c.red(`Adicionado a uma nova guilda: ${guild.name} (id: ${guild.id}). A guilda contem ${guild.memberCount} membros!`));
+});		
 		
 		client.on('ready', () => {
-	console.log(`Logado em ${client.user.tag} atualmente em ${client.guilds.cache.size} Guildas`)
+	console.log(c.green(`Logado em ${client.user.tag} atualmente em ${client.guilds.cache.size} Guildas`))
 	 	const Guilds = 
 	client.guilds.cache.array().map((G, I) => 
 	`${I+1}. ${G.name} - ${G.id}`).join("\n");
 		if (!Guilds) return console.log("Nenhuma Guilda");
-			return console.log(Guilds);
+			return console.log(c.red(Guilds));			
 })
 
 

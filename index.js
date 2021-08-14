@@ -55,7 +55,7 @@ client.distube = new DisTube(client, {
 
 app.get("/", (request, response) => {
   response.sendStatus(200); //responde quando recebe ping
-  console.log("ping recebido!");
+  console.log(c.green("ping recebido!"));
 
 
 });
