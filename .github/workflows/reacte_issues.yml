@@ -1,0 +1,21 @@
+name: Auto React
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  issue_opened:
+    # This job only runs for issue comments
+    name: Issue opened
+    if: ${{ !github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Comment on issue #${{ github.event.issue.number }} ${{ github.repository }}"
+      - name: Add Thumbs Up Reaction
+        run: |
+          curl https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/reactions -H "Accept: application/vnd.github.squirrel-girl-preview" --data '{"content":"+1"}' -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+      - name: Add Confused Reaction
+        run: |
+          curl https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/reactions -H "Accept: application/vnd.github.squirrel-girl-preview" --data '{"content":"confused"}' -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
