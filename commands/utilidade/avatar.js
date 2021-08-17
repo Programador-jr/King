@@ -1,25 +1,36 @@
-const Discord = require("discord.js"); 
+const { Client, Message, MessageEmbed } = require('discord.js')
+const search = require("discord.js-search");
+
 
 module.exports = {
-  name: "avatar",
-  category: "utilidade",
-  description: "Exibe o avatar de um usuário",
-  usage: "avatar",
+    name: 'avatar',
+    aliases: ['av'],
+		category:"utilidade",
 
-run: async (client, message, args) => {
+    /**
+     * @param {Client} client
+     * @param {Message} message
+     * @param {String[]} args
+     */
+    run: async(client, message, args) => {
+        let query = args.join(" ");
 
-    let user = message.mentions.users.first() || client.users.cache.get(args[0]) || message.author;
-  
-  let avatar = user.avatarURL({ dynamic: true, format: "png", size: 1024 });
+        if (!query) {
+        const authorAvatar = new MessageEmbed()
+        .setTitle(`Seu avatar:`)
+        .setColor('#00bfff')
+        .setImage(message.author.displayAvatarURL({ dynamic: true, size: 4096 }))
+        .setDescription(`[jpeg](${message.author.displayAvatarURL({ dynamic: true, format: 'jpeg'})}) \`|\` [gif](${message.author.displayAvatarURL({ dynamic: true, format: 'gif'})}) \`|\` [jpg](${message.author.displayAvatarURL({ dynamic: true, format: 'jpg'})}) \`|\` [png](${message.author.displayAvatarURL({ dynamic: true, format: 'png'})}) \`|\` [webp](${message.author.displayAvatarURL({ dynamic: true, format: 'webp'})})`)
 
-  let embed = new Discord.MessageEmbed() 
-    .setColor('#00bfff') 
-    .setTitle(`Avatar de ${user.username}`)
-		.setDescription(`[Download](${avatar})`)
-    .setImage(avatar) 
-    .setFooter(`• Autor: ${message.author.tag}`, message.author.displayAvatarURL({format: "png"}));
- await message.channel.send(embed);
+        return message.channel.send(authorAvatar)
+    }
+        search.searchMember(message, query).then(x => {
+            const embed = new MessageEmbed()
+            .setTitle(`Avatar de ${x.user.tag}`)
+            .setColor('#00bfff')
+            .setImage(x.user.displayAvatarURL({ size: 4096, dynamic: true }))
+            message.reply({ embed: embed, allowedMentions: { repliedUser: true } });
 
-		}
-
-};
+        })
+    }
+}

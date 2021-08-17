@@ -1,8 +1,7 @@
 const Discord = require("discord.js");
 const { MessageEmbed } = require("discord.js");
 const Color = `#00FF7F`; 
-const Scraper = require("mal-scraper"); //npm i mal-scraper
-
+const Scraper = require("mal-scraper");
 
 module.exports = {
     name: "anime",
@@ -19,11 +18,7 @@ module.exports = {
 
         if (Text.length > 200) return message.channel.send(`Limite de Texto - 200`);
 
-        let Msg = await message.channel.send(`**Procurando por você 🔮**`);
-
         let Replaced = Text.replace(/ +/g, " ");
-
-        await Msg.delete();
 
         let Anime;
 
@@ -48,7 +43,7 @@ module.exports = {
         .addField(`Popularidade`, Anime.popularity, true)
         .addField(`Generos`, Anime.genres.join(", "))
         .setThumbnail(Anime.picture)
-        .setFooter(`score - ${Anime.score}`)
+        .setFooter(`Pontuação - ${Anime.score}`)
         .setTimestamp();
 
         } catch (error) {

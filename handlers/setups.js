@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+const mongoCurrency = require('discord-mongo-currency');
 const db = require("quick.db")
 const config = require("../config.json")
 const {prefix } = require('../config.json');
@@ -159,4 +161,8 @@ client.on('ready', () => {
         }
     });
     console.log(c.green("Configurações carregadas"))
+		mongoose.connect(process.env.Database, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+}).then(console.log(c.yellow('Conectado ao MongoDB.')))
 }
