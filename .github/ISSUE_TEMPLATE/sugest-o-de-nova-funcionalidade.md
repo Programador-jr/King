@@ -1,5 +1,5 @@
 ---
-name: Sugestão de nova funcionalidade
+name: Sugestão de Nova Funcionalidade
 about: Sugira uma ideia para este projeto
 title: ''
 labels: 'Suggestion 👾'
