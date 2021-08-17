@@ -23,7 +23,7 @@ const client = new Client({
     restTimeOffset: 0,
     shards: "auto",
     disableEveryone: true,
-    owner: "718669518452293713"
+		intents: 32767
 });
 
 client.commands = new Collection();

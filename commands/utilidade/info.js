@@ -20,6 +20,7 @@ module.exports = {
         .addField(`:dividers: Livraria`, `Discord.js ${Discord.version}`, true)
         .addField(`:alarm_clock: Conectado desde`, ""+(Math.round(client.uptime / (1000 * 60 * 60))) + " Hora(s), " + (Math.round(client.uptime / (1000 * 60)) % 60) + " minuto(s) e " + (Math.round(client.uptime / 1000) % 60) + " segundo(s)"+"")
 .setColor('#00bfff')
+.setFooter('KingKiller®#1889','https://cdn.discordapp.com/avatars/718669518452293713/1893ff302ddf846e106f47159d308367.webp?size=4096')
     message.channel.send(embed);
 }
 }

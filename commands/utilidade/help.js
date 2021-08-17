@@ -6,10 +6,7 @@ module.exports = {
 	name: 'help',
 
 	run: async (client, message, args) => {
-		const roleColor =
-			message.guild.me.displayHexColor === '#00FFFF'
-				? '##00BFFF'
-				: message.guild.me.displayHexColor;
+
 
 		message.delete();
 
@@ -26,6 +23,7 @@ module.exports = {
             >>> Agora você pode alterar o ganho de seu Bass Boost de \`1\` - \`20\`!  Exemplo: \`${prefix}bassboost 10 \` * Faz um Bassboost com ganho de 10db *
             `
 			)
+			.addField('\u200b', '\u200b')
 			.addField(
 				'**LISTAS DE REPRODUÇÃO PERSONALIZADOS PRÉ-FEITOS**',
 				`
@@ -38,14 +36,14 @@ module.exports = {
             5. Country
             6. Rock
             *mais em breve*
-            reproduzi-los por \`${prefix}playlist <Número da playlist>\`
+reproduzi-los por \`${prefix}playlist <Número da playlist>\`
             `
 			)
+			.addField('\u200b', '\u200b')			
 			.addField(
 				'**ESTAÇÕES DE RADIO**',
 				`
-            >>> existem mais de 200 estações de rádio disponíveis, você pode vê-las digitando \`${prefix}radio \`
-             e reproduzi-los pela rádio \`${prefix} <stationnum.>\`
+            >>> existem mais de 200 estações de rádio disponíveis, você pode vê-las digitando \`${prefix}radio \` e reproduzi-los pela rádio \`${prefix} <stationnum.>\`
             `)
 			
 			.addField('\u200b', '\u200b')
@@ -73,7 +71,7 @@ module.exports = {
             `)
 
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor)
+			.setColor("#00bfff")
 			.setFooter(
 				`Requerido por ${message.author.tag}`,
 				message.author.displayAvatarURL({ dynamic: true })
@@ -99,7 +97,7 @@ module.exports = {
 • **${config.prefix}timido**`
 			)
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		let embed2 = new Discord.MessageEmbed()
 			.setDescription(
@@ -127,7 +125,7 @@ module.exports = {
 			)
 
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		let embed3 = new Discord.MessageEmbed()
 			.setDescription(
@@ -143,7 +141,7 @@ module.exports = {
 				}velha** - Jogue uma partida de jogo da velha com um membro do servidor`
 			)
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		let embed4 = new Discord.MessageEmbed()
 			.setDescription(
@@ -173,7 +171,7 @@ module.exports = {
 • **${config.prefix}wasted** - Retornna uma imagem wasted!`
 			)
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		let embed5 = new Discord.MessageEmbed()
 			.setDescription(
@@ -202,7 +200,7 @@ module.exports = {
 • **${config.prefix}resetwarns** - Redefinir avisos da pessoa mencionada`
 			)
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		let embed6 = new Discord.MessageEmbed()
 			.setDescription(
@@ -229,7 +227,7 @@ module.exports = {
 • **${config.prefix}volume** - "Alterar o volume atual no servidor`
 			)
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		let embed7 = new Discord.MessageEmbed()
 			.setDescription(
@@ -248,7 +246,7 @@ module.exports = {
 • **${config.prefix}thigh**`
 			)
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		let embed8 = new Discord.MessageEmbed()
 			.setDescription(
@@ -287,7 +285,7 @@ module.exports = {
 			)
 
 			.setThumbnail(client.user.avatarURL)
-			.setColor(roleColor);
+			.setColor("#00bfff");
 
 		message.channel.send(embedInicial).then(async msg => {
 			await msg.react('810254382549565530');

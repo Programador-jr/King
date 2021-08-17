@@ -4,15 +4,14 @@ My first bot for discord, made with the help of the official discord.js library 
 <details>
  <summary> Active command classes </summary>
  
-| Commands | status 
-  -------- | ------
-  Action   | ✔ 
-  Fun  	   | ✔	
-  Games  	 | ✔	
-  Image  	 | ✔	
-  Moderation | ✔	
-  Music 	 | ✔	
-  Utilities | ✔	
+| Commands  | status 
+  --------  | ------
+  Action    | ✔ 
+  Fun  	    | ✔	
+  Games  	  | ✔	
+  Image  	  | ✔	
+  Moderation| ✔	
+  Music 	  | ✔	
 </details>
 
 ## with memes commands 100% Brazilian
