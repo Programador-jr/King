@@ -1,38 +1,20 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: Reportar um Problema/Bug
+about: "Aaaah, bugs! 👾 - Reporte bugs no King!"
 title: ''
-labels: ''
+labels: "bug \U0001F41E"
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Qual é o problema?**
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+Descrição sobre qual é o problema
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Como reproduzir o problema?**
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+1. Descreva aqui
+2. Quais passos a gente precisa fazer
+3. Para conseguir encontrar o bug
+4. Use imagens para explicar melhor o problema!
