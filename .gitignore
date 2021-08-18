@@ -1,7 +1,3 @@
 node_modules/
 config.json
-.replit
 bg.png
-json.sqlite
-watch.json
-radiostations.json
