@@ -29,8 +29,8 @@ module.exports = {
                 .query({ appids: id });
                 
 			const { data } = body[id.toString()];
-			const current = data.price_overview ? `$${data.price_overview.final / 100}` : 'Grátis';
-			const original = data.price_overview ? `$${data.price_overview.initial / 100}` : 'Grátis';
+			const current = data.price_overview ? `${data.price_overview.final / 100}` : 'Grátis';
+			const original = data.price_overview ? `${data.price_overview.initial / 100}` : 'Grátis';
 			const price = current === original ? current : `~~${original}~~ ${current}`;
 			const platforms = [];
 			if (data.platforms) {
