@@ -12,7 +12,6 @@ My first bot for discord, made with the help of the official discord.js library 
   Image  	  | ✔	
   Moderation| ✔	
   Music 	  | ✔	
-  Utilities | ✔	
 </details>
 
 ## with memes commands 100% Brazilian
