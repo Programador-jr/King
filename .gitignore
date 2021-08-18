@@ -1,8 +1,7 @@
 node_modules/
-package-lock/
-config.json/
-.replit/
-bg.png/
-json.sqlite/
-watch.json/
+config.json
+.replit
+bg.png
+json.sqlite
+watch.json
 radiostations.json
