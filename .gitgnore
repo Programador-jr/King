@@ -2,3 +2,8 @@ node_modules/
 package-lock/
 config.json
 .replit
+json.sqlite
+bg.png
+playlists.json
+radiostations.json
+watch.json
