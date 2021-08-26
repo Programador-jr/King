@@ -4,9 +4,9 @@ const config = require('../../config.json');
 
 module.exports = {
 	name: 'help',
+	category:"utilidade",
 
 	run: async (client, message, args) => {
-
 
 		message.delete();
 
