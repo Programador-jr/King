@@ -26,7 +26,45 @@ client.on("guildCreate", guild => {
 	`${I+1}. ${G.name} - ${G.id}`).join("\n");
 		if (!Guilds) return console.log("Nenhuma Guilda");
 			return console.log(c.red(Guilds));			
-})
+});
+
+client.on("guildCreate", guild => {
+
+  const { MessageEmbed } = require("discord.js");
+
+  const ID = "865255179788222485";
+
+  const channel = client.channels.cache.get(ID);
+
+  const sowner = guild.owner.user;
+
+  if (!channel) return;
+
+  const embed = new MessageEmbed()
+
+    .setTitle("**I Joined a Server!**")
+
+    .addField(`**SERVER NAME**`, `\`\`\`${guild.name}\`\`\``)
+
+    .addField(`**SERVER ID**`, `\`\`\`${guild.id}\`\`\``)
+
+    .addField(`**SERVER OWNER**`, `\`\`\`${sowner.tag}\`\`\``)
+
+    .addField(`**OWNER ID**`, `\`\`\`${sowner.id}\`\`\``)
+ 
+    .addField(`**CREATED ON**`, `\`\`\`${guild.createdAt}\`\`\``)
+  
+    .addField(`**MEMBERS**`, `\`\`\`${guild.memberCount}\`\`\``)
+  
+    .setTimestamp()
+
+    .setColor("32CD32")
+
+    .setFooter(`Servers Count - ${client.guilds.cache.size}`);
+
+  channel.send(embed);
+
+});
 
 
 client.on('ready', () => {
