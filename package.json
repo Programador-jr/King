@@ -11,7 +11,7 @@
     "aki-api": "^5.2.1",
     "alexa-bot-api": "^2.0.5",
     "ascii-table": "^0.0.9",
-    "axios": "^0.21.1",
+    "axios": "^0.21.2",
     "booru": "^2.3.2",
     "canvacord": "^5.2.1",
     "canvas": "^2.6.1",
