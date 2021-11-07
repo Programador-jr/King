@@ -1,6 +1,6 @@
 {
   "name": "Kingbot",
-  "version": "2.5.2",
+  "version": "3.0.0",
   "description": "The Ultimate BOT",
   "main": "index.js",
   "dependencies": {
