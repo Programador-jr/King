@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
+
+
+body {
+  background: #000617;
+	color: #5663f7
+}
+h1 {
+  text-align: center;
+}
+p {
+  text-align: center;
+}
+a {
+  color: #00BFFF;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+a:hover {
+  color: #00bffd
+}
+section {
+  margin-top: 10px;
+  margin-bottom: 30px;
+}
+
+.command_head {
+  padding-top: 50px;
+  padding-bottom: 50px;
+  color: white;
+}
+
+#category {
+  border-radius: 5px;
+  padding-bottom: 50px;
+}
+
+#category a {
+  background-color: #151f2e;
+  color: #00bfff;
+	font-weight: bold;
+}
+
+#category a:focus{
+	color: #000617;
+	background: #00bfff;
+}
+
+#category a:hover{
+	color: #000617;
+	background: #00BFFF;
+}
+
+.allfilters{
+	color: #000617!important
+}
+
+#category a.active {
+  background-color: #00BFFF;
+  border-color: #00BFFF;
+	color: #000617;
+}
+
+#category a.active:focus {
+  background-color: #00BFFF;
+  border-color: #00BFFF;
+}
+.accordion-item {
+  background-color: #151f2e;
+  color: #888a9b;
+}
+
+.accordion-button {
+  color: #00BFFF;
+	font-weight: bold;
+}
+
+.accordion-button:not(.collapsed) {
+  color: #000617;
+  background-color: #00BFFF;
+}
+
+.accordion-button:not(.collapsed)::after {
+  background-image: url(https://cdn3.iconfinder.com/data/icons/faticons/32/arrow-up-01-512.png);
+  transform: rotate(180deg);
+  filter: invert(10%)
+}
+.accordion-button::after {
+   background-image: url(https://cdn3.iconfinder.com/data/icons/faticons/32/arrow-up-01-512.png);
+} */
+
+.accordion-button:focus {
+  z-index: 0;
+  border-color: transparent;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem transparent;
+}
+
+.accordion-item:first-of-type {
+  border-top-left-radius: .25rem;
+  border-top-right-radius: .25rem;
+}
+
+
+.accordion-item:last-of-type {
+  border-bottom-left-radius: .25rem;
+  border-bottom-right-radius: .25rem;
+}
+
+#commands_menu {
+  font-family: 'Poppins', sans-serif;
+}
+
+
+/* ANIMATION */
+
+.slide-up-fade-in{
+    animation: slide-up-fade-in ease 1.5s;
+}
+
+@keyframes slide-up-fade-in{
+    0% {
+        opacity:0;
+        transform:  translate(0px,40px)  ;
+    }
+    100% {
+        opacity:1;
+        transform:  translate(0px,0px)  ;
+    }
+}
