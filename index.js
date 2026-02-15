@@ -30,9 +30,9 @@ const client = new Discord.Client({
 });
 const { SpotifyPlugin } = require("@distube/spotify");
 const { SoundCloudPlugin } = require("@distube/soundcloud");
-const spotifyEnabled = String(process.env.SPOTIFY_API_ENABLED ?? config.spotify_api.enabled) === "true";
-const spotifyClientId = process.env.SPOTIFY_CLIENT_ID || config.spotify_api.clientId;
-const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET || config.spotify_api.clientSecret;
+const spotifyEnabled = String(process.env.SPOTIFY_API_ENABLED);
+const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
+const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
 let spotifyoptions = {}
 if (spotifyEnabled && spotifyClientId && spotifyClientSecret) {

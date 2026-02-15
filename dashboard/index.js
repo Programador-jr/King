@@ -13,6 +13,11 @@ const BotFilters = require("../botconfig/filters.json");
 const BotEmojis = require("../botconfig/emojis.json");
 const BotEmbed = require("../botconfig/embed.json");
 const { getSongSearchData, getLyricsWithFallback } = require("../handlers/lyricsService");
+const {
+  getDashboardPort,
+  getDashboardBaseUrl,
+  getDashboardCallbackUrl,
+} = require("../handlers/dashboardConfig");
 
 /**
  *  STARTING THE WEBSITE
@@ -24,8 +29,6 @@ module.exports = client => {
     const settings = require("./settings.json");
     const dashboardClientId = process.env.DASHBOARD_CLIENT_ID || settings?.config?.clientID || "";
     const dashboardClientSecret = process.env.DASHBOARD_CLIENT_SECRET || settings?.config?.secret || "";
-    const dashboardDomain = process.env.DASHBOARD_DOMAIN || settings?.website?.domain || "";
-    const dashboardCallback = process.env.DASHBOARD_CALLBACK || settings?.config?.callback || "";
     const dashboardSessionSecret = process.env.DASHBOARD_SESSION_SECRET || `#@%#&^$^$%@$^$&%#$%@#$%$^%&$%^#$%@#$%#E%#%@$FEErfgr3g#%GT%536c53cc6%5%tv%4y4hrgrggrgrgf4n`;
 
     if (!dashboardClientId || !dashboardClientSecret) {
@@ -33,22 +36,10 @@ module.exports = client => {
       return;
     }
 
-    const httpPort = Number(settings?.config?.http?.port) || 5000;
-    const defaultLocalDomain = `http://localhost:${httpPort}`;
-    const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
-    const isPlaceholderUrl = (value) => {
-      const normalized = normalizeBaseUrl(value).toLowerCase();
-      return !normalized || normalized.includes("your-domain.com");
-    };
-
-    const resolvedDomain = isPlaceholderUrl(dashboardDomain)
-      ? defaultLocalDomain
-      : normalizeBaseUrl(dashboardDomain);
-
-    const resolvedCallback = isPlaceholderUrl(dashboardCallback)
-      ? `${resolvedDomain}/callback`
-      : String(dashboardCallback).trim();
-    const isLocalCallback = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(resolvedCallback);
+    const httpPort = getDashboardPort(settings);
+    const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
+    const resolvedCallback = getDashboardCallbackUrl(settings) || `${resolvedDomain}/callback`;
+    const isLocalCallback = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?(\/|$)/i.test(resolvedCallback);
 
     const getRequestProtocol = (req) => {
       const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").split(",")[0].trim();

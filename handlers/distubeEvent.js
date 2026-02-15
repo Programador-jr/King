@@ -1,5 +1,6 @@
 console.log(`Bem-vindo ao MANIPULADOR DE SERVICO /--/`.yellow);
 const PlayerMap = new Map()
+const getPlayerMapKey = (queueId) => `currentmsg_${queueId}`;
 const Discord = require(`discord.js`);
 const ee = require(`../botconfig/embed.json`);
 const {
@@ -12,19 +13,11 @@ const {
   check_if_dj
 } = require("./functions");
 const { getSongSearchData, getLyricsWithFallback } = require("./lyricsService");
+const { getDashboardBaseUrl, getDashboardPort } = require("./dashboardConfig");
 let songEditInterval = null;
 
 const MAX_EMBED_LYRICS = 3900;
-const dashboardSettings = require("../dashboard/settings.json");
-const dashboardPort = Number(dashboardSettings?.config?.http?.port) || 5000;
-const resolveDashboardBaseUrl = () => {
-  const rawDomain = String(dashboardSettings?.website?.domain || "").trim().replace(/\/+$/, "");
-  if (!rawDomain || rawDomain.toLowerCase().includes("your-domain.com")) {
-    return `http://localhost:${dashboardPort}`;
-  }
-  return rawDomain;
-};
-const dashboardBaseUrl = resolveDashboardBaseUrl();
+const dashboardBaseUrl = getDashboardBaseUrl() || `http://127.0.0.1:${getDashboardPort()}`;
 
 const safeSlug = (value) =>
   String(value || "lyrics")
@@ -93,7 +86,7 @@ module.exports = (client) => {
             var data = receiveQueueData(newQueue, newTrack)
             //Send message with buttons
             let currentSongPlayMsg = await queue.textChannel.send(data).then(msg => {
-              PlayerMap.set(`currentmsg`, msg.id);
+              PlayerMap.set(getPlayerMapKey(queue.id), msg.id);
             return msg;
           })
           //create a collector for the thinggy
@@ -609,7 +602,16 @@ module.exports = (client) => {
       .on(`searchCancel`, message => message.channel.send(`Pesquisa cancelada`).catch((e)=>console.log(e)))
       .on(`error`, (error, queue, song) => {
         const target = queue?.textChannel || queue || song;
-        sendToDistubeChannel(target, `Um erro encontrado: ${error}`, 4000);
+        const rawError = String(error?.message || error || "");
+        const isYoutubeAuthError =
+          /Sign in to confirm you.?re not a bot/i.test(rawError) ||
+          /Use --cookies-from-browser or --cookies/i.test(rawError);
+
+        const userMessage = isYoutubeAuthError
+          ? `${client.allEmojis.x} YouTube bloqueou a reproducao. Configure cookies do YouTube no servidor e tente novamente.`
+          : `Um erro encontrado: ${rawError}`;
+
+        sendToDistubeChannel(target, userMessage, 4000);
         console.error(error)
       })
       .on(`empty`, channel => sendToDistubeChannel(channel, `O canal de voz está vazio! Saindo do canal...`))
@@ -623,13 +625,17 @@ module.exports = (client) => {
 A MUSICA ACABOU!`, song.user.displayAvatarURL({
           dynamic: true
         }));
-        queue.textChannel.messages.fetch(PlayerMap.get(`currentmsg`)).then(currentSongPlayMsg=>{
+        const playerMsgId = PlayerMap.get(getPlayerMapKey(queue.id));
+        if (!playerMsgId) return;
+        queue.textChannel.messages.fetch(playerMsgId).then(currentSongPlayMsg=>{
+          if (!currentSongPlayMsg || typeof currentSongPlayMsg.edit !== "function") return;
           currentSongPlayMsg.edit({embeds: [embed], components: []}).catch((e) => {
             console.log(e.stack ? String(e.stack).grey : String(e).grey)
           })
         }).catch((e) => {
           console.log(e.stack ? String(e.stack).grey : String(e).grey)
         })
+        PlayerMap.delete(getPlayerMapKey(queue.id));
       })
       .on(`finish`, queue => {
         queue.textChannel.send({

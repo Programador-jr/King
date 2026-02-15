@@ -1,7 +1,10 @@
 ﻿const { MessageEmbed, MessageActionRow, MessageSelectMenu, MessageButton } = require("discord.js");
 const config = require("../../botconfig/config.json");
 const ee = require("../../botconfig/embed.json");
-const dashboardSettings = require("../../dashboard/settings.json");
+const {
+  getDashboardBaseUrl,
+  getDashboardSupportUrl,
+} = require("../../handlers/dashboardConfig");
 
 const CATEGORY_ICON = {
   musica: "🎵",
@@ -98,18 +101,13 @@ const getCategoryComponentIcon = (client, guild, category) =>
   resolveConfiguredEmoji(client, guild, getConfiguredCategoryIcon(category)).component;
 
 const getDashboardCommandsUrl = () => {
-  const rawDomain = String(dashboardSettings?.website?.domain || "").trim();
-  const rawPort = Number(dashboardSettings?.config?.http?.port);
-  const localPort = Number.isFinite(rawPort) && rawPort > 0 ? rawPort : 5000;
-  const normalized = rawDomain.replace(/\/+$/, "");
-  const isPlaceholder = !normalized || normalized.toLowerCase().includes("your-domain.com");
-  const base = isPlaceholder ? `http://localhost:${localPort}` : normalized;
+  const base = getDashboardBaseUrl();
+  if (!base) return "";
   return `${base}/commands`;
 };
 
 const getSupportUrl = () => {
-  const raw = String(dashboardSettings?.website?.support || "").trim();
-  return raw || "";
+  return getDashboardSupportUrl();
 };
 
 const formatCommandTags = (commands, maxLen = 980, prefix = "", useUsage = false) => {
