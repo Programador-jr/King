@@ -15,6 +15,7 @@ const {
 const { getSongSearchData, getLyricsWithFallback } = require("./lyricsService");
 const { getDashboardBaseUrl, getDashboardPort } = require("./dashboardConfig");
 let songEditInterval = null;
+const ytAuthWarnAt = new Map();
 
 const MAX_EMBED_LYRICS = 3900;
 const dashboardBaseUrl = getDashboardBaseUrl() || `http://127.0.0.1:${getDashboardPort()}`;
@@ -117,12 +118,20 @@ module.exports = (client) => {
           }, 10000)
 
           collector.on('collect', async i => {
-            if(i.customId != `10` && check_if_dj(client, i.member, client.distube.getQueue(i.guild.id).songs[0])) {
+            const liveQueue = client.distube.getQueue(i.guild.id);
+            if (!liveQueue || !Array.isArray(liveQueue.songs) || liveQueue.songs.length === 0) {
+              return replyAndDelete(i, {
+                content: `${client.allEmojis.x} **Nao ha nada tocando agora.**`,
+                ephemeral: true
+              });
+            }
+            newQueue = liveQueue;
+            if(i.customId != `10` && check_if_dj(client, i.member, newQueue.songs[0])) {
               return replyAndDelete(i, {embeds: [new MessageEmbed()
                 .setColor(ee.wrongcolor)
                 .setFooter(ee.footertext, ee.footericon)
                 .setTitle(`${client.allEmojis.x} **Você não é um DJ ou não é o solicitador da música!**`)
-                .setDescription(`**CARGO-DJ:**\n${check_if_dj(client, i.member, client.distube.getQueue(i.guild.id).songs[0])}`)
+                .setDescription(`**CARGO-DJ:**\n${check_if_dj(client, i.member, newQueue.songs[0])}`)
               ],
               ephemeral: true});
             }
@@ -607,11 +616,26 @@ module.exports = (client) => {
           /Sign in to confirm you.?re not a bot/i.test(rawError) ||
           /Use --cookies-from-browser or --cookies/i.test(rawError);
 
-        const userMessage = isYoutubeAuthError
-          ? `${client.allEmojis.x} YouTube bloqueou a reproducao. Configure cookies do YouTube no servidor e tente novamente.`
-          : `Um erro encontrado: ${rawError}`;
+        if (isYoutubeAuthError) {
+          const queueId = String(queue?.id || song?.id || "global");
+          const now = Date.now();
+          const lastWarn = ytAuthWarnAt.get(queueId) || 0;
+          if (now - lastWarn >= 12000) {
+            ytAuthWarnAt.set(queueId, now);
+            sendToDistubeChannel(
+              target,
+              `${client.allEmojis.x} YouTube bloqueou a reproducao. Configure cookies validos e tente novamente.`,
+              4000
+            );
+          }
+          if (queue && typeof queue.stop === "function") {
+            queue.stop().catch(() => {});
+          }
+          console.error(error);
+          return;
+        }
 
-        sendToDistubeChannel(target, userMessage, 4000);
+        sendToDistubeChannel(target, `Um erro encontrado: ${rawError}`, 4000);
         console.error(error)
       })
       .on(`empty`, channel => sendToDistubeChannel(channel, `O canal de voz está vazio! Saindo do canal...`))
