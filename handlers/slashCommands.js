@@ -1,4 +1,4 @@
-const { readdirSync, lstatSync } = require("fs");
+const { readdirSync, lstatSync, existsSync } = require("fs");
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const config = require("../botconfig/config.json");
 const dirSetup = [{
@@ -22,6 +22,10 @@ const dirSetup = [{
 	}];
 module.exports = (client) => {
     try {
+		if (!existsSync("./slashCommands/")) {
+			console.log("[slashCommands] Pasta ./slashCommands nao encontrada. Ignorando carregamento.");
+			return;
+		}
 		let allCommands = [];
         readdirSync("./slashCommands/").forEach((dir) => {
 			if(lstatSync(`./slashCommands/${dir}`).isDirectory()) {

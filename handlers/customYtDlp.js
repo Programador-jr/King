@@ -51,6 +51,12 @@ const existingCookiesFile =
   trimEnv(process.env.YTDLP_COOKIE_FILE) ||
   trimEnv(process.env.YOUTUBE_COOKIES_FILE);
 
+const fallbackCookieFiles = [
+  path.join(process.cwd(), "cookies.txt"),
+  path.join(process.cwd(), "cookie.txt"),
+  path.join(process.cwd(), "cooke.txt"),
+];
+
 const cookiesFromBrowser =
   trimEnv(process.env.YTDLP_COOKIES_FROM_BROWSER) ||
   trimEnv(process.env.YOUTUBE_COOKIES_FROM_BROWSER);
@@ -99,6 +105,7 @@ const convertCookieHeaderToNetscape = (header) => {
     if (!name || !value) continue;
     lines.push(`.youtube.com\tTRUE\t/\tTRUE\t${expires}\t${name}\t${value}`);
   }
+  if (lines.length <= 1) return "";
   return lines.join("\n");
 };
 
@@ -109,6 +116,10 @@ const resolveCookiesFile = () => {
     console.warn(`[CustomYtDlp] Arquivo de cookies nao encontrado: ${existingCookiesFile}`);
   }
 
+  for (const file of fallbackCookieFiles) {
+    if (fs.existsSync(file)) return file;
+  }
+
   const cookieText = getRawCookieText();
   if (!cookieText) return "";
 
@@ -116,6 +127,10 @@ const resolveCookiesFile = () => {
     const content = looksLikeNetscapeCookieFile(cookieText)
       ? cookieText
       : convertCookieHeaderToNetscape(cookieText);
+    if (!content) {
+      console.warn("[CustomYtDlp] Cookie invalido no env. Use formato Netscape ou header completo com nome=valor.");
+      return "";
+    }
     generatedCookiesFile = path.join(os.tmpdir(), `yt-dlp-cookies-${process.pid}.txt`);
     fs.writeFileSync(generatedCookiesFile, content, "utf8");
     return generatedCookiesFile;
