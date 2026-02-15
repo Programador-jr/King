@@ -223,6 +223,126 @@ const isYoutubeLikeUrl = (rawUrl) => {
   return value.includes("youtube.com/") || value.includes("youtu.be/");
 };
 
+let youtubeiInnertube = null;
+const getInnertube = async () => {
+  if (youtubeiInnertube) return youtubeiInnertube;
+  try {
+    const { Innertube } = require("youtubei.js");
+    youtubeiInnertube = await Innertube.create({ retrieve_player: true });
+    return youtubeiInnertube;
+  } catch {
+    return null;
+  }
+};
+
+const getFormatMime = (fmt) => String(fmt?.mime_type || fmt?.mimeType || "").toLowerCase();
+const hasAudioTrack = (fmt) => fmt?.has_audio === true || getFormatMime(fmt).includes("audio/");
+const hasVideoTrack = (fmt) => fmt?.has_video === true || getFormatMime(fmt).includes("video/");
+const getFormatBitrate = (fmt) =>
+  Number(
+    fmt?.bitrate ||
+      fmt?.average_bitrate ||
+      fmt?.averageBitrate ||
+      0
+  );
+
+const resolveYoutubeiFormatUrl = async (fmt) => {
+  const directUrl = String(fmt?.url || "").trim();
+  if (directUrl) return directUrl;
+  if (typeof fmt?.decipher === "function") {
+    try {
+      const deciphered = await fmt.decipher();
+      if (typeof deciphered === "string" && deciphered.trim()) return deciphered.trim();
+      const decipheredUrl = String(deciphered?.url || "").trim();
+      if (decipheredUrl) return decipheredUrl;
+    } catch {
+      // ignore and try next candidate
+    }
+  }
+  return "";
+};
+
+const pickBestAudioFromFormats = async (formats = []) => {
+  const all = Array.isArray(formats) ? formats.filter(Boolean) : [];
+  if (!all.length) return "";
+
+  const audioOnly = all.filter((fmt) => hasAudioTrack(fmt) && !hasVideoTrack(fmt));
+  const audioLike = all.filter((fmt) => hasAudioTrack(fmt));
+  const ranked = (audioOnly.length ? audioOnly : audioLike.length ? audioLike : all).sort(
+    (a, b) => getFormatBitrate(b) - getFormatBitrate(a)
+  );
+
+  for (const candidate of ranked) {
+    const url = await resolveYoutubeiFormatUrl(candidate);
+    if (url) return url;
+  }
+
+  return "";
+};
+
+const getYoutubeiAudioUrl = async (rawUrl) => {
+  const ytId = extractYoutubeId(rawUrl);
+  if (!ytId) return "";
+  const innertube = await getInnertube();
+  if (!innertube) return "";
+  const clients = ["ANDROID", "IOS", "WEB"];
+
+  for (const client of clients) {
+    try {
+      const info = await innertube.getBasicInfo(ytId, { client });
+      const adaptive = Array.isArray(info?.streaming_data?.adaptive_formats) ? info.streaming_data.adaptive_formats : [];
+      const muxed = Array.isArray(info?.streaming_data?.formats) ? info.streaming_data.formats : [];
+      let url = await pickBestAudioFromFormats([...adaptive, ...muxed]);
+      if (url) return url;
+
+      const detailedInfo = await innertube.getInfo(ytId, { client });
+      const detailedAdaptive = Array.isArray(detailedInfo?.streaming_data?.adaptive_formats)
+        ? detailedInfo.streaming_data.adaptive_formats
+        : [];
+      const detailedMuxed = Array.isArray(detailedInfo?.streaming_data?.formats)
+        ? detailedInfo.streaming_data.formats
+        : [];
+      url = await pickBestAudioFromFormats([...detailedAdaptive, ...detailedMuxed]);
+      if (url) return url;
+    } catch {
+      // try next client
+    }
+  }
+
+  return "";
+};
+
+let playDlLib = null;
+const getPlayDl = () => {
+  if (playDlLib !== null) return playDlLib;
+  try {
+    playDlLib = require("play-dl");
+  } catch {
+    playDlLib = false;
+  }
+  return playDlLib;
+};
+
+const getPlayDlAudioUrl = async (rawUrl) => {
+  const playDl = getPlayDl();
+  if (!playDl) return "";
+  try {
+    const info = await playDl.video_info(String(rawUrl || "").trim());
+    const formats = Array.isArray(info?.format) ? info.format : [];
+    const audioOnly = formats.find(
+      (entry) =>
+        entry?.url &&
+        /audio/i.test(String(entry?.mimeType || "")) &&
+        !/video/i.test(String(entry?.mimeType || ""))
+    );
+    const audioLike = formats.find((entry) => entry?.url && /audio/i.test(String(entry?.mimeType || "")));
+    const any = formats.find((entry) => entry?.url);
+    return audioOnly?.url || audioLike?.url || any?.url || "";
+  } catch {
+    return "";
+  }
+};
+
 const withoutCookieFlags = (flags) => {
   const next = { ...flags };
   delete next.cookies;
@@ -321,20 +441,23 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
     }
 
     if (!info) {
-      if (isFormatUnavailableError(lastError) && isYoutubeLikeUrl(url)) {
+      if ((isFormatUnavailableError(lastError) || isBotCheckError(lastError)) && isYoutubeLikeUrl(url)) {
         const ytId = extractYoutubeId(url);
-        if (ytId) {
-          return new CustomYtDlpSong(
-            this,
-            {
-              extractor: "youtube",
-              id: ytId,
-              title: `YouTube (${ytId})`,
-              webpage_url: `https://www.youtube.com/watch?v=${ytId}`,
-            },
-            options
-          );
+        if (isBotCheckError(lastError)) {
+          console.warn(`[CustomYtDlp] resolve fallback ativado para bot-check: ${ytId || "id-desconhecido"}`);
         }
+        const fallbackUrl = ytId ? `https://www.youtube.com/watch?v=${ytId}` : String(url || "").trim();
+        return new CustomYtDlpSong(
+          this,
+          {
+            extractor: "youtube",
+            id: ytId || undefined,
+            title: ytId ? `YouTube (${ytId})` : "YouTube",
+            webpage_url: fallbackUrl,
+            original_url: fallbackUrl,
+          },
+          options
+        );
       }
       throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(lastError));
     }
@@ -407,6 +530,20 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
     }
 
     if (!info) {
+      if (isYoutubeLikeUrl(song.url)) {
+        const ytjsUrl = await getYoutubeiAudioUrl(song.url);
+        if (ytjsUrl) {
+          console.warn("[CustomYtDlp] getStreamURL fallback com youtubei.js ativado.");
+          return ytjsUrl;
+        }
+      }
+      if (isBotCheckError(lastError) && isYoutubeLikeUrl(song.url)) {
+        const fallbackAudioUrl = await getPlayDlAudioUrl(song.url);
+        if (fallbackAudioUrl) {
+          console.warn("[CustomYtDlp] getStreamURL fallback com play-dl ativado.");
+          return fallbackAudioUrl;
+        }
+      }
       throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(lastError));
     }
 
@@ -418,6 +555,18 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
           info.formats.find((entry) => entry?.url)?.url
         : "");
     if (!streamUrl) {
+      if (isYoutubeLikeUrl(song.url)) {
+        const ytjsUrl = await getYoutubeiAudioUrl(song.url);
+        if (ytjsUrl) {
+          console.warn("[CustomYtDlp] streamUrl vazio no yt-dlp, fallback com youtubei.js.");
+          return ytjsUrl;
+        }
+        const fallbackAudioUrl = await getPlayDlAudioUrl(song.url);
+        if (fallbackAudioUrl) {
+          console.warn("[CustomYtDlp] streamUrl vazio no yt-dlp, fallback com play-dl.");
+          return fallbackAudioUrl;
+        }
+      }
       throw new DisTubeError("YTDLP_ERROR", "Nao foi possivel obter URL de stream para essa musica.");
     }
     return streamUrl;
