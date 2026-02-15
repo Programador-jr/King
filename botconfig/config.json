@@ -1,0 +1,12 @@
+{
+  "prefix": "k!",
+  "version": "4.5.0",
+  "loadSlashsGlobal": false,
+  "music": {
+    "relatedCount": 3
+  },
+  "colors": {
+    "yes": "#00BFFF",
+    "no": "#FF0000"
+  }
+}

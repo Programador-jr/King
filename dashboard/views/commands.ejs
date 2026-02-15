@@ -1,129 +1,169 @@
-<%- include('header'); -%>
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-      <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
-         <link rel="stylesheet" href="/index.css">        
-        <link rel="stylesheet" href="/commands.css">
-        <title><%= bot.name %></title>   
-    </head>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="/commands.css">
+    <title>Comandos | <%= bot.name %></title>
+  </head>
+  <body>
+    <%- include('header'); -%>
+    <%
+      const resolveHelpDetails = (cmd) => {
+        try {
+          if (!cmd) return '';
+          if (typeof cmd.helpDetails === 'function') return String(cmd.helpDetails() || '').trim();
+          if (typeof cmd.helpDetails === 'string') return cmd.helpDetails.trim();
+          return '';
+        } catch {
+          return '';
+        }
+      };
+    %>
 
-    <body>
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
-      <div class="d-flex justify-content-center command_head">
-      </div>
-      
-      <section id="botcommands" class="botcommands">
-        <h1>Meus Comandos</h1>
-        <p>
-          <a href="https://discord.com/api/oauth2/authorize?client_id=<%=botClient.user.id%>&permissions=8&scope=bot%20applications.commands">
-            Convide-me com as<u> Permissões de Comandos Slash</u> </a>, porque todos os meus Comandos também estão disponíveis como Comandos Slash</p>
-        <!-- Command Menu -->
+    <section id="botcommands" class="botcommands">
+      <h1>Meus Comandos</h1>
+      <p>
+        Todos os comandos de texto e slash em um unico lugar.
+        <a href="https://discord.com/api/oauth2/authorize?client_id=<%= botClient.user.id %>&permissions=8&scope=bot%20applications.commands" target="_blank" rel="noopener noreferrer">
+          Convite com permissoes recomendadas
+        </a>
+      </p>
 
-        <div class="container px-lg-5" id="commands_menu">
-          <div class="row">
-            <div class="col-sm-3" id="category">
-              <div class="list-group" id="myList" role="tablist">
-                <% categories.forEach((category, i) => { %>
-                  <a class="list-group-item list-group-item-action <%= i==0 ? 'active' : '' %>"  data-bs-toggle="list" href="#<%= category %>" role="tab" aria-controls="<%= category %>"><%= category %></a>
-                <% }) %>
-              </div>
-            </div>
-          <div class="col-sm-9">
-            <div class="tab-content">
-              <% categories.forEach((category, k) => { %>
-                  <div class="tab-pane fade show <%= k == 0 ? 'active' : '' %>" id="<%= category %>" role="tabpanel" aria-labelledby="list-home-list">
-                    <div class="accordion" id="acc_<%= category %>">
-                      <% commands.filter((cmd) => cmd.category === category).forEach((cmd, i) => { %>
-                        <div class="accordion-item">
-                          <h2 class="accordion-header" id="h_<%= cmd.name %>">
-                            <button class="accordion-button <%= i==0 ? '' : 'collapsed' %>" 
-                              type="button" 
-                              data-bs-toggle="collapse" 
-                              data-bs-target="#c_<%= cmd.name %>" 
-                              aria-expanded="<%= i==0 ? 'true' : 'false' %>"
-                              aria-controls="<%= cmd.name %>"
-                            >
-                              +<%= cmd.name %>
-                            </button>
-                          </h2>
-                          <div id="c_<%= cmd.name %>" 
-                            class="accordion-collapse collapse <%= i==0 ? 'show' : ''%>" 
-                            aria-labelledby="h_<%= cmd.name %>" 
-                            data-bs-parent="#acc_<%= category %>">
-                            <div class="accordion-body">
-                            <code>Descrição : </code><%= cmd.description %> <br>
-                            <code>Aliases : </code><% cmd.aliases && cmd.aliases.length > 0 ? cmd.aliases.forEach(a => { %>
-                            <small class="text-muted">[+<%= a %>]</small>
-                            <% }) : "NO" %><br>
-                            <code>Uso : </code><small><kbd><%= cmd.usage %></kbd></small><br>
-                            </div>
-                          </div>
-                        </div>
-                      <% }) %>
-                    </div>
-                  </div>
+      <div class="container px-lg-5" id="commands_menu">
+        <div class="row g-3">
+          <div class="col-lg-3" id="category">
+            <div class="list-group" id="myList" role="tablist">
+              <% categories.forEach((category, i) => { %>
+                <a class="list-group-item list-group-item-action <%= i === 0 ? 'active' : '' %>" data-bs-toggle="list" href="#<%= category %>" role="tab" aria-controls="<%= category %>">
+                  <%= category %>
+                </a>
               <% }) %>
             </div>
           </div>
-        </div>
-        </div>
-      </section>
 
-      <section id="audiofilters" class="audiofilters">
-        <h1 style="text-align: center;"> Filtros de Áudio </h1>
-        <p style="font-style: italic;">Você pode adicionar filtros usando os comandos <b>addfilter/removefilter/setfilter</b> ou o <b>filter[set/add/remove]</b> no Comando Slash! <br><span>Às vezes, leva até 2 segundos para que um filtro seja aplicado! </span><br> <b>Você também pode adicionar filtros no padrão! <u>defaultfiltero</u></b></p>
-        <!-- Command Menu -->
-
-        <div class="container px-lg-5" id="filters_menu">
-          <div class="row">
-            <div class="col-sm-3" id="category">
-              <div class="list-group" id="myList" role="tablist">
-                <a class="allfilters list-group-item list-group-item-action active"  data-bs-toggle="list" href="#filters" role="tab" aria-controls="Filters">Todos os filtros de áudio</a>
-              </div>
-            </div>
-          <div class="col-sm-9">
+          <div class="col-lg-9">
             <div class="tab-content">
-              <div class="tab-pane fade show active" id="filters" role="tabpanel" aria-labelledby="list-home-list">
-                <div class="accordion" id="acc_filters">
-                  <% Object.keys(BotFilters).forEach((filter, i) => { %>
-                      <div class="accordion-item">
-                        <h2 class="accordion-header" id="h_filter">
-                          <button class="accordion-button <%= i==0 ? '' : 'collapsed' %>" 
-                            type="button" 
-                            data-bs-toggle="collapse" 
-                            data-bs-target="#c_<%= filter %>" 
-                            aria-expanded="<%= i==0 ? 'true' : 'false' %>" 
-                            aria-controls="<%= filter %>">
-                            +add-/remove-/setfilter&nbsp;<b><%= filter %></b>
+              <% categories.forEach((category, k) => { %>
+                <div class="tab-pane fade show <%= k === 0 ? 'active' : '' %>" id="<%= category %>" role="tabpanel">
+                  <div class="accordion" id="acc_<%= category %>">
+                    <% commands.filter((cmd) => cmd.category === category).forEach((cmd, i) => { %>
+                      <div class="accordion-item slide-up-fade-in">
+                        <h2 class="accordion-header" id="h_<%= cmd.name %>">
+                          <button
+                            class="accordion-button <%= i === 0 ? '' : 'collapsed' %>"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#c_<%= cmd.name %>"
+                            aria-expanded="<%= i === 0 ? 'true' : 'false' %>"
+                            aria-controls="<%= cmd.name %>"
+                          >
+                            <%= cmd.name %>
                           </button>
                         </h2>
-                        <div id="c_<%= filter %>" 
-                        class="accordion-collapse collapse <%= i==0 ? 'show' : ''%>" 
-                        aria-labelledby="h_<%= filter %>" 
-                        data-bs-parent="#acc_filters">
+
+                        <div
+                          id="c_<%= cmd.name %>"
+                          class="accordion-collapse collapse <%= i === 0 ? 'show' : '' %>"
+                          aria-labelledby="h_<%= cmd.name %>"
+                          data-bs-parent="#acc_<%= category %>"
+                        >
                           <div class="accordion-body">
-                          <% if(filter.includes("custom")) { %>
-                            <p><b><i>Este é um Filtro <u>personalizado</u> e possui Comandos dedicados para ele! Você pode ajustar o ganho/quantidade dele!</i></b></p>
-                          <% } %>
-                          <code>FFmpeg-Arg: </code><small class="text-muted"><kbd><%= BotFilters[String(filter)] %></kbd></small><br>
-                          <code>Aplica um filtro de áudio de som<b>"<%= filter %>"</b></code>
+                            <% const cmdHelpDetails = resolveHelpDetails(cmd); %>
+                            <code>Descricao:</code> <%= cmd.description || 'Sem descricao.' %><br>
+                            <code>Aliases:</code>
+                            <% if (cmd.aliases && cmd.aliases.length > 0) { %>
+                              <small class="text-muted">[<%= cmd.aliases.join(', ') %>]</small>
+                            <% } else { %>
+                              <small class="text-muted">[nenhum]</small>
+                            <% } %>
+                            <br>
+                            <code>Uso:</code> <small><kbd><%= cmd.usage || cmd.name %></kbd></small>
+                            <% if (cmdHelpDetails) { %>
+                              <br>
+                              <code>Detalhes:</code>
+                              <small class="text-muted d-block mt-1" style="white-space: pre-line;"><%= cmdHelpDetails %></small>
+                            <% } %>
                           </div>
                         </div>
                       </div>
                     <% }) %>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="audiofilters" class="audiofilters">
+      <h1>Filtros de Audio</h1>
+      <p>
+        Aplique filtros com os comandos <b>addfilter</b>, <b>removefilter</b>, <b>setfilter</b>
+        ou via slash commands. Alguns efeitos podem levar ate 2 segundos para aplicar.
+      </p>
+
+      <div class="container px-lg-5" id="filters_menu">
+        <div class="row g-3">
+          <div class="col-lg-3" id="category">
+            <div class="list-group" role="tablist">
+              <a class="allfilters list-group-item list-group-item-action active" data-bs-toggle="list" href="#filters" role="tab" aria-controls="filters">
+                Todos os filtros
+              </a>
+            </div>
+          </div>
+
+          <div class="col-lg-9">
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="filters" role="tabpanel">
+                <div class="accordion" id="acc_filters">
+                  <% Object.keys(BotFilters).forEach((filter, i) => { %>
+                    <div class="accordion-item slide-up-fade-in">
+                      <h2 class="accordion-header" id="h_filter_<%= filter %>">
+                        <button
+                          class="accordion-button <%= i === 0 ? '' : 'collapsed' %>"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#c_<%= filter %>"
+                          aria-expanded="<%= i === 0 ? 'true' : 'false' %>"
+                          aria-controls="<%= filter %>"
+                        >
+                          <b><%= filter %></b>
+                        </button>
+                      </h2>
+
+                      <div
+                        id="c_<%= filter %>"
+                        class="accordion-collapse collapse <%= i === 0 ? 'show' : '' %>"
+                        aria-labelledby="h_filter_<%= filter %>"
+                        data-bs-parent="#acc_filters"
+                      >
+                        <div class="accordion-body">
+                          <% if (filter.includes('custom')) { %>
+                            <p><b>Filtro personalizado:</b> possui comandos dedicados para ajuste de ganho/valor.</p>
+                          <% } %>
+                          <code>FFmpeg Arg:</code> <small class="text-muted"><kbd><%= BotFilters[String(filter)] %></kbd></small><br>
+                          <code>Acao:</code> Aplica o efeito <b><%= filter %></b> no audio.
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        </div>
-      </section>
-      
-      <!-- FOOTER -->
-      <%- include('footer'); -%>
+      </div>
+    </section>
 
-    </body>
+    <%- include('footer'); -%>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+  </body>
 </html>

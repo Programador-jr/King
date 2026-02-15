@@ -1,0 +1,31 @@
+{
+  "default_cooldown_in_sec": 1,
+  "somethingwentwrong_cmd": true,
+  "messages": {
+    "cooldown": "Aguarde %{timeleft}%s antes de usar %{commandname}% novamente.",
+    "notallowed_to_exec_cmd": {
+      "title": "Voce nao tem permissao para executar este comando.",
+      "description": {
+        "memberpermissions": "Voce precisa de: %{commandmemberpermissions}% para usar %{commandname}%.",
+        "requiredroles": "Voce precisa de um destes cargos: %{commandrequiredroles}% para usar %{commandname}%.",
+        "alloweduserids": "Apenas %{commandalloweduserids}% pode(m) usar %{commandname}%."
+      }
+    },
+    "somethingwentwrong_cmd": {
+      "title": "Algo deu errado ao executar %{commandname}%.",
+      "description": "Erro: %{errormessage}%"
+    },
+    "unknown_cmd": "Comando desconhecido. Use %{prefix}%help."
+  },
+  "timeout": {
+    "notallowed_to_exec_cmd": {
+      "memberpermissions": 4000,
+      "requiredroles": 4000,
+      "alloweduserids": 4000
+    },
+    "minargs": 4000,
+    "maxargs": 4000,
+    "minplusargs": 4000,
+    "maxplusargs": 4000
+  }
+}

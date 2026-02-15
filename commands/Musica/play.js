@@ -1,112 +1,144 @@
-const {
-	MessageEmbed,
-	Message
-} = require("discord.js");
-const config = require("../../botconfig/config.json");
+﻿const { MessageEmbed, PermissionFlagsBits } = require("discord.js");
 const ee = require("../../botconfig/embed.json");
-const settings = require("../../botconfig/settings.json");
-module.exports = {
-	name: "play", //the command name for the Slash Command
+const { resolveQuery } = require("../../handlers/musicSearch");
 
+const ERROR_DELETE_MS = 4000;
+const deleteLater = (msg) => {
+	if (!msg) return;
+	setTimeout(() => msg.delete().catch(() => {}), ERROR_DELETE_MS);
+};
+const replyError = async (message, payload) => {
+	const sent = await message.reply(payload).catch(() => null);
+	deleteLater(message);
+	deleteLater(sent);
+	return sent;
+};
+
+module.exports = {
+	name: "play",
 	category: "Musica",
 	aliases: ["p", "pley", "tocar"],
 	usage: "play <Search/link>",
-
-	description: "Toca uma música / lista de reprodução em seu canal de voz", //the command description for Slash Command Overview
+	description: "Toca uma musica / lista de reproducao em seu canal de voz",
 	cooldown: 2,
-	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
-	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
-	run: async (client, message, args) => {
-		try {
-			//console.log(interaction, StringOption)
-
-			//things u can directly access in an interaction!
-			const {
-				member,
-				channelId,
-				guildId,
-				applicationId,
-				commandName,
-				deferred,
-				replied,
-				ephemeral,
-				options,
-				id,
-				createdTimestamp
-			} = message;
-			const {
-				guild
-			} = member;
-			const {
-				channel
-			} = member.voice;
-			if (!channel) return message.reply({
-				embeds: [
-					new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Por favor entre em ${guild.me.voice.channel ? "__meu__" : "um"} canal de voz primeiro!**`)
-				],
-
-			})
-			if (channel.userLimit != 0 && channel.full)
-				return message.reply({
-					embeds: [new MessageEmbed()
-						.setColor(ee.wrongcolor)
-						.setFooter(ee.footertext, ee.footericon)
-						.setTitle(`<a:declined:876968121116807208> Seu canal de voz está cheio, não consigo entrar!`)
+	requiredroles: [],
+	alloweduserids: [],
+		run: async (client, message, args) => {
+			try {
+				const { member, channelId, guildId } = message;
+			const { guild } = member;
+			const { channel } = member.voice;
+			if (!channel) {
+				return replyError(message, {
+					embeds: [
+						new MessageEmbed()
+							.setColor(ee.wrongcolor)
+							.setTitle(`${client.allEmojis.x} **Por favor entre em ${guild.me.voice.channel ? "__meu__" : "um"} canal de voz primeiro!**`)
 					],
 				});
+			}
+
+			const me = guild.members.me ?? guild.members.cache.get(client.user.id);
+			const perms = channel.permissionsFor(me);
+			if (!perms?.has(PermissionFlagsBits.Connect) || !perms?.has(PermissionFlagsBits.Speak)) {
+				return replyError(message, {
+					embeds: [
+						new MessageEmbed()
+							.setColor(ee.wrongcolor)
+							.setTitle(`${client.allEmojis.x} **Sem permissao para entrar/falar nesse canal.**`)
+					],
+				});
+			}
+
+			if (channel.userLimit != 0 && channel.full) {
+				return replyError(message, {
+					embeds: [
+						new MessageEmbed()
+							.setColor(ee.wrongcolor)
+							.setFooter(ee.footertext, ee.footericon)
+							.setTitle(`Seu canal de voz esta cheio, nao consigo entrar!`)
+					],
+				});
+			}
 			if (channel.guild.me.voice.channel && channel.guild.me.voice.channel.id != channel.id) {
-				return message.reply({
-					embeds: [new MessageEmbed()
-						.setColor(ee.wrongcolor)
-						.setFooter(ee.footertext, ee.footericon)
-						.setTitle(`<a:declined:876968121116807208> Já estou conectado em outro lugar`)
+				return replyError(message, {
+					embeds: [
+						new MessageEmbed()
+							.setColor(ee.wrongcolor)
+							.setFooter(ee.footertext, ee.footericon)
+							.setTitle(`Ja estou conectado em outro lugar`)
 					],
 				});
 			}
 			if (!args[0]) {
-				return message.reply({
-					embeds: [new MessageEmbed()
-						.setColor(ee.wrongcolor)
-						.setFooter(ee.footertext, ee.footericon)
-						.setTitle(`${client.allEmojis.x} **Por favor adicione uma consulta de pesquisa!**`)
-						.setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}play <Procurar/Link>\``)
+				return replyError(message, {
+					embeds: [
+						new MessageEmbed()
+							.setColor(ee.wrongcolor)
+							.setFooter(ee.footertext, ee.footericon)
+							.setTitle(`${client.allEmojis.x} **Por favor adicione uma consulta de pesquisa!**`)
 					],
 				});
 			}
-			//let IntOption = options.getInteger("OPTIONNAME"); //same as in IntChoices //RETURNS NUMBER
-			const Text = args.join(" ") //same as in StringChoices //RETURNS STRING 
-			//update it without a response!
-			let newmsg = await message.reply({
-				content: `🔍 Procurando... \`\`\`${Text}\`\`\``,
-			}).catch(e => {
-				console.log(e)
-			})
-			try {
-				let queue = client.distube.getQueue(guildId)
-				let options = {
-					member: member,
-				}
-				if (!queue) options.textChannel = guild.channels.cache.get(channelId)
-				await client.distube.playVoiceChannel(channel, Text, options)
-				//Edit the reply
-				newmsg.edit({
-					content: `${queue.songs.length > 0 ? "👍 Adicionado" : "🎶 Tocando agora"}: \`\`\`css\n${Text}\n\`\`\``,
-				}).catch(e => {
-					console.log(e)
-				})
-			} catch (e) {
-				console.log(e.stack ? e.stack : e)
-				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
-					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor)
-						.setDescription(`\`\`\`${e}\`\`\``)
-					],
 
-				})
+			const Text = args.join(" ");
+			let newmsg = await message.reply({
+				content: "Procurando... ```" + Text + "```"
+			}).catch(() => null);
+
+			try {
+				const resolved = await resolveQuery(Text);
+				if (resolved?.unsupported === "youtube_music") {
+					await newmsg?.edit({
+						content: `${client.allEmojis.x} **YouTube Music nao suportado. Tente usar um link do YouTube**`
+					}).catch(() => {});
+					deleteLater(message);
+					deleteLater(newmsg);
+					return;
+				}
+				if (!resolved?.url) {
+					await newmsg?.edit({ content: `${client.allEmojis.x} Nao encontrei resultado para: ` + "```" + Text + "```" }).catch(() => {});
+					deleteLater(message);
+					deleteLater(newmsg);
+					return;
+				}
+				const playWithRetry = async () => {
+					let retried = false;
+					for (;;) {
+						try {
+							const existingQueue = client.distube.getQueue(guildId);
+							if (existingQueue?.stopped) {
+								existingQueue.remove();
+							}
+							await client.distube.play(channel, resolved.url, {
+								member: member,
+								textChannel: guild.channels.cache.get(channelId)
+							});
+							return;
+						} catch (err) {
+							const code = err?.code || err?.errorCode || "";
+							if (!retried && (String(err).includes("QUEUE_STOPPED") || code === "QUEUE_STOPPED")) {
+								const existingQueue = client.distube.getQueue(guildId);
+								if (existingQueue) existingQueue.remove();
+								retried = true;
+								continue;
+							}
+							throw err;
+						}
+					}
+				};
+				await playWithRetry();
+				newmsg?.edit({ content: "Tocando: ```" + (resolved.title || Text) + "```" }).catch(() => {});
+			} catch (e) {
+				console.log(e.stack ? e.stack : e);
+				return replyError(message, {
+					content: `${client.allEmojis.x} | Erro:`,
+					embeds: [new MessageEmbed().setColor(ee.wrongcolor).setDescription("```" + e + "```")]
+				});
 			}
 		} catch (e) {
-			console.log(String(e.stack).bgRed)
+			console.log(String(e.stack).bgRed);
 		}
 	}
-}
+};
+

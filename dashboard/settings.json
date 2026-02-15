@@ -1,0 +1,19 @@
+{
+    "website" : {
+      "support": ""
+    },
+    "config": {
+        "http": {
+          "port": 5000
+        },
+        "https": {
+            "paths": {
+                "privkey": "/etc/letsencrypt/live/your-domain.com/privkey.pem",
+                "fullchain": "/etc/letsencrypt/live/your-domain.com/fullchain.pem",
+                "chain": "/etc/letsencrypt/live/your-domain.com/chain.pem"
+            },
+            "enabled": false,
+            "port": 443
+        }
+    }
+  }

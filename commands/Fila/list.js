@@ -1,4 +1,4 @@
-const {
+﻿const {
 	MessageEmbed,
 	MessageSelectMenu,
 	MessageActionRow
@@ -62,7 +62,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu n\u00E3o estou tocando nada agora!**`)
 					],
 
 				})
@@ -73,55 +73,70 @@ module.exports = {
 				for (let i = 0; i < theSongs.length; i += 10) {
 					let qus = theSongs;
 					const current = qus.slice(i, k)
-					let j = i;
+					let j = i + 1;
 					const info = current.map((track) => `**${j++} -** [\`${String(track.name).replace(/\[/igu, "{").replace(/\]/igu, "}").substr(0, 60)}\`](${track.url}) - \`${track.formattedDuration}\``).join("\n")
 					const embed = new MessageEmbed()
 						.setColor(ee.color)
 						.setDescription(`${info}`)
 					if (i < 10) {
-						embed.setTitle(`📑 **Top ${theSongs.length > 50 ? 50 : theSongs.length} | Fila de ${guild.name}**`)
-						embed.setDescription(`**(0) Música atual:**\n> [\`${theSongs[0].name.replace(/\[/igu, "{").replace(/\]/igu, "}")}\`](${theSongs[0].url})\n\n${info}`)
+						embed.setTitle(`\u{1F4D1} **Top ${theSongs.length > 50 ? 50 : theSongs.length} | Fila de ${guild.name}**`)
+						embed.setDescription(`**(1) M\u00FAsica atual:**\n> [\`${theSongs[0].name.replace(/\[/igu, "{").replace(/\]/igu, "}")}\`](${theSongs[0].url})\n\n${info}`)
 					}
 					embeds.push(embed);
 					k += 10; //Raise k to 10
 				}
 				embeds[embeds.length - 1] = embeds[embeds.length - 1]
-					.setFooter(ee.footertext + `\n${theSongs.length} Músicas na fila | Duração: ${newQueue.formattedDuration}`, ee.footericon)
+					.setFooter(ee.footertext + `\n${theSongs.length} M\u00FAsicas na fila | Dura\u00E7\u00E3o: ${newQueue.formattedDuration}`, ee.footericon)
 				let pages = []
-				for (let i = 0; i < embeds.length; i += 3) {
-					pages.push(embeds.slice(i, i + 3));
+				for (let i = 0; i < embeds.length; i += 2) {
+					pages.push(embeds.slice(i, i + 2));
 				}
 				pages = pages.slice(0, 24)
 				const Menu = new MessageSelectMenu()
 					.setCustomId("QUEUEPAGES")
-					.setPlaceholder("Selecione uma página")
-					.addOptions([
+					.setPlaceholder("Selecione uma p\u00E1gina")
+					.addOptions(
 						pages.map((page, index) => {
 							let Obj = {};
-							Obj.label = `Página ${index}`
+							Obj.label = `P\u00E1gina ${index + 1}`;
 							Obj.value = `${index}`;
-							Obj.description = `Mostra o ${index}/${pages.length - 1} Página!`
+							Obj.description = `Mostra a p\u00E1gina ${index + 1}/${pages.length}`;
 							return Obj;
 						})
-					])
+					)
 				const row = new MessageActionRow().addComponents([Menu])
-				message.reply({
-					embeds: [embeds[0]],
+				const queueMessage = await message.reply({
+					embeds: pages[0],
 					components: [row],
 				});
-				//Event
-				client.on('interactionCreate', (i) => {
-					if (!i.isSelectMenu()) return;
-					if (i.customId === "QUEUEPAGES" && i.applicationId == client.user.id) {
-						i.reply({
-							embeds: pages[Number(i.values[0])],
-						}).catch(e => {})
+
+				const collector = queueMessage.createMessageComponentCollector({
+					time: 180000
+				});
+
+				collector.on("collect", async (interaction) => {
+					if (!interaction.isSelectMenu() || interaction.customId !== "QUEUEPAGES") {
+						return interaction.deferUpdate().catch(() => {});
 					}
+
+					if (interaction.user.id !== message.author.id) {
+						return interaction.reply({
+							content: `${client.allEmojis.x} Apenas quem executou o comando pode trocar a p\u00E1gina.`,
+							ephemeral: true
+						}).catch(() => {});
+					}
+
+					const pageIndex = Number(interaction.values?.[0] ?? 0);
+					const selectedPage = pages[pageIndex] || pages[0];
+					return interaction.update({
+						embeds: selectedPage,
+						components: [row]
+					}).catch(() => {});
 				});
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)
@@ -134,3 +149,4 @@ module.exports = {
 		}
 	}
 }
+

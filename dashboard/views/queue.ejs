@@ -1,165 +1,774 @@
-<%- include('header'); -%>
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <!--Meta Tags-->
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
-				<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.6.1/font/bootstrap-icons.css">        
-        <link rel="stylesheet" href="/index.css">
-        <title><%= guild ? guild.name : "Queue" %></title>    
-       
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css" />
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
-        <%
-        const nFormatter = function(num, digits = 2) {
-            const lookup = [
-                { value: 1, symbol: "" },
-                { value: 1e3, symbol: "k" },
-                { value: 1e6, symbol: "M" },
-                { value: 1e9, symbol: "G" },
-                { value: 1e12, symbol: "T" },
-                { value: 1e15, symbol: "P" },
-                { value: 1e18, symbol: "E" }
-            ];
-            const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
-            var item = lookup.slice().reverse().find(function(item) {
-                return num >= item.value;
-            });
-            return item ? (num / item.value).toFixed(digits).replace(rx, "$1") + item.symbol : "0";
-        } 
-        %>
-    </head>
-    <body>
-    <section id="queue">
-        <br><br>
-            <%  if(guild && botClient.distube.getQueue(guild.id) && botClient.distube.getQueue(guild.id).songs && botClient.distube.getQueue(guild.id).songs.length > 0){ let current = botClient.distube.getQueue(guild.id).songs[0] %>
-                <!-- CURRENT SONG CARD-->
-                <center>
-                    <h1 style="font-size: 50px;color:#00bfff; margin-top: 40px;"><i class="iconify" data-icon="dashicons:format-audio"></i> Música atual:</h1>
-                </center>
-                
-                <div class="song">
-                    <!-- CURRENT SONG-->
-                    <div class="current-song">
-                        <div class="nowplaying">
-                            <img class="img-thumbnail"
-                            src="https://img.youtube.com/vi/<%= current.id %>/mqdefault.jpg" alt="<%= String(current.name).substr(0, 50) %>">
-                            <div class="progresswrapper">
-                                <div class="progress" style="height:25px;border-radius: 15px;background: #4a4a52;">
-                                    <div class="progress-bar bg-c-blue progress-bar-striped progress-bar-animated " 
-                                    role="progressbar" 
-                                    style="width: <%= Math.floor(botClient.distube.getQueue(guild.id).currentTime) / Math.floor(current.duration) * 100 %>%"
-                                    aria-valuenow="<%= Math.floor(botClient.distube.getQueue(guild.id).currentTime) %>"
-                                    aria-valuemin="0" 
-                                    aria-valuemax="<%= Math.floor(current.duration) %>" > 
-                                    </div>
-                                </div> 
-                                <b style="font-size: 24px; color: #00bfff;"><%= botClient.distube.getQueue(guild.id).formattedCurrentTime %></b><b style="float:right;font-size: 20px; color: #00bfff"><%= current.formattedDuration %></b>
-                            </div>
-                            <h3 style="position: absolute; margin-left:45%;top: 0px;width:250px;height:80px; color: #00bfff"><%= String(current.name).length > 70 ? String(current.name).substr(0, 69) + " ..." : String(current.name) %></h3>
-                            <h4 style="font-size: 20px;position: absolute; margin-left:45%;top: 100px;width:440px;height:80px;">
-                                <img src="<%= current.user.displayAvatarURL({dynamic: true, size: 4096}) %>" style="width:30px">
-                                <b>Requested by:</b> <kdl style="background-color: #1b1b1b;border: solid 5px #1b1b1b;border-radius: 5px;"><%= current.user.username %><span style="font-size: 15px;color:#65656e;">#<%= current.user.discriminator %></span></kdl>
-                            </h4>
-                            <h4 style="font-size: 20px;position: absolute; margin-left:45%;top: 145px;width:440px;height:80px;">
-                                <img src="https://cdn.discordapp.com/emojis/840260133686870036.png?v=1" style="width:30px">
-                                <kdl style="background-color: #1b1b1b;border: solid 5px #1b1b1b;border-radius: 5px;"><%= nFormatter(current.views, 2) %></kdl>
-                            </h4>
-                            <h4 style="font-size: 20px;position: absolute; margin-left:68%;top: 145px;width:440px;height:80px;">
-                                <img src="https://cdn.discordapp.com/emojis/783353957719998474.gif?v=1" style="width:30px">
-                                <kdl style="background-color: #1b1b1b;border: solid 5px #1b1b1b;border-radius: 5px;"><%= nFormatter(current.likes, 2) %></kdl>
-                            </h4>
-                            <h4 style="font-size: 20px;position: absolute; margin-left:87%;top: 145px;width:440px;height:80px;">
-                                <img src="https://cdn.discordapp.com/emojis/783353914610810881.gif?v=1" style="width:30px">
-                                <kdl style="background-color: #1b1b1b;border: solid 5px #1b1b1b;border-radius: 5px;"><%= nFormatter(current.dislikes, 2) %></kdl>
-                            </h4>
-                            <h4 style="font-size: 20px;position: absolute; margin-left:45%;top: 190px;width:440px;height:80px;">
-                                <img src="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/hourglass-done_231b.png" style="width:30px">
-                                <b>Duration:</b> <kdl style="background-color: #1b1b1b;border: solid 5px #1b1b1b;border-radius: 5px;"><%= current.formattedDuration %> | <%= current.duration %> Seconds</kdl>
-                            </h4>
-                        </div>
-                    </div>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.6.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/index.css">
+    <title><%= guild ? guild.name : 'Queue' %></title>
+
+    <%
+      const nFormatter = function(num, digits = 2) {
+        const lookup = [
+          { value: 1, symbol: '' },
+          { value: 1e3, symbol: 'k' },
+          { value: 1e6, symbol: 'M' },
+          { value: 1e9, symbol: 'G' },
+          { value: 1e12, symbol: 'T' },
+          { value: 1e15, symbol: 'P' },
+          { value: 1e18, symbol: 'E' }
+        ];
+        const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
+        const item = lookup.slice().reverse().find((entry) => num >= entry.value);
+        return item ? (num / item.value).toFixed(digits).replace(rx, '$1') + item.symbol : '0';
+      }
+
+      const queue = guild ? botClient.distube.getQueue(guild.id) : null;
+      const hasQueue = Boolean(queue && Array.isArray(queue.songs) && queue.songs.length > 0);
+      const current = hasQueue ? queue.songs[0] : null;
+      const currentCover = current ? (current.thumbnail || (current.id ? `https://img.youtube.com/vi/${current.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 512 }))) : '';
+      const progress = hasQueue
+        ? Math.max(0, Math.min(100, (Math.floor(queue.currentTime) / Math.max(1, Math.floor(current.duration))) * 100))
+        : 0;
+      const loopLabel = hasQueue ? (queue.repeatMode === 2 ? "Fila" : queue.repeatMode === 1 ? "Musica" : "Off") : "Off";
+      const canControl = Boolean(
+        guild &&
+        user &&
+        user.id &&
+        Array.isArray(user.guilds) &&
+        user.guilds.some((entry) => {
+          if (String(entry.id) !== String(guild.id)) return false;
+          try {
+            const perms = BigInt(entry.permissions_new || 0);
+            const MANAGE_GUILD = 0x20n;
+            return (perms & MANAGE_GUILD) === MANAGE_GUILD;
+          } catch {
+            return false;
+          }
+        })
+      );
+      const canSeek = Boolean(canControl && current && Number.isFinite(Number(current.duration)) && Number(current.duration) > 0);
+      const currentSongKey = current ? `${current.id || ''}:${current.name || ''}` : '';
+      const currentSeconds = hasQueue ? Math.max(0, Number(queue.currentTime || 0)) : 0;
+      const totalSeconds = hasQueue ? Math.max(1, Number(current.duration || 0)) : 1;
+    %>
+  </head>
+  <body>
+    <%- include('header'); -%>
+
+    <section id="queue" class="dashboard-page queue-app">
+      <% if (guild && hasQueue) { %>
+        <div class="head">
+          <h1><i class="bi bi-music-note-beamed"></i> Player Dashboard</h1>
+        </div>
+
+        <div class="ym-shell">
+          <article class="ym-player-card current-song">
+            <div
+              id="queue-alert-container"
+              class="queue-alert-container"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></div>
+
+            <div
+              id="nowplaying"
+              class="nowplaying"
+              data-song-key="<%= currentSongKey %>"
+              data-current-seconds="<%= currentSeconds %>"
+              data-total-seconds="<%= totalSeconds %>"
+              data-paused="<%= queue.paused ? 'true' : 'false' %>"
+            >
+              <div class="ym-player-top">
+                <div class="ym-cover-wrap">
+                  <img class="img-thumbnail" src="<%= currentCover %>" alt="<%= String(current.name).substr(0, 80) %>">
                 </div>
-                <br>
-                <hr>
-                <br>
-                <!-- SHOWING THE QUEUE-->
-                <div class="queue">
-                    <h1 style="font-size: 30px;color:#00bfff;"><i class="bi bi-music-note-list"></i> Fila de Reprodução <b>[<span id="queueamount"> <%= botClient.distube.getQueue(guild.id) && botClient.distube.getQueue(guild.id).songs ? botClient.distube.getQueue(guild.id).songs.length : 0 %> Músicas </span>]</b></h1>
+
+                <div class="ym-meta-wrap">
+                  <h3 class="ym-track-title">
+                    <%= String(current.name).length > 92 ? String(current.name).substr(0, 91) + ' ...' : String(current.name) %>
+                  </h3>
+
+                  <p class="ym-track-subline">
+                    Solicitada por <b><%= current.user.username %></b>
+                    <span>#<%= current.user.discriminator %></span>
+                  </p>
+
+                  <div class="ym-badge-row">
+                    <span class="badge bg-primary">Views: <%= nFormatter(current.views || 0, 2) %></span>
+                    <span class="badge bg-success">Likes: <%= nFormatter(current.likes || 0, 2) %></span>
+                    <span class="badge bg-info text-dark">Autoplay: <%= queue.autoplay ? 'On' : 'Off' %></span>
+                    <span class="badge bg-secondary">Loop: <%= loopLabel %></span>
+                    <span class="badge bg-dark">Volume: <%= queue.volume %>%</span>
+                  </div>
                 </div>
-                <div style="display: flex; flex-wrap: wrap; justify-content: center;" id="wholequeue">
-                    <div id="currentsong" class="card mb-3 text-white bg-info mb-3">
-                        <img class="card-img-top" src="https://img.youtube.com/vi/<%= current.id %>/mqdefault.jpg" alt="Card image cap">
-                        <div class="card-body">
-                            <h5 class="card-title" style="color: #000617 "><b>1.</b> <a href="<%= current.url %>" style="text-decoration: none;color: #000617" target="_blank"><%= current.name %></a></h5>
-                            <p class="mt-auto card-text"><small class="text-muted" style="color: #000617 !important;">Requerido por: <%= current.user.tag %></small></p>
-                            <p class="mt-auto card-text"><small class="text-muted" style="color: #000617 !important">Duration: <%= botClient.distube.getQueue(guild.id).formattedCurrentTime + " / " + current.formattedDuration %></small></p>                          
-                            </div>
-                    </div>
-                    <% botClient.distube.getQueue(guild.id).songs.forEach((song, i) => { if(i>0){ %>
-                        <div class="card mb-3 <%= i==0 ? 'text-white bg-success mb-3': 'text-white bg-secondary  mb-3' %>">
-                            <img class="card-img-top" src="https://img.youtube.com/vi/<%= song.id %>/mqdefault.jpg" alt="Card image cap">
-                            <div class="card-body">
-                            <h5 class="card-title" style="color: <%= i==0 ? '#ffffff' : '#1b1b1b' %>"><b><%= i + 1%>.</b> <a href="<%= song.url %>" style="text-decoration: none;color: <%= i==0 ? '#ffffff' :'#1b1b1b' %>" target="_blank"><%= song.name %></a></h5>
-                            <p class="mt-auto card-text"><small class="text-muted" style="color: #1b1b1b !important;">Requested by: <%= song.user.tag %></small></p>
-                            <p class="mt-auto card-text"><small class="text-muted" style="color: #1b1b1b !important">Duration: <%= song.formattedDuration %></small></p>                          
-                            </div>
-                        </div>
-                    <% }}) %>
+              </div>
+
+              <div class="progresswrapper">
+                <div
+                  class="progress queue-progress-shell <%= canSeek ? 'is-seekable' : 'is-locked' %>"
+                  data-seek-progress
+                  aria-label="Barra de progresso da musica"
+                >
+                  <div
+                    class="progress-bar progress-bar-striped progress-bar-animated queue-progress-fill"
+                    role="progressbar"
+                    style="width: <%= progress %>%; background: linear-gradient(145deg, #21c0ff, #0e95d2);"
+                    aria-valuenow="<%= Math.floor(currentSeconds) %>"
+                    aria-valuemin="0"
+                    aria-valuemax="<%= Math.floor(totalSeconds) %>"
+                  ></div>
                 </div>
-            <% }else{ %>
-                <center>
-                    <h3 style="color:#828cff; margin-top: 80px;">Atualmente não há nada tocando</h3>
-                </center>
+                <div class="ym-time-row">
+                  <b id="queue-current-time"><%= queue.formattedCurrentTime %></b>
+                  <b id="queue-total-time"><%= current.formattedDuration %></b>
+                </div>
+              </div>
+
+              <div id="queuecontrols" class="player-controls">
+                <div class="player-controls-main">
+                  <button
+                    type="button"
+                    class="player-btn player-btn-round"
+                    data-queue-action="shuffle"
+                    aria-label="Embaralhar fila"
+                    title="Embaralhar fila"
+                    <%= canControl ? '' : 'disabled' %>
+                  >
+                    <i class="bi bi-shuffle"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="player-btn player-btn-round"
+                    data-queue-action="previous"
+                    aria-label="Musica anterior"
+                    <%= canControl ? '' : 'disabled' %>
+                  >
+                    <i class="bi bi-skip-start-fill"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="player-btn player-btn-round player-btn-primary"
+                    data-queue-action="toggle_pause"
+                    aria-label="<%= queue.paused ? 'Retomar reproducao' : 'Pausar reproducao' %>"
+                    <%= canControl ? '' : 'disabled' %>
+                  >
+                    <i class="bi <%= queue.paused ? 'bi-play-fill' : 'bi-pause-fill' %>"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="player-btn player-btn-round"
+                    data-queue-action="skip"
+                    aria-label="Proxima musica"
+                    <%= canControl ? '' : 'disabled' %>
+                  >
+                    <i class="bi bi-skip-end-fill"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="player-btn player-btn-round <%= queue.repeatMode !== 0 ? 'player-btn-state-on' : '' %>"
+                    data-queue-action="loop_cycle"
+                    aria-label="Loop: <%= loopLabel %>"
+                    title="Loop: <%= loopLabel %>"
+                    <%= canControl ? '' : 'disabled' %>
+                  >
+                    <i class="bi bi-arrow-repeat"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <% if (!canControl) { %>
+              <p class="queue-permission-note">
+                <% if (!user || !user.id) { %>
+                  Faca login no dashboard para interagir com a fila.
+                <% } else { %>
+                  Voce precisa da permissao <b>Gerenciar Servidor</b> para interagir com a fila.
+                <% } %>
+              </p>
             <% } %>
+
+          </article>
+
+          <aside class="ym-panel-card">
+            <div class="ym-tab-bar" role="tablist" aria-label="Painel da fila">
+              <button type="button" class="ym-tab is-active" data-panel-tab="queue" role="tab" aria-selected="true">Fila</button>
+              <button type="button" class="ym-tab" data-panel-tab="lyrics" role="tab" aria-selected="false">Letras</button>
+            </div>
+
+            <div class="ym-panel is-active" id="ym-panel-queue" role="tabpanel">
+              <div class="queue-title-line">
+                <h2><i class="bi bi-music-note-list"></i> Fila de Reproducao</h2>
+                <span class="badge bg-dark" id="queueamount"><%= queue.songs.length %> Musicas</span>
+              </div>
+
+              <div id="wholequeue">
+                <% queue.songs.forEach((song, i) => { %>
+                  <button
+                    type="button"
+                    class="queue-track <%= i === 0 ? 'is-active' : '' %>"
+                    data-jump-index="<%= i %>"
+                    data-song-title="<%= String(song.name).replace(/"/g, '&quot;') %>"
+                    <%= canControl ? '' : 'disabled' %>
+                  >
+                    <div class="queue-track-cover">
+                      <img src="<%= song.thumbnail || (song.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 256 })) %>" alt="<%= song.name %>">
+                    </div>
+                    <div class="queue-track-main">
+                      <div class="queue-track-title">
+                        <% if (i === 0) { %>
+                          <i class="bi bi-equalizer"></i>
+                        <% } else { %>
+                          <span class="queue-track-index"><%= i + 1 %>.</span>
+                        <% } %>
+                        <span><%= song.name %></span>
+                      </div>
+                      <div class="queue-track-meta">
+                        <span>Por: <%= song.user.tag %></span>
+                        <span><%= i === 0 ? `${queue.formattedCurrentTime} / ${song.formattedDuration}` : song.formattedDuration %></span>
+                      </div>
+                    </div>
+                    <span class="queue-track-action">
+                      <%= i === 0 ? 'Tocando' : 'Tocar agora' %>
+                    </span>
+                  </button>
+                <% }) %>
+              </div>
+            </div>
+
+            <div class="ym-panel" id="ym-panel-lyrics" role="tabpanel" aria-hidden="true">
+              <div class="lyrics-head">
+                <h2><i class="bi bi-mic"></i> Letras</h2>
+                <span class="badge bg-secondary" id="lyrics-source">Fonte: -</span>
+              </div>
+              <p class="lyrics-meta" id="lyrics-song-meta">Buscando letra da musica atual...</p>
+              <div class="lyrics-box" id="lyrics-content">
+                <p class="lyrics-placeholder">Carregando...</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+      <% } else { %>
+        <div class="hero-card" style="max-width: 760px; margin: 28px auto 0; text-align:center;">
+          <h3 style="color:#8ad7ff; margin:0;">Atualmente nao ha nada tocando</h3>
+          <p class="subtext" style="margin-top:8px;">Inicie uma musica no servidor para ver o player ao vivo aqui.</p>
+        </div>
+      <% } %>
     </section>
-      <!-- FOOTER-->
-      
-			<%- include('footer'); -%>
 
-       <!--JS-->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
-    
-    <script type="text/javascript">
-        window.onload = startInterval
-        function startInterval()
-        {
-            setInterval(()=>{
-                var xmlhttp = new XMLHttpRequest();
-                xmlhttp.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
-                        try{
-                            // if it worked, parse that string, make it back into an object
-                            var data = this.responseText
-                            parser = new DOMParser();
-                            var doc = parser.parseFromString(data, "text/html");
-                            if(document.getElementById("queueamount").innerHTML != data) {
-                                data = doc.querySelector("#wholequeue").innerHTML;
-                                document.getElementById("wholequeue").innerHTML = data;
-                            } else{
-                                data = doc.querySelector("#currentsong").innerHTML;
-                                document.getElementById("currentsong").innerHTML = data;
-                            }
-                            data = doc.querySelector("#queueamount").innerHTML;
-                            document.getElementById("queueamount").innerHTML = data;
-                            data = doc.querySelector("#nowplaying").innerHTML;
-                            document.getElementById("nowplaying").innerHTML = data;
-                        }catch (e){
-                            data = doc.querySelector("#queue").innerHTML;
-                            document.getElementById("queue").innerHTML = data;
-                            console.log(e)
-                        }
-                    }
-                };
-                xmlhttp.open("GET", "/queue/<%= req.params.guildID %>", true);
-                xmlhttp.send();
+    <%- include('footer'); -%>
 
-            }, 1000);
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+
+    <script>
+      const guildId = "<%= guild ? guild.id : '' %>";
+      const canControlQueue = <%= canControl ? 'true' : 'false' %>;
+      const canSeekQueue = <%= canSeek ? 'true' : 'false' %>;
+      const alertContainerEl = document.getElementById("queue-alert-container");
+      let activePanel = "queue";
+      let lyricsToken = 0;
+      let cachedLyricsSongKey = "";
+      let isSeeking = false;
+      let feedbackTimer = null;
+      let activeAlertEl = null;
+      let activeAlertInstance = null;
+      let clockRaf = null;
+      let refreshTicker = null;
+      let playerClock = {
+        baseCurrent: 0,
+        total: 1,
+        baseTs: performance.now(),
+        paused: true,
+      };
+      const dragSeekState = {
+        active: false,
+        pointerId: null,
+        targetSeconds: null,
+      };
+
+      const formatClock = (seconds) => {
+        const safe = Math.max(0, Number(seconds) || 0);
+        const h = Math.floor(safe / 3600);
+        const m = Math.floor((safe % 3600) / 60);
+        const s = Math.floor(safe % 60);
+        if (h > 0) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      };
+
+      const getCurrentSongKey = () => {
+        const nowPlaying = document.getElementById("nowplaying");
+        return String(nowPlaying?.dataset?.songKey || "");
+      };
+
+      const getNowPlayingElement = () => document.getElementById("nowplaying");
+
+      const getProgressElements = () => {
+        const shell = document.querySelector("[data-seek-progress]");
+        const fill = shell?.querySelector(".queue-progress-fill") || null;
+        const currentLabel = document.getElementById("queue-current-time");
+        const totalLabel = document.getElementById("queue-total-time");
+        return { shell, fill, currentLabel, totalLabel };
+      };
+
+      const setFeedback = (message, type = "info", autoHide = true) => {
+        if (!alertContainerEl) return;
+        if (feedbackTimer) {
+          clearTimeout(feedbackTimer);
+          feedbackTimer = null;
         }
+
+        if (activeAlertInstance && window.bootstrap?.Alert) {
+          try {
+            activeAlertInstance.close();
+          } catch {}
+        }
+        if (activeAlertEl && activeAlertEl.isConnected) activeAlertEl.remove();
+        activeAlertEl = null;
+        activeAlertInstance = null;
+
+        if (!message) return;
+
+        const tone = type === "success" ? "success" : type === "error" ? "error" : "info";
+        const meta =
+          tone === "success"
+            ? { title: "Sucesso", icon: "bi-check-circle-fill" }
+            : tone === "error"
+              ? { title: "Erro", icon: "bi-exclamation-triangle-fill" }
+              : { title: "Player", icon: "bi-info-circle-fill" };
+
+        const alertEl = document.createElement("div");
+        alertEl.className = `alert alert-dismissible fade show queue-alert queue-alert-${tone}`;
+        alertEl.setAttribute("role", "alert");
+
+        const contentEl = document.createElement("div");
+        contentEl.className = "queue-alert-content";
+
+        const iconEl = document.createElement("i");
+        iconEl.className = `bi ${meta.icon} queue-alert-icon`;
+
+        const textWrapEl = document.createElement("div");
+        textWrapEl.className = "queue-alert-text";
+
+        const titleEl = document.createElement("strong");
+        titleEl.className = "queue-alert-title";
+        titleEl.textContent = meta.title;
+
+        const bodyEl = document.createElement("span");
+        bodyEl.textContent = String(message || "");
+
+        textWrapEl.appendChild(titleEl);
+        textWrapEl.appendChild(bodyEl);
+        contentEl.appendChild(iconEl);
+        contentEl.appendChild(textWrapEl);
+
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.className = "btn-close btn-close-white";
+        closeBtn.setAttribute("data-bs-dismiss", "alert");
+        closeBtn.setAttribute("aria-label", "Fechar");
+
+        alertEl.appendChild(contentEl);
+        alertEl.appendChild(closeBtn);
+        alertContainerEl.appendChild(alertEl);
+        activeAlertEl = alertEl;
+
+        if (window.bootstrap?.Alert) {
+          activeAlertInstance = new window.bootstrap.Alert(alertEl);
+          alertEl.addEventListener("closed.bs.alert", () => {
+            if (activeAlertEl === alertEl) {
+              activeAlertEl = null;
+              activeAlertInstance = null;
+            }
+          }, { once: true });
+        }
+
+        if (!autoHide) return;
+        feedbackTimer = setTimeout(() => {
+          if (!alertEl.isConnected) {
+            feedbackTimer = null;
+            return;
+          }
+          if (window.bootstrap?.Alert) {
+            if (activeAlertEl === alertEl && activeAlertInstance) {
+              activeAlertInstance.close();
+            } else {
+              const instance = new window.bootstrap.Alert(alertEl);
+              instance.close();
+            }
+          } else {
+            alertEl.classList.remove("show");
+            setTimeout(() => {
+              if (alertEl.isConnected) alertEl.remove();
+            }, 180);
+          }
+          if (activeAlertEl === alertEl) {
+            activeAlertEl = null;
+            activeAlertInstance = null;
+          }
+          feedbackTimer = null;
+        }, 3000);
+      };
+
+      const setButtonsDisabled = (disabled) => {
+        if (!canControlQueue) return;
+        document.querySelectorAll("[data-jump-index]").forEach((el) => {
+          el.disabled = Boolean(disabled);
+        });
+        document.querySelectorAll("[data-queue-action]").forEach((el) => {
+          el.disabled = Boolean(disabled);
+        });
+      };
+
+      const readClockFromDom = () => {
+        const nowPlaying = getNowPlayingElement();
+        if (!nowPlaying) return;
+        const current = Math.max(0, Number(nowPlaying.dataset.currentSeconds || 0));
+        const total = Math.max(1, Number(nowPlaying.dataset.totalSeconds || 1));
+        const paused = String(nowPlaying.dataset.paused || "false") === "true";
+        playerClock = {
+          baseCurrent: Number.isFinite(current) ? current : 0,
+          total: Number.isFinite(total) ? total : 1,
+          baseTs: performance.now(),
+          paused,
+        };
+        renderClock(playerClock.baseCurrent, playerClock.total);
+      };
+
+      const getLiveCurrentSeconds = () => {
+        const elapsed = Math.max(0, (performance.now() - playerClock.baseTs) / 1000);
+        const current = playerClock.paused ? playerClock.baseCurrent : playerClock.baseCurrent + elapsed;
+        return Math.max(0, Math.min(playerClock.total, current));
+      };
+
+      const renderClock = (seconds, totalOverride = null) => {
+        const { shell, fill, currentLabel, totalLabel } = getProgressElements();
+        const total = Math.max(1, Number((totalOverride ?? playerClock.total) || 1));
+        const safeSeconds = Math.max(0, Math.min(total, Number(seconds || 0)));
+        const percent = (safeSeconds / total) * 100;
+        if (fill) {
+          fill.style.width = `${percent}%`;
+          fill.setAttribute("aria-valuenow", String(Math.floor(safeSeconds)));
+          fill.setAttribute("aria-valuemax", String(Math.floor(total)));
+        }
+        if (currentLabel) currentLabel.textContent = formatClock(safeSeconds);
+        if (totalLabel) totalLabel.textContent = formatClock(total);
+      };
+
+      const updateClockTick = () => {
+        if (isSeeking) return;
+        renderClock(getLiveCurrentSeconds());
+      };
+
+      const seekSecondsFromClientX = (clientX) => {
+        const { shell } = getProgressElements();
+        if (!shell) return null;
+        const rect = shell.getBoundingClientRect();
+        if (!rect.width) return null;
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const seconds = ratio * Math.max(1, playerClock.total || 1);
+        renderClock(seconds);
+        return seconds;
+      };
+
+      const commitSeek = (seconds) => {
+        const target = Math.max(0, Math.min(Math.max(1, playerClock.total || 1), Math.floor(seconds || 0)));
+        playerClock.baseCurrent = target;
+        playerClock.paused = false;
+        playerClock.baseTs = performance.now();
+        renderClock(target);
+        runQueueAction("seek_seconds", { seconds: target });
+      };
+
+      const stopSeekState = (commit = true) => {
+        if (!dragSeekState.active) return;
+        const { shell } = getProgressElements();
+        if (shell) shell.classList.remove("is-dragging");
+        if (commit && Number.isFinite(dragSeekState.targetSeconds)) {
+          commitSeek(dragSeekState.targetSeconds);
+        } else {
+          renderClock(getLiveCurrentSeconds());
+        }
+        dragSeekState.active = false;
+        dragSeekState.pointerId = null;
+        dragSeekState.targetSeconds = null;
+        isSeeking = false;
+      };
+
+      const setPanel = (panel) => {
+        activePanel = panel === "lyrics" ? "lyrics" : "queue";
+        document.querySelectorAll("[data-panel-tab]").forEach((btn) => {
+          const selected = btn.getAttribute("data-panel-tab") === activePanel;
+          btn.classList.toggle("is-active", selected);
+          btn.setAttribute("aria-selected", selected ? "true" : "false");
+        });
+
+        const queuePanel = document.getElementById("ym-panel-queue");
+        const lyricsPanel = document.getElementById("ym-panel-lyrics");
+        if (queuePanel) {
+          queuePanel.classList.toggle("is-active", activePanel === "queue");
+          queuePanel.setAttribute("aria-hidden", activePanel === "queue" ? "false" : "true");
+        }
+        if (lyricsPanel) {
+          lyricsPanel.classList.toggle("is-active", activePanel === "lyrics");
+          lyricsPanel.setAttribute("aria-hidden", activePanel === "lyrics" ? "false" : "true");
+        }
+      };
+
+      const setLyricsState = ({ source = "-", meta = "", text = "", isError = false } = {}) => {
+        const sourceEl = document.getElementById("lyrics-source");
+        const metaEl = document.getElementById("lyrics-song-meta");
+        const contentEl = document.getElementById("lyrics-content");
+        if (sourceEl) sourceEl.textContent = `Fonte: ${source}`;
+        if (metaEl) {
+          metaEl.textContent = meta || "";
+          metaEl.classList.toggle("is-error", Boolean(isError));
+        }
+        if (contentEl) {
+          contentEl.innerHTML = "";
+          const pre = document.createElement("pre");
+          pre.className = text ? "lyrics-pre" : "lyrics-placeholder";
+          pre.textContent = text || "Nao foi possivel carregar a letra.";
+          contentEl.appendChild(pre);
+        }
+      };
+
+      const loadLyrics = async (force = false) => {
+        if (!guildId) return;
+        const songKey = getCurrentSongKey();
+        if (!songKey) {
+          setLyricsState({ source: "-", meta: "Nenhuma musica tocando.", text: "" });
+          cachedLyricsSongKey = "";
+          return;
+        }
+        if (!force && cachedLyricsSongKey === songKey) return;
+
+        const token = ++lyricsToken;
+        setLyricsState({ source: "-", meta: "Buscando letra da musica atual...", text: "Carregando..." });
+
+        try {
+          const response = await fetch(`/api/queue/${guildId}/lyrics`, {
+            headers: { "Accept": "application/json" }
+          });
+          const data = await response.json().catch(() => ({}));
+          if (token !== lyricsToken) return;
+
+          if (!response.ok || !data.ok) {
+            const title = data?.song?.title ? `Musica: ${data.song.title}` : "";
+            const artist = data?.song?.artist ? `Artista: ${data.song.artist}` : "";
+            const meta = [title, artist].filter(Boolean).join(" | ") || (data.message || "Letra nao encontrada.");
+            setLyricsState({
+              source: "-",
+              meta,
+              text: data.message || "Nao encontrei letra para esta musica.",
+              isError: true
+            });
+            cachedLyricsSongKey = songKey;
+            return;
+          }
+
+          const title = data?.song?.title ? `Musica: ${data.song.title}` : "";
+          const artist = data?.song?.artist ? `Artista: ${data.song.artist}` : "";
+          setLyricsState({
+            source: data?.song?.source || "desconhecida",
+            meta: [title, artist].filter(Boolean).join(" | "),
+            text: data.lyrics || "",
+            isError: false
+          });
+          cachedLyricsSongKey = songKey;
+        } catch (e) {
+          if (token !== lyricsToken) return;
+          setLyricsState({
+            source: "-",
+            meta: "Falha ao carregar letra.",
+            text: "Erro de conexao ao buscar a letra.",
+            isError: true
+          });
+        }
+      };
+
+      const runQueueAction = async (action, extra = {}) => {
+        if (!guildId) return;
+        setButtonsDisabled(true);
+        setFeedback("Executando acao...", "info", false);
+        try {
+          const response = await fetch(`/api/queue/${guildId}/control`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action, ...extra })
+          });
+          const data = await response.json().catch(() => ({}));
+          if (response.status === 401 && data.login) {
+            window.location.href = data.login;
+            return;
+          }
+          if (!response.ok || !data.ok) {
+            setFeedback(data.message || "Falha ao executar acao.", "error");
+            if (action === "seek_seconds") refreshQueue();
+            return;
+          }
+          setFeedback(data.message || "Acao executada.", "success");
+          refreshQueue();
+        } catch (e) {
+          setFeedback("Erro de conexao ao controlar a fila.", "error");
+          if (action === "seek_seconds") refreshQueue();
+        } finally {
+          setTimeout(() => setButtonsDisabled(false), 500);
+        }
+      };
+
+      document.addEventListener("click", (event) => {
+        const tabButton = event.target.closest("[data-panel-tab]");
+        if (tabButton) {
+          setPanel(tabButton.getAttribute("data-panel-tab"));
+          return;
+        }
+
+        const actionButton = event.target.closest("[data-queue-action]");
+        if (actionButton) {
+          if (actionButton.disabled) return;
+          runQueueAction(String(actionButton.getAttribute("data-queue-action") || "").trim());
+          return;
+        }
+
+        const trackButton = event.target.closest("[data-jump-index]");
+        if (trackButton) {
+          if (trackButton.disabled) return;
+          const index = Number(trackButton.getAttribute("data-jump-index"));
+          if (!Number.isInteger(index)) return;
+          runQueueAction("play_index", { index });
+        }
+      });
+
+      document.addEventListener("pointerdown", (event) => {
+        const seekShell = event.target.closest("[data-seek-progress]");
+        if (!seekShell || !canSeekQueue) return;
+        if (!canControlQueue) return;
+        event.preventDefault();
+        dragSeekState.active = true;
+        dragSeekState.pointerId = event.pointerId;
+        seekShell.classList.add("is-dragging");
+        if (typeof seekShell.setPointerCapture === "function") {
+          try {
+            seekShell.setPointerCapture(event.pointerId);
+          } catch {}
+        }
+        isSeeking = true;
+        dragSeekState.targetSeconds = seekSecondsFromClientX(event.clientX);
+      });
+
+      document.addEventListener("pointermove", (event) => {
+        if (!dragSeekState.active) return;
+        if (dragSeekState.pointerId !== null && event.pointerId !== dragSeekState.pointerId) return;
+        dragSeekState.targetSeconds = seekSecondsFromClientX(event.clientX);
+      });
+
+      document.addEventListener("pointerup", (event) => {
+        if (dragSeekState.pointerId !== null && event.pointerId !== dragSeekState.pointerId) return;
+        stopSeekState(true);
+      });
+
+      document.addEventListener("pointercancel", () => {
+        stopSeekState(false);
+      });
+
+      window.onload = () => {
+        readClockFromDom();
+        setPanel(activePanel);
+        loadLyrics(true);
+        startClockTicker();
+        startInterval();
+      };
+
+      function startClockTicker() {
+        if (clockRaf) cancelAnimationFrame(clockRaf);
+        const loop = () => {
+          updateClockTick();
+          clockRaf = requestAnimationFrame(loop);
+        };
+        clockRaf = requestAnimationFrame(loop);
+      }
+
+      function refreshQueue() {
+        const previousSongKey = getCurrentSongKey();
+
+        const xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function () {
+          if (this.readyState !== 4 || this.status !== 200) return;
+
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(this.responseText, "text/html");
+
+          const nextQueue = doc.querySelector("#wholequeue");
+          const nextQueueAmount = doc.querySelector("#queueamount");
+          const nextNowPlaying = doc.querySelector("#nowplaying");
+          const nextQueueRoot = doc.querySelector("#queue");
+
+          if (!nextQueue || !nextQueueAmount || !nextNowPlaying) {
+            const currRoot = document.querySelector("#queue");
+            if (nextQueueRoot && currRoot) {
+              currRoot.innerHTML = nextQueueRoot.innerHTML;
+            }
+            setPanel(activePanel);
+            loadLyrics(true);
+            return;
+          }
+
+          const currQueue = document.querySelector("#wholequeue");
+          const currAmount = document.querySelector("#queueamount");
+          const currNow = document.querySelector("#nowplaying");
+
+          if (!currQueue || !currAmount || !currNow) {
+            const currRoot = document.querySelector("#queue");
+            if (nextQueueRoot && currRoot) {
+              currRoot.innerHTML = nextQueueRoot.innerHTML;
+            }
+            setPanel(activePanel);
+            loadLyrics(true);
+            return;
+          }
+
+          currQueue.innerHTML = nextQueue.innerHTML;
+          currAmount.innerHTML = nextQueueAmount.innerHTML;
+
+          if (!isSeeking) {
+            currNow.outerHTML = nextNowPlaying.outerHTML;
+            readClockFromDom();
+          }
+
+          setPanel(activePanel);
+
+          const nextSongKey = getCurrentSongKey();
+          if (nextSongKey !== previousSongKey) {
+            loadLyrics(true);
+          }
+        };
+
+        xmlhttp.open("GET", "/queue/<%= req.params.guildID %>", true);
+        xmlhttp.send();
+      }
+
+      function startInterval() {
+        if (refreshTicker) clearInterval(refreshTicker);
+        refreshTicker = setInterval(() => {
+          refreshQueue();
+          loadLyrics(false);
+        }, 2000);
+      }
+
+      window.addEventListener("beforeunload", () => {
+        if (clockRaf) cancelAnimationFrame(clockRaf);
+        if (refreshTicker) clearInterval(refreshTicker);
+      });
     </script>
   </body>
 </html>

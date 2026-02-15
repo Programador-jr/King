@@ -1,7 +1,8 @@
 module.exports = { 
   name: "ratewaifu",
   aliases: ['waifu', 'avaliarwaifu'],
-	category:"Diversão",
+	category: "Divers\u00e3o",
+  description: "Avalia uma waifu com uma nota aleatoria.",
 	cooldown: "5",
   run:async (client, message, args) => {
 

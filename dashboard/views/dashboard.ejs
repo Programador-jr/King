@@ -1,70 +1,109 @@
-<%- include('header'); -%>
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <!--Meta Tags-->
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">        
-        <link rel="stylesheet" href="/index.css">
-        <title><%= bot.name %></title>    
-    </head>
-    <body>
-        <!--HEADER-->
-        
-        <!--MAIN BODY-->
-      <section>
-        <div class="d-flex justify-content-center head">
-            <h1><b>DASHBOARD</b></h1>
-        </div>
-        <div class="d-flex justify-content-center">
-            <p style="font-style: italic;">Com o painel, você pode gerenciar as configurações de cada guilda individualmente!<br>Somente se você tiver a permissão <b>Gerenciar servidor</b>, porque ela é necessária para esse comando!</p>
-        </div>
-        <% if(user && user.id){ %>
-          <div style="display: flex; flex-wrap: wrap; justify-content: center;">
-              <% user.guilds
-              .filter((guild) => {
-                const permsOnGuild = new Permissions(guild.permissions_new);
-                if(permsOnGuild.has(Permissions.FLAGS.MANAGE_GUILD)) return guild;
-              })
-              .sort((a, b) => {
-                return (botClient.guilds.cache.get(a.id) === botClient.guilds.cache.get(b.id)) ? 0 : a ? -1 : 1;
-              })
-              .forEach(guild => {
-              %>
-                <div class="card text-white bg-dark mb-3">
-                <%- guild.icon ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}" class="card-img-top" style="max-width: 250px;width: 250px; border-radius: 40px;">` : `<img src="https://cdn.discordapp.com/attachments/765919453766352916/877787616974622770/wCfHtuoejLIbAAAAABJRU5ErkJggg.png" class="card-img-top" style="max-width: 250px;width: 250px; border-radius: 40px;">` %>
-                  <div class="card-img-overlay text-grey h-100 d-flex flex-column justify-content-end" style="background:#000000b0;max-width: 250px;width: 250px; border-radius: 40px;">
-                    <h5 class="card-title text-primary" style="font-size: 25px;"><%= guild.name %></h5>
-                    <% if (botClient.guilds.cache.get(guild.id)) { %>
-                      <p class="card-text" style="font-size: 12px;font-style: italic;color: #b3b3b3">Edite as configurações de <b><%= guild.name %></b> Através do painel clicando no botão abaixo!</p>
-                      <a style="font-size: 17px;"
-                      href="<%- bot.domain %>/dashboard/<%- guild.id %>" 
-                      class="mt-auto btn btn-lg btn-block btn-success">Editar Configurações</a>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="/index.css">
+    <title>Dashboard | <%= bot.name %></title>
+  </head>
+  <body>
+    <%- include('header'); -%>
+
+    <section class="dashboard-page">
+      <div class="head">
+        <h1>Dashboard de Servidores</h1>
+      </div>
+      <p class="dashboard-intro">
+        Gerencie configuracoes por guilda. Apenas usuarios com permissao <b>Gerenciar Servidor</b> podem editar.
+      </p>
+
+      <% if (user && user.id) { %>
+        <% const manageableGuilds = user.guilds
+          .filter((guild) => {
+            const guildPerms = BigInt(guild.permissions_new || 0);
+            const MANAGE_GUILD = 0x20n;
+            return (guildPerms & MANAGE_GUILD) === MANAGE_GUILD;
+          })
+          .sort((a, b) => {
+            const inA = botClient.guilds.cache.has(a.id) ? 1 : 0;
+            const inB = botClient.guilds.cache.has(b.id) ? 1 : 0;
+            return inB - inA;
+          });
+        %>
+
+        <% if (manageableGuilds.length > 0) { %>
+          <div class="row g-3 server-grid">
+            <% manageableGuilds.forEach((guild) => {
+              const guildIcon = guild.icon
+                ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.webp?size=512`
+                : `https://cdn.discordapp.com/embed/avatars/0.png`;
+              const onServer = botClient.guilds.cache.has(guild.id);
+            %>
+              <div class="col-12 col-sm-6 col-xl-4">
+                <article class="card text-white bg-dark server-card">
+                  <img src="<%= guildIcon %>" class="card-img-top" alt="<%= guild.name %>">
+                  <div class="card-body">
+                    <span class="status-pill <%= onServer ? 'status-pill-ok' : 'status-pill-warn' %>">
+                      <%= onServer ? 'Online no servidor' : 'Bot nao adicionado' %>
+                    </span>
+                    <h5 class="card-title"><%= guild.name %></h5>
+
+                    <% if (onServer) { %>
+                      <p class="card-text">
+                        Edite as configuracoes de <b><%= guild.name %></b> pelo painel.
+                      </p>
+                      <div class="card-actions">
+                        <a href="/dashboard/<%- guild.id %>" class="btn btn-sm btn-primary px-3">
+                          Editar Configuracoes
+                        </a>
+                      </div>
                     <% } else { %>
-                      <p class="card-text" style="font-size: 12px;font-style: italic;color: #b3b3b3">Me adicione a <b><% = guild.name%></b> para ver as configurações de sua guilda através do painel clicando no botão abaixo!</p>
-                      <a style="font-size: 18px;"
-                      href="<%= `https://discordapp.com/oauth2/authorize?client_id=${botClient.user.id}&scope=bot%20applications.commands&guild_id=${guild.id}&response_type=code&redirect_uri=${encodeURIComponent(`${callback}`)}`  %>" 
-                      class="mt-auto btn btn-lg btn-block btn-primary">Adicionar Bot</a>
+                      <p class="card-text">
+                        O bot ainda nao esta neste servidor. Adicione para liberar o painel.
+                      </p>
+                      <div class="card-actions">
+                        <a
+                          href="<%= `https://discord.com/oauth2/authorize?client_id=${botClient.user.id}&scope=bot%20applications.commands&guild_id=${guild.id}&response_type=code&redirect_uri=${encodeURIComponent(`${callback}`)}` %>"
+                          class="btn btn-sm btn-outline-info px-3"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Adicionar Bot
+                        </a>
+                      </div>
                     <% } %>
                   </div>
-                </div>
-              <%
-                  });
-              %>
+                </article>
+              </div>
+            <% }); %>
           </div>
-        <%
-          } else {
-        %>
-            <p>Please login First!</p>
-        <%
-          } 
-        %>
-      </section>
-      <!-- FOOTER-->
-			<%- include('footer'); -%>
+        <% } else { %>
+          <div class="hero-card dashboard-empty-card">
+            <h5 style="margin-top:0;">Nenhum servidor disponivel</h5>
+            <p class="subtext" style="text-align:left; margin: 10px 0 0;">
+              Nao foi encontrado nenhum servidor com permissao de <b>Gerenciar Servidor</b> na sua conta.
+            </p>
+          </div>
+        <% } %>
+      <% } else { %>
+        <div class="hero-card dashboard-empty-card">
+          <h5 style="margin-top:0;">Login necessario</h5>
+          <p class="subtext" style="text-align:left; margin: 10px 0 0;">
+            Entre com sua conta Discord para acessar os servidores disponiveis no painel.
+          </p>
+          <div class="hero-actions">
+            <a class="btn-modern btn-modern-primary" href="/login">Fazer login</a>
+          </div>
+        </div>
+      <% } %>
+    </section>
 
-       <!--JS-->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
-    </body>
+    <%- include('footer'); -%>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+  </body>
 </html>

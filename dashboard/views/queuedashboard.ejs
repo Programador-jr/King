@@ -1,71 +1,82 @@
-<%- include('header'); -%>
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <!--Meta Tags-->
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">        
-        <link rel="stylesheet" href="/index.css">
-        <title><%= bot.name %></title>    
-    </head>
-    <body>
-        <!--HEADER-->
-        
-        <!--MAIN BODY-->
-      <section>
-        <% if(user && user.guilds && user.guilds.filter((guild) => botClient.guilds.cache.get(guild.id)).length > 0){ %>
-          <div class="d-flex justify-content-center head">
-              <h1><b>Servidores em que ambos estamos</b></h1>
-          </div>
-          <div class="d-flex justify-content-center">
-            <p style="font-style: italic;">Esses servidores são ordenados, após o comprimento da fila, o servidor com a maior fila está à esquerda!</p>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; justify-content: center;">
-            <%
-              user.guilds
-              .filter((guild) => botClient.guilds.cache.get(guild.id))
-              .sort((a, b) => {
-                let x = botClient.distube.getQueue(a.id) ? botClient.distube.getQueue(a.id).songs.length : 0
-                let y = botClient.distube.getQueue(a.id) ? botClient.distube.getQueue(a.id).songs.length : 0
-                return y  - x || -1
-              })
-              .forEach(guild => {
-              %>
-                <div class="card text-white bg-dark mb-3">
-                <%- guild.icon ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}" class="card-img-top" style="max-width: 250px;width: 250px;border-radius: 40px;">` : `<img src="https://cdn.discordapp.com/attachments/765919453766352916/877787616974622770/wCfHtuoejLIbAAAAABJRU5ErkJggg.png" class="card-img-top" style="max-width: 250px;width: 250px; border-radius: 40px;">` %>
-                  <div class="card-img-overlay text-grey h-100 d-flex flex-column justify-content-end" style="background:#000000b0;max-width: 250px;width: 250px; border-radius: 40px;">
-                    <h5 class="card-title text-primary" style="font-size: 25px;"><%= guild.name %></h5>
-                      <p class="card-text" style="font-size: 12px;font-style: italic;color: #b3b3b3">Mostrar a fila atual de <b><%= guild.name %></b> com <b style="color:white"><%= botClient.distube.getQueue(guild.id) ? botClient.distube.getQueue(guild.id).songs.length : 0 %> Músicas</b>!</p>
-                      <a style="font-size: 25px;"
-                        href="<%- bot.domain %>/queue/<%- guild.id %>" 
-                        class="mt-auto btn btn-lg btn-block btn-success">
-                        <i class="iconify" data-icon="ant-design:dashboard-filled"></i>Mostrar fila
-                      </a>
-     
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="/index.css">
+    <title>Fila | <%= bot.name %></title>
+  </head>
+  <body>
+    <%- include('header'); -%>
+
+    <section class="dashboard-page">
+      <% if (user && user.guilds && user.guilds.filter((guild) => botClient.guilds.cache.get(guild.id)).length > 0) { %>
+        <div class="head">
+          <h1>Servidores Compartilhados</h1>
+        </div>
+        <p class="dashboard-intro">
+          Ordenado pelo tamanho da fila atual: os servidores com mais musicas aparecem primeiro.
+        </p>
+
+        <div class="row g-3 server-grid">
+          <% user.guilds
+            .filter((guild) => botClient.guilds.cache.get(guild.id))
+            .sort((a, b) => {
+              const queueA = botClient.distube.getQueue(a.id);
+              const queueB = botClient.distube.getQueue(b.id);
+              const lenA = queueA && queueA.songs ? queueA.songs.length : 0;
+              const lenB = queueB && queueB.songs ? queueB.songs.length : 0;
+              return lenB - lenA;
+            })
+            .forEach((guild) => {
+              const icon = guild.icon
+                ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.webp?size=512`
+                : `https://cdn.discordapp.com/embed/avatars/0.png`;
+              const queueSize = botClient.distube.getQueue(guild.id) ? botClient.distube.getQueue(guild.id).songs.length : 0;
+          %>
+            <div class="col-12 col-sm-6 col-xl-4">
+              <article class="card text-white bg-dark server-card">
+                <img src="<%= icon %>" class="card-img-top" alt="<%= guild.name %>">
+                <div class="card-body">
+                  <span class="status-pill status-pill-ok">
+                    <%= queueSize > 0 ? `${queueSize} musica(s) na fila` : 'Fila vazia' %>
+                  </span>
+                  <h5 class="card-title"><%= guild.name %></h5>
+                  <p class="card-text">Fila atual com <b><%= queueSize %></b> musicas.</p>
+                  <div class="card-actions">
+                    <a href="/queue/<%- guild.id %>" class="btn btn-sm btn-primary px-3">
+                      Mostrar Fila
+                    </a>
                   </div>
                 </div>
-              <% });
-              %>
+              </article>
+            </div>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="hero-card dashboard-empty-card" style="text-align:center;">
+          <h1 style="margin-bottom: 8px;">Nenhum servidor em comum</h1>
+          <p class="subtext">Adicione o bot em um servidor para visualizar a fila em tempo real.</p>
+          <div class="hero-actions" style="justify-content:center;">
+            <a
+              class="btn-modern btn-modern-primary"
+              href="https://discord.com/api/oauth2/authorize?client_id=<%= botClient.user.id %>&permissions=8&scope=bot%20applications.commands"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Me adicionar
+            </a>
           </div>
-          <% }else {
-          %>
-        <div class="d-flex justify-content-center head"><h1><b>Nós não compartilhamos nenhum servidor ;(</b></h1>
-          <p>
-            <button style="font-size: 50px;"
-            onclick="window.open('https://discord.com/api/oauth2/authorize?client_id=<%= botClient.user.id %>&permissions=8&scope=bot%20applications.commands', '_blank')"
-            class="btn btn-success" type="button"><i class="iconify" data-icon="carbon:add-filled"></i>
-            Me adicione!</button>
-          </p>
-        </div> 
-        <%
-        }  %>
-      </section>
-      <!-- FOOTER-->
-      
-			<%- include('footer') -%>
+        </div>
+      <% } %>
+    </section>
 
-       <!--JS-->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
-    </body>
+    <%- include('footer'); -%>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+  </body>
 </html>

@@ -1,45 +1,101 @@
 # King Bot
-My first bot for discord, made with the help of the official discord.js library and using node js
-<br/>
-<details>
- <summary> Active command classes </summary>
- 
-| Commands  | status 
-  --------  | ------
-  Action    | ✔ 
-  Fun  	    | ✔	
-  Games  	  | ✔	
-  Image  	  | ✔	
-  Moderation| ✔	
-  Music 	  | ✔	
-</details>
 
-## with memes commands 100% Brazilian
-******************
-<img alt="fun-img" src="https://media.discordapp.net/attachments/817851620498604052/817851707915632660/Captura_de_tela_2021-03-06_150923.png"></img><br>
-<img alt="fun-img" src="https://media.discordapp.net/attachments/817851620498604052/817855542587687022/Captura_de_tela_2021-03-06_151441.png"></img>
-<br>
-## image manipulation commands
-******************
-<img alt="img" src="https://media.discordapp.net/attachments/817851620498604052/817855549650501713/Captura_de_tela_2021-03-06_151548.png"></img><br>
-<img alt="img" src="https://media.discordapp.net/attachments/817851620498604052/817855554843836416/Captura_de_tela_2021-03-06_151623.png"></img><br>
-<img alt="img" src="https://media.discordapp.net/attachments/817851620498604052/817855561538338826/Captura_de_tela_2021-03-06_151701.png?width=495&height=406"></img>
-<br>
-## chat-bot
-******************
-<img alt="img" src="https://media.discordapp.net/attachments/817851620498604052/817855544480104448/Captura_de_tela_2021-03-06_151521.png"></img>
-<br>
-## examples of some utility commands
-******************
-<img alt="utility-img" src="https://media.discordapp.net/attachments/817851620498604052/817855570006376448/Captura_de_tela_2021-03-06_151906.png"></img><br>
-<img alt="utility-img" src="https://media.discordapp.net/attachments/817851620498604052/817855565367083068/Captura_de_tela_2021-03-06_151743.png?width=261&height=406"></img><br>
-<img alt="utility-img" src="https://media.discordapp.net/attachments/817851620498604052/817858887096729630/Captura_de_tela_2021-03-06_153838.png"></img>
-<br>
-## music controller controlled with reactions
-******************
-<img alt="music-img" src="https://cdn.discordapp.com/attachments/838108210007113748/877248161016610846/music.jpeg"></img>
+[English](README.md) | [Português](README-pt.md)
 
+Discord bot focused on music, utilities, games, and a web dashboard.
 
+## Stack
 
+- Node.js `>= 20.11.1`
+- Discord.js `v14`
+- DisTube `v5` (Spotify/SoundCloud/custom yt-dlp)
+- Express + EJS (dashboard)
+- Enmap (persistent settings)
 
-[Add me to your server]( https://discord.com/oauth2/authorize?client_id=794291443454836766&scope=bot&permissions=939942015)
+## Features
+
+- Music player with queue, loop, shuffle, seek, and button controls
+- Lyrics with API fallback (including Vagalume)
+- Commands grouped by category:
+  - `Configuracoes`
+  - `Diversao`
+  - `Fila`
+  - `Filtro`
+  - `Info`
+  - `Jogos`
+  - `Musica`
+  - `Utilidade`
+- Dashboard with Discord OAuth2 login and queue controls
+
+## Installation
+
+```bash
+npm install
+```
+
+## Environment Variables (`.env`)
+
+Create or edit `.env` in the project root:
+
+```env
+# Bot
+TOKEN="YOUR_BOT_TOKEN"
+
+# Spotify (optional, recommended for Spotify links)
+SPOTIFY_API_ENABLED="true"
+SPOTIFY_CLIENT_ID="YOUR_SPOTIFY_CLIENT_ID"
+SPOTIFY_CLIENT_SECRET="YOUR_SPOTIFY_CLIENT_SECRET"
+
+# Dashboard OAuth (required for panel login)
+DASHBOARD_CLIENT_ID="YOUR_DISCORD_CLIENT_ID"
+DASHBOARD_CLIENT_SECRET="YOUR_DISCORD_CLIENT_SECRET"
+DASHBOARD_DOMAIN="http://localhost:5000"
+DASHBOARD_CALLBACK="http://localhost:5000/callback"
+DASHBOARD_SESSION_SECRET="A_LONG_RANDOM_SECRET"
+
+# Lyrics (optional)
+VAGALUME_API_KEY=""
+
+# Custom yt-dlp path (optional)
+YTDLP_PATH=""
+```
+
+## Config Files
+
+- `botconfig/config.json`
+  - Keep only non-sensitive settings (prefix, colors, etc.).
+- `dashboard/settings.json`
+  - Keep dashboard structural settings (http/https/port).
+  - OAuth credentials should stay in `.env`.
+
+## Discord Developer Portal (Dashboard)
+
+In your Discord application, set this in **OAuth2 > Redirects**:
+
+- `http://localhost:5000/callback` (local)
+- or your production callback URL
+
+This must match `DASHBOARD_CALLBACK`.
+
+## Run
+
+```bash
+npm start
+```
+
+For development:
+
+```bash
+npm run dev
+```
+
+## Dashboard
+
+When the bot starts, the dashboard starts too.
+
+- Default local URL: `http://localhost:5000`
+
+## Security
+
+- Rotate tokens/secrets if exposed
+- Keep `TOKEN` and secrets only in environment variables

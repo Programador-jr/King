@@ -7,7 +7,7 @@ const settings = require("../../botconfig/settings.json");
 module.exports = {
   name: "dj", //the command name for execution & for helpcmd [OPTIONAL]
 
-  category: "Configurações",
+  category: "Configura\u00e7\u00f5es",
   aliases: ["djrole", "role", "drole", "djs", "dj-role"],
   Use: "dj <add/remove> <@Role>",
 
@@ -40,8 +40,8 @@ module.exports = {
           embeds: [new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Adicione um Método + Função!**`)
-            .setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
+            .setTitle(`${client.allEmojis.x} **Adicione um MÃ©todo + FunÃ§Ã£o!**`)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
           ],
         });
       }
@@ -51,8 +51,8 @@ module.exports = {
           embeds: [new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Adicione um Método + Função!**`)
-            .setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
+            .setTitle(`${client.allEmojis.x} **Adicione um MÃ©todo + FunÃ§Ã£o!**`)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
           ],
         });
       }
@@ -62,8 +62,8 @@ module.exports = {
           embeds: [new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Adicione um Método + Função!**`)
-            .setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
+            .setTitle(`${client.allEmojis.x} **Adicione um MÃ©todo + FunÃ§Ã£o!**`)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
           ],
         });
       }
@@ -77,13 +77,13 @@ module.exports = {
               new MessageEmbed()
               .setColor(ee.wrongcolor)
               .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este cargo já é um CARGO-DJ!**`)
+              .setTitle(`${client.allEmojis.x} **Este cargo jÃ¡ Ã© um CARGO-DJ!**`)
             ],
           })
         }
         client.settings.push(guild.id, Role.id, "djroles");
         var djs = client.settings.get(guild.id, `djroles`).map(r => `<@&${r}>`);
-        if (djs.length == 0) djs = "`não configurado";
+        if (djs.length == 0) djs = "`nÃ£o configurado";
         else djs.join(", ");
         return message.reply({
           embeds: [
@@ -101,13 +101,13 @@ module.exports = {
               new MessageEmbed()
               .setColor(ee.wrongcolor)
               .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este cargo ainda não é um CARGO-DJ!**`)
+              .setTitle(`${client.allEmojis.x} **Este cargo ainda nÃ£o Ã© um CARGO-DJ!**`)
             ],
           })
         }
         client.settings.remove(guild.id, Role.id, "djroles");
         var djs = client.settings.get(guild.id, `djroles`).map(r => `<@&${r}>`);
-        if (djs.length == 0) djs = "`não configurado`";
+        if (djs.length == 0) djs = "`nÃ£o configurado`";
         else djs.join(", ");
         return message.reply({
           embeds: [

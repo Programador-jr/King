@@ -6,7 +6,8 @@ const config = require("../../botconfig/config.json");
 const prefix = require("../../botconfig/config.json");
 var ee = require("../../botconfig/embed.json");
 const settings = require("../../botconfig/settings.json");
-const prettyMilliseconds = require("pretty-ms");
+const prettyMillisecondsModule = require("pretty-ms");
+const prettyMilliseconds = prettyMillisecondsModule.default || prettyMillisecondsModule;
 let cpuStat = require("cpu-stat");
 let os = require("os");
 module.exports = {
@@ -47,7 +48,7 @@ module.exports = {
                         .setTitle("__**Informações Basicas:**__")
                         .setColor(ee.color)
                         .addField(`<:world:884218357304422420> Servidores`, `\`Total: ${client.guilds.cache.size} servidores\``, true)
-                        .addField(`<:people:814336053648949268> Usuarios`, `\`Total: ${client.users.cache.size}\` usuarios`, true)
+                        .addField(`:busts_in_silhouette: Usuarios`, `\`Total: ${client.users.cache.size}\` usuarios`, true)
                         .addField("\u200b", `\u200b`, true)
                         .addField(`<:channel:884228094456627270> Canais`, `\`Total: ${client.channels.cache.size}\``, true)
                         .addField(`<:commands:884244807608827934> Comandos`, `\`Total: ${client.commands.map(cmd => cmd.name).length}\``, true)
@@ -65,7 +66,7 @@ module.exports = {
                         .addField("\u200b", `\u200b`, true)
                         .addField("<:linux:884229003672686612> Sistema operacional", `\`${os.platform()}\``, true)
     								    .addField("\u200b", `\u200b`, true)
-												.addField('__**Configurações do Servidor:**__', `\u200b`, true)
+												.addField('**Configurações do Servidor:**', `\u200b`, true)
 												.addField(`📌 Prefixo do Servidor`, `\`${prefix}\``, true)					.addField(`🎧 Cargos-DJ`, `${djs}`, true)
 												.addField("\u200b", `\u200b`)
 												.addField(":alarm_clock: Tempo de atividade ", `\`${prettyMilliseconds(client.uptime)}\``, true)								

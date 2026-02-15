@@ -9,6 +9,7 @@ const {
 	check_if_dj
 } = require("../../handlers/functions")
 const FiltersSettings = require("../../botconfig/filters.json");
+
 module.exports = {
 	name: "customspeed", //the command name for the Slash Command
 
@@ -59,7 +60,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x}**Você não é um DJ e não é o Song Requester!**`)
+							.setTitle(`${client.allEmojis.x}**Você não é um DJ e não é o Solicitante da musica!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -87,12 +88,7 @@ module.exports = {
 				}
 				FiltersSettings.customspeed = `atempo=${speed_amount}`;
 				client.distube.filters = FiltersSettings;
-				//add old filters so that they get removed 	
-				//if it was enabled before then add it
-				if (newQueue.filters.includes("customspeed")) {
-					await newQueue.setFilter(["customspeed"]);
-				}
-				await newQueue.setFilter(["customspeed"]);
+				await newQueue.filters.add("customspeed", true);
 				message.reply({
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
@@ -103,7 +99,7 @@ module.exports = {
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)

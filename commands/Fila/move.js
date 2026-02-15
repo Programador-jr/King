@@ -12,9 +12,9 @@ module.exports = {
 	name: "move", //the command name for the Slash Command
 
 	category: "Fila",
-	usage: "move <QueMúsica> <ParaOnde>",
+	usage: "move <QueMÃºsica> <ParaOnde>",
 
-	description: "Move uma música para outro lugar", //the command description for Slash Command Overview
+	description: "Move uma mÃºsica para outro lugar", //the command description for Slash Command Overview
 	cooldown: 10,
 	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
 	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
@@ -60,7 +60,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu nÃ£o estou tocando nada agora!**`)
 					],
 
 				})
@@ -69,7 +69,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Song Requester!**`)
+							.setTitle(`${client.allEmojis.x} **VocÃª nÃ£o Ã© um DJ e nÃ£o Ã© o Solicitante da musica!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -79,8 +79,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Por favor, adicione um Song-Position!**`)
-							.setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}move <PisiçãoMúsica> <ParaPisição>\``)
+							.setTitle(`${client.allEmojis.x} **Por favor, adicione a posicao da musica!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}move <PisiÃ§Ã£oMÃºsica> <ParaPisiÃ§Ã£o>\``)
 						],
 					});
 				}
@@ -89,8 +89,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Please add a To-Move-Position!**`)
-							.setDescription(`**Usage:**\n> \`${client.settings.get(message.guild.id, "prefix")}play <SongPosition> <ToPosition>\``)
+							.setTitle(`${client.allEmojis.x} **Por favor, informe a posicao de destino!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}play <PosicaoMusica> <PosicaoDestino>\``)
 						],
 					});
 				}
@@ -100,8 +100,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione uma posição de música [NUMERO]!**`)
-							.setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}move <PosiçãoMúsica> <ParaPosição>\``)
+							.setTitle(`${client.allEmojis.x} **Adicione uma posiÃ§Ã£o de mÃºsica [NUMERO]!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}move <PosiÃ§Ã£oMÃºsica> <ParaPosiÃ§Ã£o>\``)
 						],
 					});
 				}
@@ -111,22 +111,22 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione um NÚMERO de posição para mover!**`)
-							.setDescription(`**Usage:**\n> \`${client.settings.get(message.guild.id, "prefix")}play <PosiçãoMúsica> <ParaPosição\``)
+							.setTitle(`${client.allEmojis.x} **Adicione um NÃšMERO de posiÃ§Ã£o para mover!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}play <PosiÃ§Ã£oMÃºsica> <ParaPosiÃ§Ã£o\``)
 						],
 					});
 				}
 				if (position >= newQueue.songs.length || position < 0) position = -1;
 				if (songIndex > newQueue.songs.length - 1) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta música não existe!**`)
-						.setDescription(`**Ta última música da fila tem o índice: \`${newQueue.songs.length}\`**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta mÃºsica nÃ£o existe!**`)
+						.setDescription(`**Ta Ãºltima mÃºsica da fila tem o Ã­ndice: \`${newQueue.songs.length}\`**`)
 					],
 
 				})
 				if (position == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Não é possível mover a música antes de tocá-la!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **NÃ£o Ã© possÃ­vel mover a mÃºsica antes de tocÃ¡-la!**`)
 					],
 
 				})
@@ -139,13 +139,13 @@ module.exports = {
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
 					  .setTimestamp()
-					  .setTitle(`📑 Movido ** ${song.name} ** para a** \`${position}ª\` ** lugar logo após **_${newQueue.songs[position - 1].name}_!**`)
+					  .setTitle(`ðŸ“‘ Movido ** ${song.name} ** para a** \`${position}Âª\` ** lugar logo apÃ³s **_${newQueue.songs[position - 1].name}_!**`)
 					  .setFooter(`: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 				})
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)

@@ -4,6 +4,8 @@ const ee = require('../../botconfig/embed.json');
 
 module.exports = {
 	name:"moeda",
+	category: "Utilidade",
+	description: "Mostra a cotacao das principais moedas em relacao ao real.",
 	run:async (client, message, args, default_prefix) => {
     const apiTotal = `https://economia.awesomeapi.com.br/json/all/USD-BRL,EUR-BRL,BTC-BRL,CAD-BRL`;
 

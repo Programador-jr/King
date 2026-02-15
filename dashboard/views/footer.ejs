@@ -1,12 +1,12 @@
-      <section>
-        <div class="card-footer" style="margin-top:15%;text-align: center;color: #5663f7;">
-          <hr style="width: 75%;background-color: #00BFFF!important;color: #00BFFF!important;border: 5px solid #00BFFF!important;border-radius:25px;margin-left: 12%; opacity: 1;">
-        	<h4 style="margin-top:5%;">
-            <img src="<%= botClient.user.displayAvatarURL({size: 4096}) %>" style="width: 4%;margin-top: -0.5%; border-radius: 50%;"> <span style="font-size: 40px;"><%= botClient.user.username %> | Experiência de Música Definitiva</span>
-          </h4>
-          <h5 style="text-align: center;">
-            <a href="" target="_blank" style="font-size: 12px; color: #888a9b!important;text-decoration: none;">&copy; Copyright KING | All rights served.</a><br><br>
-            <a href="https://github.com/Programador-jr" target="_blank" style="font-size: 20px; color: #5663f7!important;text-decoration: none;">Desenvolvido por <code>KingKiller</code> | [Github]</a>
-          </h5>
-        </div>
-      </section>
+<section class="site-footer-section">
+  <div class="card-footer">
+    <hr>
+    <h4>
+      <img src="<%= botClient.user.displayAvatarURL({ size: 256 }) %>" alt="<%= botClient.user.username %>" style="width: 38px; border-radius: 50%; margin-right: 8px; vertical-align: middle;">
+      <span><%= botClient.user.username %> | Experiencia Completa para Servidores</span>
+    </h4>
+    <h5>
+      <small style="color:#7ea7c0;">&copy; <%= new Date().getFullYear() %> KING. Todos os direitos reservados.</small>
+    </h5>
+  </div>
+</section>

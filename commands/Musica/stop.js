@@ -70,7 +70,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Song Requester!**`)
+							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Solicitante da musica!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -88,7 +88,7 @@ module.exports = {
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)

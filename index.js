@@ -1,14 +1,18 @@
 const Discord = require("discord.js");
+require("./handlers/discordCompat");
+require("dotenv").config();
 const config = require(`./botconfig/config.json`);
 const settings = require(`./botconfig/settings.json`);
 const filters = require(`./botconfig/filters.json`);
 const colors = require("colors");
-const Enmap = require("enmap");
+const Enmap = require("enmap").default;
 const libsodium = require("libsodium-wrappers");
 const ffmpeg = require("ffmpeg-static");
 const voice = require("@discordjs/voice");
 const DisTube = require("distube").default;
-const https = require('https-proxy-agent');
+const { GatewayIntentBits, Partials } = Discord;
+const { CustomYtDlpPlugin } = require("./handlers/customYtDlp");
+
 const client = new Discord.Client({
 		restTimeOffset: 0,
     shards: "auto",
@@ -16,55 +20,41 @@ const client = new Discord.Client({
       parse: [ ],
       repliedUser: false,
     },
-    partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     intents: [ 
-        Discord.Intents.FLAGS.GUILDS,
-        Discord.Intents.FLAGS.GUILD_MESSAGES,
-        Discord.Intents.FLAGS.GUILD_VOICE_STATES,
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildVoiceStates,
     ]
 });
-const proxy = 'http://123.123.123.123:8080';
-const agent = https(proxy);
 const { SpotifyPlugin } = require("@distube/spotify");
 const { SoundCloudPlugin } = require("@distube/soundcloud");
-let spotifyoptions = {
-  parallel: true,
-  emitEventsAfterFetching: true,
-}
-if(config.spotify_api.enabled){
+const spotifyEnabled = String(process.env.SPOTIFY_API_ENABLED ?? config.spotify_api.enabled) === "true";
+const spotifyClientId = process.env.SPOTIFY_CLIENT_ID || config.spotify_api.clientId;
+const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET || config.spotify_api.clientSecret;
+
+let spotifyoptions = {}
+if (spotifyEnabled && spotifyClientId && spotifyClientSecret) {
   spotifyoptions.api = {
-    clientId: config.spotify_api.clientId,
-    clientSecret: config.spotify_api.clientSecret,
+    clientId: spotifyClientId,
+    clientSecret: spotifyClientSecret,
   }
 }
 client.distube = new DisTube(client, {
   emitNewSongOnly: false,
-  leaveOnEmpty: true,
-  leaveOnFinish: true,
-  leaveOnStop: true,
   savePreviousSongs: true,
   emitAddSongWhenCreatingQueue: false,
   //emitAddListWhenCreatingQueue: false,
-  searchSongs: 0,
-  youtubeCookie: config.youtubeCookie,     //Comment this line if you dont want to use a youtube Cookie 
   nsfw: true, //Set it to false if u want to disable nsfw songs
-  emptyCooldown: 25,
-  ytdlOptions: {
-    //requestOptions: {
-    //  agent //ONLY USE ONE IF YOU KNOW WHAT YOU DO!
-    //},
-    highWaterMark: 1024 * 1024 * 64,
-    quality: "highestaudio",
-    format: "audioonly",
-    liveBuffer: 60000,
-    dlChunkSize: 1024 * 1024 * 64,
+  ffmpeg: {
+    path: ffmpeg,
   },
-  youtubeDL: true,
-  updateYouTubeDL: true,
   customFilters: filters,
   plugins: [
     new SpotifyPlugin(spotifyoptions),
-    new SoundCloudPlugin()
+    new SoundCloudPlugin(),
+    new CustomYtDlpPlugin()
   ]
 })
 
@@ -89,7 +79,7 @@ client.infos = new Enmap({ name: "infos", dataDir: "./databases/infos"});
         require(`./handlers/${h}`)(client);
     })|| config.token
 //Start the Bot
-client.login(process.env.token || config.token)
+client.login(process.env.token || process.env.TOKEN || config.token)
 client.on("ready", () => {
   require("./dashboard/index.js")(client);
 })

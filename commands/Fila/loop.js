@@ -15,7 +15,7 @@ module.exports = {
 	aliases: ["repeat", "repeatmode", "l"],
 	usage: "loop <song/queue/off>",
 
-	description: "Ativar/desativar o Song-/ Queue-Loop", //the command description for Slash Command Overview
+	description: "Ativa/desativa o loop de musica/fila", //the command description for Slash Command Overview
 	cooldown: 5,
 	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
 	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
@@ -61,7 +61,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu nÃ£o estou tocando nada!**`)
 					],
 
 				})
@@ -70,7 +70,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Song Requester!**`)
+							.setTitle(`${client.allEmojis.x} **VocÃª nÃ£o Ã© um DJ e nÃ£o Ã© o Solicitante da musica!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -80,8 +80,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione opções válidas!**`)
-							.setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}loop <song/queue/off>\``)
+							.setTitle(`${client.allEmojis.x} **Adicione opÃ§Ãµes vÃ¡lidas!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}loop <song/queue/off>\``)
 						],
 					});
 				}
@@ -91,8 +91,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione opções válidas!**`)
-							.setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}loop <song/queue/off>\``)
+							.setTitle(`${client.allEmojis.x} **Adicione opÃ§Ãµes vÃ¡lidas!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}loop <song/queue/off>\``)
 						],
 					});
 				}
@@ -106,29 +106,29 @@ module.exports = {
 						  .setColor(ee.color)
 						  .setTimestamp()
 						  .setTitle(`${client.allEmojis.x} **Desativou o modo de loop!**`)
-						  .setFooter(`Ação por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+						  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 					})
 				} else if (newQueue.repeatMode == 1) {
 					message.reply({
 						embeds: [new MessageEmbed()
 						  .setColor(ee.color)
 						  .setTimestamp()
-						  .setTitle(`🔁 **Habilitou o __Loop__- Música** || (Desabilitou o **Loop-Fila**)||`)
-						  .setFooter(`Ação por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+						  .setTitle(`ðŸ” **Habilitou o __Loop__- MÃºsica** || (Desabilitou o **Loop-Fila**)||`)
+						  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 						})
 				} else {
 					message.reply({
 						embeds: [new MessageEmbed()
 						  .setColor(ee.color)
 						  .setTimestamp()
-						  .setTitle(`🔂 **Habilitou o __Loop__-Fila! ** || (Desabilitou o ** __Loop-Música__**)||`)
-						  .setFooter(`Ação por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+						  .setTitle(`ðŸ”‚ **Habilitou o __Loop__-Fila! ** || (Desabilitou o ** __Loop-MÃºsica__**)||`)
+						  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 						})
 				}
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)
@@ -141,3 +141,4 @@ module.exports = {
 		}
 	}
 }
+

@@ -7,7 +7,7 @@ const settings = require("../../botconfig/settings.json");
 const filters = require("../../botconfig/filters.json")
 module.exports = {
   name: "defaultfilter", //the command name for execution & for helpcmd [OPTIONAL]
-	category: "Configurações",
+	category: "Configura\u00e7\u00f5es",
 
   aliases: ["dfilter"],
   usage: "defaultfilter <Filter1 Filter2>",

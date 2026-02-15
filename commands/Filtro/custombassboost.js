@@ -48,6 +48,7 @@ module.exports = {
 			}
 			try {
 				let newQueue = client.distube.getQueue(guildId);
+
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
@@ -59,7 +60,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x}**Você não é um DJ e não é o Song Requester!**`)
+							.setTitle(`${client.allEmojis.x}**Você não é um DJ e não é o Solicitante da musica!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -88,12 +89,7 @@ module.exports = {
 				}
 				FiltersSettings.custombassboost = `bass=g=${bass_gain},dynaudnorm=f=200`;
 				client.distube.filters = FiltersSettings;
-				//add old filters so that they get removed 	
-				//if it was enabled before then add it
-				if (newQueue.filters.includes("custombassboost")) {
-					await newQueue.setFilter(["custombassboost"]);
-				}
-				await newQueue.setFilter(["custombassboost"]);
+				await newQueue.filters.add("custombassboost", true);
 				message.reply({
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
@@ -104,7 +100,7 @@ module.exports = {
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)

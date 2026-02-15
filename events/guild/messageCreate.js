@@ -153,15 +153,13 @@ module.exports = async (client, message) => {
             }).then(msg => {setTimeout(()=>{msg.delete().catch((e) => {console.log(String(e).grey)})}, 4000)}).catch((e) => {console.log(String(e).grey)});
           }
         }
-      }/* else //if the command is not found send an info msg
+      } else {
         return message.reply({
           embeds: [new Discord.MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(replacemsg(settings.messages.unknown_cmd, {
-              prefix: prefix
-            }))]
-        }).then(msg => {setTimeout(()=>{msg.delete().catch((e) => {console.log(String(e).grey)})}, 4000)}).catch((e) => {console.log(String(e).grey)});*/
+            .setTitle(`${client.allEmojis.x} **Comando nao encontrado. Use \`${prefix}help\`.**`)]
+        });
       }
 function escapeRegex(str) {
     try{
@@ -170,3 +168,4 @@ function escapeRegex(str) {
       return str
     }
 }
+};

@@ -7,7 +7,7 @@ const settings = require("../../botconfig/settings.json");
 module.exports = {
   name: "defaultautoplay", //the command name for execution & for helpcmd [OPTIONAL]
 
-  category: "Configurações",
+  category: "Configura\u00e7\u00f5es",
   aliases: ["dautoplay"],
   usage: "defaultautoplay",
 

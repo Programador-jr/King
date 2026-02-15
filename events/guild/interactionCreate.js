@@ -13,7 +13,7 @@ module.exports = (client, interaction) => {
     defaultfilters: [`bassboost6`, `clear`],
     djroles: [],
   })
-  let prefix = client.settings.get(interaction.guildId)
+  let prefix = client.settings.get(interaction.guildId, "prefix")
 	let command = false;
 	try{
     	    if (client.slashCommands.has(CategoryName + interaction.options.getSubcommand())) {
@@ -77,7 +77,7 @@ module.exports = (client, interaction) => {
         }
         //if Command has specific users return error
         if (command.alloweduserids && command.alloweduserids.length > 0 && !command.alloweduserids.includes(interaction.member.id)) {
-          return message.channel.send({ ephemeral: true, embeds: [new Discord.MessageEmbed()
+          return interaction.reply({ ephemeral: true, embeds: [new Discord.MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
             .setTitle(replacemsg(settings.messages.notallowed_to_exec_cmd.title))

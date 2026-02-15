@@ -1,43 +1,70 @@
-<link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({size: 128}) %>">
-  <link rel="stylesheet" href="/public/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+<%
+  const currentPath = (req && (req.path || req.originalUrl)) || "/";
+  const isActive = (path) => currentPath === path || currentPath.startsWith(path + "/");
+%>
 
-  <div class="wrapper" style="z-index: 10;">
-    <nav>
-      <input type="checkbox" id="show-search">
-      <input type="checkbox" id="show-menu">
-      <label for="show-menu" class="menu-icon"><i class="fas fa-bars"></i></label>
-      <div class="content">
-        <ul class="links">
-					<li class="active"><a href="/" data-hover="Home">Inicio</a></li>
-        	<li><a href="/commands">Comandos</a></li>
-      		<li><a href="https://discord.com/oauth2/authorize?client_id=794291443454836766&scope=bot&permissions=2102658175">Convite</a></li>
-				<li><a href="./dashboard">Dashboard</a></li>
-				<li><a href="./queuedashboard">Fila</a></li>
-        <li><a href="https://github.com/Programador-jr/King">Código</a></li>
-        <li><a href="https://www.paypal.com/donate?hosted_button_id=MQZXXV7DF6QE8">Donate</a></li>
-				<li><a href="https://github.com/Programador-jr/King/issues">Relatar Bug</a></li>
-				<li><a href="#">Votar</a></li>
-				          <li><% if(user && user.id) { %>
-            <button class="btn btn-danger btn-sm" 
-              style="letter-spacing: 0.1em;font-weight: 750;width: 100%; margin-top: -10px;"
-                        onclick="location.href='/logout'" type="button"><img src="https://cdn.discordapp.com/avatars/<%=user.id%>/<%=user.avatar%>.png", style="width: 50px;margin-bottom:3%;"alt="LOGO"> LOGOUT!</button>
-                    <% }else { %>
-                        <button class="btn btn-success btn-sm" 
-                        style="letter-spacing: 0.1em;font-weight: 750;width: 100%; margin-top: -5px; font-size: 20px;"
-                        onclick="location.href='/login'" type="button"><span class="iconify" data-icon="simple-icons:discord"></span> Login</button>
-                <% }%></li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </nav>
-		</div>
+<div class="wrapper">
+  <nav>
+    <input type="checkbox" id="show-menu">
+    <label for="show-menu" class="menu-icon"><i class="fas fa-bars"></i></label>
 
-		<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    let myParam = urlParams.get('error');
-    if(myParam) alert(myParam);
-    myParam = urlParams.get('success');
-    if(myParam) alert(myParam);
+    <div class="content">
+      <a class="brand" href="/">
+        <img src="<%= botClient.user.displayAvatarURL({ size: 128 }) %>" alt="<%= botClient.user.username %>">
+        <span><%= botClient.user.username %> Dashboard</span>
+      </a>
+
+      <ul class="links">
+        <li><a href="/" class="<%= isActive('/') && !isActive('/dashboard') && !isActive('/commands') && !isActive('/queue') && !isActive('/queuedashboard') ? 'active-link' : '' %>">Inicio</a></li>
+        <li><a href="/commands" class="<%= isActive('/commands') ? 'active-link' : '' %>">Comandos</a></li>
+        <li><a href="/dashboard" class="<%= isActive('/dashboard') ? 'active-link' : '' %>">Dashboard</a></li>
+        <li><a href="/queuedashboard" class="<%= isActive('/queuedashboard') || isActive('/queue') ? 'active-link' : '' %>">Fila</a></li>
+        <li><a href="https://discord.com/oauth2/authorize?client_id=<%= botClient.user.id %>&scope=bot%20applications.commands&permissions=2102658175" target="_blank" rel="noopener noreferrer">Convite</a></li>
+        <li>
+          <a
+            href="https://github.com/Programador-jr/King"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="icon-link"
+            aria-label="GitHub"
+            title="GitHub"
+          >
+            <i class="fab fa-github"></i>
+          </a>
+        </li>
+
+        <li class="nav-auth">
+          <% if (user && user.id) { %>
+            <% const avatarUrl = user.avatar
+              ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=64`
+              : `https://cdn.discordapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`; %>
+            <button
+              class="auth-btn auth-btn-danger"
+              onclick="location.href='/logout'"
+              type="button"
+            >
+              <img src="<%= avatarUrl %>" alt="avatar">
+              Logout
+            </button>
+          <% } else { %>
+            <button
+              class="auth-btn"
+              onclick="location.href='/login?redirect=<%= encodeURIComponent(currentPath) %>'"
+              type="button"
+            >
+              Login
+            </button>
+          <% } %>
+        </li>
+      </ul>
+    </div>
+  </nav>
+</div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let myParam = urlParams.get('error');
+  if (myParam) alert(myParam);
+  myParam = urlParams.get('success');
+  if (myParam) alert(myParam);
 </script>

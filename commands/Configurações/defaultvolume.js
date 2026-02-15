@@ -6,11 +6,11 @@ const ee = require("../../botconfig/embed.json");
 const settings = require("../../botconfig/settings.json");
 module.exports = {
   name: "defaultvolume", //the command name for execution & for helpcmd [OPTIONAL]
-  category: "Configurações",
+  category: "Configura\u00e7\u00f5es",
   aliases: ["dvolume"],
   usage: "defaultvolume <Percentage>",
   cooldown: 1, //the command cooldown for execution & for helpcmd [OPTIONAL]
-  description: "Define o volume padrão do bot!", //the command description for helpcmd [OPTIONAL]
+  description: "Define o volume padrÃ£o do bot!", //the command description for helpcmd [OPTIONAL]
   memberpermissions: ["MANAGE_GUILD "], //Only allow members with specific Permissions to execute a Commmand [OPTIONAL]
   requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
   alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
@@ -40,7 +40,7 @@ module.exports = {
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
             .setTitle(`${client.allEmojis.x} **Por favor adicione um Volume!**`)
-            .setDescription(`**Use:**\n> \`${client.settings.get(guild.id, "prefix")}defaultvolume <porcentagem>\``)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(guild.id, "prefix")}defaultvolume <porcentagem>\``)
           ],
         })
       }
@@ -65,7 +65,7 @@ module.exports = {
           new MessageEmbed()
           .setColor(ee.color)
           .setFooter(ee.footertext, ee.footericon)
-          .setTitle(`${client.allEmojis.check_mark} **O Volume Padrão foi definido para: \`${volume}\`!**`)
+          .setTitle(`${client.allEmojis.check_mark} **O Volume PadrÃ£o foi definido para: \`${volume}\`!**`)
         ],
       })
     } catch (e) {

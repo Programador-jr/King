@@ -15,7 +15,7 @@ module.exports = {
 	aliases: ["delete", "del", "rem"],
 	usage: "remove <What_song> [Amount]",
 
-	description: "Remove uma(s) + música(s)", //the command description for Slash Command Overview
+	description: "Remove uma(s) + mÃºsica(s)", //the command description for Slash Command Overview
 	cooldown: 10,
 	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
 	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
@@ -61,7 +61,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu nÃ£o estou tocando nada agora!**`)
 					],
 
 				})
@@ -70,7 +70,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Song Requester!**`)
+							.setTitle(`${client.allEmojis.x} **VocÃª nÃ£o Ã© um DJ e nÃ£o Ã© o Solicitante da musica!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -80,8 +80,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Por favor, adicione a posição da música!**`)
-							.setDescription(`**Usage:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posição-da-música> [quantidade]\``)
+							.setTitle(`${client.allEmojis.x} **Por favor, adicione a posiÃ§Ã£o da mÃºsica!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posiÃ§Ã£o-da-mÃºsica> [quantidade]\``)
 						],
 					});
 				}
@@ -91,8 +91,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione a posição da música [NUMERO]!**`)
-							.setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posição-da-música> [quantia]\``)
+							.setTitle(`${client.allEmojis.x} **Adicione a posiÃ§Ã£o da mÃºsica [NUMERO]!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posiÃ§Ã£o-da-mÃºsica> [quantia]\``)
 						],
 					});
 				}
@@ -100,21 +100,21 @@ module.exports = {
 				if (!amount) amount = 1;
 				if (songIndex > newQueue.songs.length - 1) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta música não existe!**`)
-						.setDescription(`**A última música da fila tem o índice: \`${newQueue.songs.length}\`**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta mÃºsica nÃ£o existe!**`)
+						.setDescription(`**A Ãºltima mÃºsica da fila tem o Ã­ndice: \`${newQueue.songs.length}\`**`)
 					],
 
 				})
 				if (songIndex <= 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Você não pode remover a música atual (0)!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **VocÃª nÃ£o pode remover a mÃºsica atual (0)!**`)
 						.setDescription(`**Use o \`${client.settings.get(guild.id, "prefix")}skip\` (Slash)Command em vez disso!**`)
 					],
 
 				})
 				if (amount <= 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Você precisa remover pelo menos 1 música!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **VocÃª precisa remover pelo menos 1 mÃºsica!**`)
 					],
 
 				})
@@ -123,13 +123,13 @@ module.exports = {
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
 					  .setTimestamp()
-					  .setTitle(`🗑 **Removida ${amount} Música ${amount> 1? "s": ""} da fila!**`)
-					  .setFooter(`Ação por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+					  .setTitle(`ðŸ—‘ **Removida ${amount} MÃºsica ${amount> 1? "s": ""} da fila!**`)
+					  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 				})
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)

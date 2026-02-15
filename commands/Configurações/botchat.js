@@ -7,7 +7,7 @@ const settings = require("../../botconfig/settings.json");
 module.exports = {
   name: "botchat", //the command name for execution & for helpcmd [OPTIONAL]
 
-  category: "Configuracões",
+  category: "Configura\u00e7\u00f5es",
   aliases: ["botch"],
   usage: "botchat <add/remover> <#Channel>",
 
@@ -41,8 +41,8 @@ module.exports = {
           embeds: [new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Por favor, dicione um Método + Canal!**`)
-            .setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
+            .setTitle(`${client.allEmojis.x} **Por favor, dicione um MÃ©todo + Canal!**`)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
           ],
         });
       }
@@ -52,8 +52,8 @@ module.exports = {
           embeds: [new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Por favor adicione um Método + Canal!**`)
-            .setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
+            .setTitle(`${client.allEmojis.x} **Por favor adicione um MÃ©todo + Canal!**`)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
           ],
         });
       }
@@ -63,8 +63,8 @@ module.exports = {
           embeds: [new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Por favor Adicione um Método + Canal!**`)
-            .setDescription(`**Use:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
+            .setTitle(`${client.allEmojis.x} **Por favor Adicione um MÃ©todo + Canal!**`)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
           ],
         });
       }
@@ -79,13 +79,13 @@ module.exports = {
               new MessageEmbed()
               .setColor(ee.wrongcolor)
               .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este canal já é um canal de bot na lista de permissões!**`)
+              .setTitle(`${client.allEmojis.x} **Este canal jÃ¡ Ã© um canal de bot na lista de permissÃµes!**`)
             ],
           })
         }
         client.settings.push(guild.id, Channel.id, "botchannel");
         var djs = client.settings.get(guild.id, `botchannel`).map(r => `<#${r}>`);
-        if (djs.length == 0) djs = "`não configurado`";
+        if (djs.length == 0) djs = "`nÃ£o configurado`";
         else djs.join(", ");
         return message.reply({
           embeds: [
@@ -103,13 +103,13 @@ module.exports = {
               new MessageEmbed()
               .setColor(ee.wrongcolor)
               .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este canal ainda não é um canal de bot na lista de permissões!**`)
+              .setTitle(`${client.allEmojis.x} **Este canal ainda nÃ£o Ã© um canal de bot na lista de permissÃµes!**`)
             ],
           })
         }
         client.settings.remove(guild.id, Channel.id, "botchannel");
         var djs = client.settings.get(guild.id, `botchannel`).map(r => `<#${r}>`);
-        if (djs.length == 0) djs = "`não configurado`";
+        if (djs.length == 0) djs = "`nÃ£o configurado`";
         else djs.join(", ");
         return message.reply({
           embeds: [

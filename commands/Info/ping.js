@@ -3,7 +3,7 @@ var ee = require(`../../botconfig/embed.json`)
 module.exports = {
         name: "ping",
         description: "Exibe a latência do usuário e do bot",
-        category: "info",
+        category: "Info",
 
     run: async (client, message, args) => {
 

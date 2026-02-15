@@ -1,4 +1,4 @@
-const {
+﻿const {
   MessageEmbed
 } = require("discord.js");
 const config = require("../../botconfig/config.json");
@@ -6,11 +6,11 @@ const ee = require("../../botconfig/embed.json");
 const settings = require("../../botconfig/settings.json");
 module.exports = {
   name: "prefix", //the command name for execution & for helpcmd [OPTIONAL]
-  category: "Settings",
+  category: "Configura\u00e7\u00f5es",
   aliases: ["setprefix"],
   usage: "prefix <newPrefix>",
   cooldown: 1, //the command cooldown for execution & for helpcmd [OPTIONAL]
-  description: "Changes the Prefix of the Bot!", //the command description for helpcmd [OPTIONAL]
+  description: "Altera o prefixo do bot!", //the command description for helpcmd [OPTIONAL]
   memberpermissions: ["MANAGE_GUILD "], //Only allow members with specific Permissions to execute a Commmand [OPTIONAL]
   requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
   alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
@@ -40,8 +40,8 @@ module.exports = {
             new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Please add a Prefix!**`)
-            .setDescription(`**Usage:**\n> \`${client.settings.get(guild.id, "prefix")}prefix <newPrefix>\``)
+            .setTitle(`${client.allEmojis.x} **Por favor, informe um prefixo!**`)
+            .setDescription(`**Uso:**\n> \`${client.settings.get(guild.id, "prefix")}prefix <newPrefix>\``)
           ],
         })
       }
@@ -56,7 +56,7 @@ module.exports = {
           new MessageEmbed()
           .setColor(ee.color)
           .setFooter(ee.footertext, ee.footericon)
-          .setTitle(`${client.allEmojis.check_mark} **The new Prefix is now: \`${newPrefix}\`**`)
+          .setTitle(`${client.allEmojis.check_mark} **O novo prefixo agora e: \`${newPrefix}\`**`)
         ],
       })
     } catch (e) {

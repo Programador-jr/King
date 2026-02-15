@@ -2,6 +2,8 @@ const Discord = require('discord.js');
 
 module.exports = {
   name: 'avatar',
+  category: "Utilidade",
+  description: "Mostra o avatar do usuario informado.",
   aliases: ['avatar', 'pfp'],
   cooldown: 5,
   guildOnly: false,

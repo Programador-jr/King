@@ -72,6 +72,11 @@ module.exports = {
 				}).catch(e => {
 					console.log(e)
 				})
+				if (typeof newQueue.addRelatedSong !== "function") {
+					return message.reply({
+						embeds: [new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esse recurso não está disponível nesta versão.**`)]
+					});
+				}
 				await newQueue.addRelatedSong();
 				await thenewmsg.edit({
 					content: `👍 Adicionado: **${newQueue.songs[newQueue.songs.length - 1].name}**`,
@@ -81,7 +86,7 @@ module.exports = {
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
 				message.reply({
-					content: `${client.allEmojis.x} | Error: `,
+					content: `${client.allEmojis.x} | Erro: `,
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor)
 						.setDescription(`\`\`\`${e}\`\`\``)
@@ -94,3 +99,4 @@ module.exports = {
 		}
 	}
 }
+
