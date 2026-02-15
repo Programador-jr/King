@@ -22,6 +22,7 @@ module.exports = async (client) => {
                 try {
                     const event = require(`../events/${dir}/${file}`)
                     let eventName = file.split(".")[0];
+                    if (eventName === "ready") eventName = "clientReady";
                     allevents.push(eventName);
                     client.on(eventName, event.bind(null, client));
                     amount++;

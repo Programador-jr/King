@@ -80,6 +80,6 @@ client.infos = new Enmap({ name: "infos", dataDir: "./databases/infos"});
     })|| config.token
 //Start the Bot
 client.login(process.env.token || process.env.TOKEN || config.token)
-client.on("ready", () => {
+client.on("clientReady", () => {
   require("./dashboard/index.js")(client);
 })
