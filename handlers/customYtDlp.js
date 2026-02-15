@@ -145,6 +145,7 @@ const cookiesFile = resolveCookiesFile();
 const buildBaseFlags = () => {
   const flags = {
     noWarnings: true,
+    ignoreConfig: true,
     preferFreeFormats: true,
     skipDownload: true,
     simulate: true,
@@ -191,6 +192,44 @@ const parseYtDlpJsonOutput = (stdout, stderr) => {
   throw new Error((stderr || stdout || "Failed to parse yt-dlp output").trim());
 };
 
+const isFormatUnavailableError = (err) =>
+  /Requested format is not available/i.test(String(err?.stderr || err || ""));
+const isBotCheckError = (err) =>
+  /Sign in to confirm you.?re not a bot/i.test(String(err?.stderr || err || "")) ||
+  /Use --cookies-from-browser or --cookies/i.test(String(err?.stderr || err || ""));
+
+const extractYoutubeId = (rawUrl) => {
+  try {
+    const value = String(rawUrl || "").trim();
+    if (!value) return "";
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+    if (host === "youtu.be") return url.pathname.split("/").filter(Boolean)[0] || "";
+    if (host.endsWith("youtube.com")) {
+      const fromQuery = url.searchParams.get("v");
+      if (fromQuery) return fromQuery;
+      const parts = url.pathname.split("/").filter(Boolean);
+      const isEmbed = parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live";
+      if (isEmbed && parts[1]) return parts[1];
+    }
+    return "";
+  } catch {
+    return "";
+  }
+};
+
+const isYoutubeLikeUrl = (rawUrl) => {
+  const value = String(rawUrl || "").toLowerCase();
+  return value.includes("youtube.com/") || value.includes("youtu.be/");
+};
+
+const withoutCookieFlags = (flags) => {
+  const next = { ...flags };
+  delete next.cookies;
+  delete next.cookiesFromBrowser;
+  return next;
+};
+
 const json = (url, flags = {}, options = {}) =>
   new Promise((resolve, reject) => {
     const child = spawn(YTDLP_PATH, buildArgs(url, flags), {
@@ -225,6 +264,11 @@ const json = (url, flags = {}, options = {}) =>
 class CustomYtDlpPlugin extends PlayableExtractorPlugin {
   constructor({ update } = {}) {
     super();
+    if (cookiesFile) {
+      console.log(`[CustomYtDlp] Cookies carregados de: ${cookiesFile}`);
+    } else {
+      console.warn("[CustomYtDlp] Nenhum arquivo de cookies detectado (cookies opcionais nao encontrados).");
+    }
     if (update ?? true) download().catch(() => undefined);
   }
 
@@ -233,13 +277,67 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
   }
 
   async resolve(url, options) {
-    const info = await json(url, {
-      ...buildBaseFlags(),
-      dumpSingleJson: true,
-      flatPlaylist: true,
-    }).catch((err) => {
-      throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(err));
-    });
+    const base = buildBaseFlags();
+    const noExtractorArgs = { ...base };
+    delete noExtractorArgs.extractorArgs;
+    const noPreferFree = { ...base, preferFreeFormats: false };
+    const noCookies = withoutCookieFlags(base);
+    const altClientTv = { ...base, extractorArgs: "youtube:player_client=tv_embedded,android,web" };
+    const altClientIos = { ...base, extractorArgs: "youtube:player_client=ios,android,web" };
+    const altClientTvNoCookies = withoutCookieFlags(altClientTv);
+    const altClientIosNoCookies = withoutCookieFlags(altClientIos);
+    const attempts = [
+      { ...base, dumpSingleJson: true, flatPlaylist: true },
+      { ...base, dumpSingleJson: true, flatPlaylist: true, format: "best" },
+      { ...base, dumpSingleJson: true, format: "best" },
+      { ...altClientTv, dumpSingleJson: true, flatPlaylist: true },
+      { ...altClientTv, dumpSingleJson: true, format: "best" },
+      { ...altClientIos, dumpSingleJson: true, flatPlaylist: true },
+      { ...altClientIos, dumpSingleJson: true, format: "best" },
+      { ...noExtractorArgs, dumpSingleJson: true, flatPlaylist: true },
+      { ...noExtractorArgs, dumpSingleJson: true, format: "best" },
+      { ...noPreferFree, dumpSingleJson: true, flatPlaylist: true },
+      { ...noPreferFree, dumpSingleJson: true, format: "best" },
+      { ...noCookies, dumpSingleJson: true, flatPlaylist: true },
+      { ...noCookies, dumpSingleJson: true, format: "best" },
+      { ...altClientTvNoCookies, dumpSingleJson: true, flatPlaylist: true },
+      { ...altClientTvNoCookies, dumpSingleJson: true, format: "best" },
+      { ...altClientIosNoCookies, dumpSingleJson: true, flatPlaylist: true },
+      { ...altClientIosNoCookies, dumpSingleJson: true, format: "best" },
+      { dumpSingleJson: true, noWarnings: true, ignoreConfig: true },
+    ];
+    let info = null;
+    let lastError = null;
+
+    for (const flags of attempts) {
+      try {
+        info = await json(url, flags);
+        break;
+      } catch (err) {
+        lastError = err;
+        if (isFormatUnavailableError(err) || isBotCheckError(err)) continue;
+        throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(err));
+      }
+    }
+
+    if (!info) {
+      if (isFormatUnavailableError(lastError) && isYoutubeLikeUrl(url)) {
+        const ytId = extractYoutubeId(url);
+        if (ytId) {
+          return new CustomYtDlpSong(
+            this,
+            {
+              extractor: "youtube",
+              id: ytId,
+              title: `YouTube (${ytId})`,
+              webpage_url: `https://www.youtube.com/watch?v=${ytId}`,
+            },
+            options
+          );
+        }
+      }
+      throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(lastError));
+    }
 
     if (isPlaylist(info)) {
       const entries = Array.isArray(info.entries) ? info.entries.filter(Boolean) : [];
@@ -264,16 +362,65 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
     if (!song.url) {
       throw new DisTubeError("YTDLP_PLUGIN_INVALID_SONG", "Cannot get stream url from invalid song.");
     }
-    const info = await json(song.url, {
-      ...buildBaseFlags(),
-      dumpSingleJson: true,
-      format: "ba/ba*",
-    }).catch((err) => {
-      throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(err));
-    });
+    const base = buildBaseFlags();
+    const noExtractorArgs = { ...base };
+    delete noExtractorArgs.extractorArgs;
+    const noPreferFree = { ...base, preferFreeFormats: false };
+    const noCookies = withoutCookieFlags(base);
+    const altClientTv = { ...base, extractorArgs: "youtube:player_client=tv_embedded,android,web" };
+    const altClientIos = { ...base, extractorArgs: "youtube:player_client=ios,android,web" };
+    const altClientTvNoCookies = withoutCookieFlags(altClientTv);
+    const altClientIosNoCookies = withoutCookieFlags(altClientIos);
+    const attempts = [
+      { ...base, dumpSingleJson: true, format: "ba/ba*" },
+      { ...base, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...base, dumpSingleJson: true, format: "best" },
+      { ...altClientTv, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...altClientTv, dumpSingleJson: true, format: "best" },
+      { ...altClientIos, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...altClientIos, dumpSingleJson: true, format: "best" },
+      { ...noExtractorArgs, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...noExtractorArgs, dumpSingleJson: true, format: "best" },
+      { ...noPreferFree, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...noPreferFree, dumpSingleJson: true, format: "best" },
+      { ...noCookies, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...noCookies, dumpSingleJson: true, format: "best" },
+      { ...altClientTvNoCookies, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...altClientTvNoCookies, dumpSingleJson: true, format: "best" },
+      { ...altClientIosNoCookies, dumpSingleJson: true, format: "bestaudio/best" },
+      { ...altClientIosNoCookies, dumpSingleJson: true, format: "best" },
+      { dumpSingleJson: true, noWarnings: true, ignoreConfig: true, format: "best" },
+      { ...base, dumpSingleJson: true },
+    ];
+    let info = null;
+    let lastError = null;
+
+    for (const flags of attempts) {
+      try {
+        info = await json(song.url, flags);
+        break;
+      } catch (err) {
+        lastError = err;
+        if (isFormatUnavailableError(err) || isBotCheckError(err)) continue;
+        throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(err));
+      }
+    }
+
+    if (!info) {
+      throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(lastError));
+    }
 
     if (isPlaylist(info)) throw new DisTubeError("YTDLP_ERROR", "Cannot get stream URL of a entire playlist");
-    return info.url;
+    const streamUrl =
+      info.url ||
+      (Array.isArray(info.formats)
+        ? info.formats.find((entry) => entry?.url && /audio/i.test(String(entry?.vcodec || "")))?.url ||
+          info.formats.find((entry) => entry?.url)?.url
+        : "");
+    if (!streamUrl) {
+      throw new DisTubeError("YTDLP_ERROR", "Nao foi possivel obter URL de stream para essa musica.");
+    }
+    return streamUrl;
   }
 
   getRelatedSongs() {
