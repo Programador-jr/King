@@ -5,17 +5,12 @@ const {
 const config = require("../../botconfig/config.json");
 const ee = require("../../botconfig/embed.json");
 const settings = require("../../botconfig/settings.json");
-const dashboardSettings = require("../../dashboard/settings.json");
+const { getDashboardBaseUrl, getDashboardPort } = require("../../handlers/dashboardConfig");
 const {
 	check_if_dj
 } = require("../../handlers/functions")
 
-const dashboardPort = Number(dashboardSettings?.config?.http?.port) || 5000;
-const dashboardDomain = String(dashboardSettings?.website?.domain || "").trim().replace(/\/+$/, "");
-const dashboardBaseUrl =
-	!dashboardDomain || dashboardDomain.toLowerCase().includes("your-domain.com")
-		? `http://localhost:${dashboardPort}`
-		: dashboardDomain;
+const dashboardBaseUrl = getDashboardBaseUrl() || `http://127.0.0.1:${getDashboardPort()}`;
 module.exports = {
 	name: "status", //the command name for the Slash Command
 

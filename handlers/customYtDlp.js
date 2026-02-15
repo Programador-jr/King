@@ -1,4 +1,6 @@
 const path = require("path");
+const os = require("os");
+const fs = require("fs");
 const { spawn } = require("child_process");
 const { DisTubeError, PlayableExtractorPlugin, Playlist, Song } = require("distube");
 const { download } = require("@distube/yt-dlp");
@@ -35,6 +37,116 @@ const buildArgs = (url, flags = {}) => {
     args.push(flag, String(value));
   }
   return args;
+};
+
+const trimEnv = (value) => String(value ?? "").trim();
+
+const YTDLP_EXTRACTOR_ARGS =
+  trimEnv(process.env.YTDLP_EXTRACTOR_ARGS) ||
+  trimEnv(process.env.YOUTUBE_EXTRACTOR_ARGS) ||
+  "youtube:player_client=android,web";
+
+const existingCookiesFile =
+  trimEnv(process.env.YTDLP_COOKIES_FILE) ||
+  trimEnv(process.env.YTDLP_COOKIE_FILE) ||
+  trimEnv(process.env.YOUTUBE_COOKIES_FILE);
+
+const cookiesFromBrowser =
+  trimEnv(process.env.YTDLP_COOKIES_FROM_BROWSER) ||
+  trimEnv(process.env.YOUTUBE_COOKIES_FROM_BROWSER);
+
+const rawCookieInput =
+  trimEnv(process.env.YTDLP_COOKIE) ||
+  trimEnv(process.env.YOUTUBE_COOKIE);
+
+const rawCookieInputB64 = trimEnv(process.env.YTDLP_COOKIE_B64);
+
+const decodeBase64 = (value) => {
+  try {
+    return Buffer.from(value, "base64").toString("utf8");
+  } catch {
+    return "";
+  }
+};
+
+const getRawCookieText = () => {
+  if (rawCookieInputB64) return decodeBase64(rawCookieInputB64).trim();
+  if (!rawCookieInput) return "";
+  if (rawCookieInput.toLowerCase().startsWith("base64:")) {
+    return decodeBase64(rawCookieInput.slice(7)).trim();
+  }
+  return rawCookieInput;
+};
+
+const looksLikeNetscapeCookieFile = (text) => {
+  if (!text) return false;
+  return text.includes("Netscape HTTP Cookie File") || /\t(TRUE|FALSE)\t\/\t/.test(text);
+};
+
+const convertCookieHeaderToNetscape = (header) => {
+  const expires = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365;
+  const lines = ["# Netscape HTTP Cookie File"];
+  const pairs = String(header || "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  for (const pair of pairs) {
+    const idx = pair.indexOf("=");
+    if (idx <= 0) continue;
+    const name = pair.slice(0, idx).trim();
+    const value = pair.slice(idx + 1).trim();
+    if (!name || !value) continue;
+    lines.push(`.youtube.com\tTRUE\t/\tTRUE\t${expires}\t${name}\t${value}`);
+  }
+  return lines.join("\n");
+};
+
+let generatedCookiesFile = "";
+const resolveCookiesFile = () => {
+  if (existingCookiesFile) {
+    if (fs.existsSync(existingCookiesFile)) return existingCookiesFile;
+    console.warn(`[CustomYtDlp] Arquivo de cookies nao encontrado: ${existingCookiesFile}`);
+  }
+
+  const cookieText = getRawCookieText();
+  if (!cookieText) return "";
+
+  try {
+    const content = looksLikeNetscapeCookieFile(cookieText)
+      ? cookieText
+      : convertCookieHeaderToNetscape(cookieText);
+    generatedCookiesFile = path.join(os.tmpdir(), `yt-dlp-cookies-${process.pid}.txt`);
+    fs.writeFileSync(generatedCookiesFile, content, "utf8");
+    return generatedCookiesFile;
+  } catch (e) {
+    console.warn(`[CustomYtDlp] Falha ao gerar arquivo temporario de cookies: ${e}`);
+    return "";
+  }
+};
+
+const cookiesFile = resolveCookiesFile();
+
+const buildBaseFlags = () => {
+  const flags = {
+    noWarnings: true,
+    preferFreeFormats: true,
+    skipDownload: true,
+    simulate: true,
+  };
+
+  if (YTDLP_EXTRACTOR_ARGS) flags.extractorArgs = YTDLP_EXTRACTOR_ARGS;
+  if (cookiesFromBrowser) flags.cookiesFromBrowser = cookiesFromBrowser;
+  if (cookiesFile) flags.cookies = cookiesFile;
+  return flags;
+};
+
+const formatYtDlpError = (err) => {
+  const text = String(err?.stderr || err || "");
+  if (/Sign in to confirm you.?re not a bot/i.test(text) || /Use --cookies-from-browser or --cookies/i.test(text)) {
+    return `${text}\n\nConfigure um destes envs para autenticar o YouTube: YTDLP_COOKIES_FILE (caminho), YTDLP_COOKIE/YOUTUBE_COOKIE (string), YTDLP_COOKIE_B64, ou YTDLP_COOKIES_FROM_BROWSER.`;
+  }
+  return text;
 };
 
 const tryParseJson = (text) => {
@@ -107,14 +219,11 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
 
   async resolve(url, options) {
     const info = await json(url, {
+      ...buildBaseFlags(),
       dumpSingleJson: true,
       flatPlaylist: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-      skipDownload: true,
-      simulate: true,
     }).catch((err) => {
-      throw new DisTubeError("YTDLP_ERROR", `${err?.stderr || err}`);
+      throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(err));
     });
 
     if (isPlaylist(info)) {
@@ -141,14 +250,11 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
       throw new DisTubeError("YTDLP_PLUGIN_INVALID_SONG", "Cannot get stream url from invalid song.");
     }
     const info = await json(song.url, {
+      ...buildBaseFlags(),
       dumpSingleJson: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-      skipDownload: true,
-      simulate: true,
       format: "ba/ba*",
     }).catch((err) => {
-      throw new DisTubeError("YTDLP_ERROR", `${err?.stderr || err}`);
+      throw new DisTubeError("YTDLP_ERROR", formatYtDlpError(err));
     });
 
     if (isPlaylist(info)) throw new DisTubeError("YTDLP_ERROR", "Cannot get stream URL of a entire playlist");
