@@ -6,20 +6,62 @@ const { DisTubeError, PlayableExtractorPlugin, Playlist, Song } = require("distu
 const { download } = require("@distube/yt-dlp");
 
 const isPlaylist = (info) => Array.isArray(info?.entries);
+const trimEnv = (value) => String(value ?? "").trim();
+const isWindows = process.platform === "win32";
 
-const YTDLP_PATH =
-  process.env.YTDLP_PATH ||
-  path.join(
-    path.dirname(require.resolve("@distube/yt-dlp")),
-    "..",
-    "bin",
-    `yt-dlp${process.platform === "win32" ? ".exe" : ""}`
-  );
+const ensureExecutable = (file) => {
+  if (!file || isWindows || !fs.existsSync(file)) return;
+  try {
+    fs.chmodSync(file, 0o755);
+  } catch {
+    // ignore permission errors and let spawn report if needed
+  }
+};
+
+const getProjectRootYtDlpPath = () => {
+  const candidates = isWindows
+    ? [path.join(process.cwd(), "yt-dlp.exe"), path.join(process.cwd(), "yt-dlp")]
+    : [path.join(process.cwd(), "yt-dlp"), path.join(process.cwd(), "yt-dlp.exe")];
+  const localPath = candidates.find((file) => fs.existsSync(file)) || "";
+  if (localPath) ensureExecutable(localPath);
+  return localPath;
+};
+
+const getBundledYtDlpPath = () => {
+  try {
+    const baseDir = path.dirname(require.resolve("@distube/yt-dlp"));
+    const binDir = path.join(baseDir, "..", "bin");
+    const candidates = isWindows
+      ? [path.join(binDir, "yt-dlp.exe"), path.join(binDir, "yt-dlp")]
+      : [path.join(binDir, "yt-dlp"), path.join(binDir, "yt-dlp.exe")];
+    const bundledPath = candidates.find((file) => fs.existsSync(file)) || "";
+    if (bundledPath) ensureExecutable(bundledPath);
+    return bundledPath;
+  } catch {
+    return "";
+  }
+};
+
+const getPreferredYtDlpPath = () => {
+  const envPath = trimEnv(process.env.YTDLP_PATH);
+  if (envPath) {
+    ensureExecutable(envPath);
+    return envPath;
+  }
+  const localPath = getProjectRootYtDlpPath();
+  if (localPath) return localPath;
+  const bundledPath = getBundledYtDlpPath();
+  if (bundledPath) return bundledPath;
+  return isWindows ? "yt-dlp.exe" : "yt-dlp";
+};
+
+let YTDLP_PATH = getPreferredYtDlpPath();
+let ytdlpDownloadPromise = Promise.resolve();
 
 const toFlag = (key) => `--${String(key).replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 
 const buildArgs = (url, flags = {}) => {
-  const args = [url];
+  const args = [];
   for (const [key, value] of Object.entries(flags)) {
     if (value === undefined || value === null || value === false) continue;
     const flag = toFlag(key);
@@ -36,30 +78,75 @@ const buildArgs = (url, flags = {}) => {
     }
     args.push(flag, String(value));
   }
+  args.push(url);
   return args;
 };
-
-const trimEnv = (value) => String(value ?? "").trim();
 
 const YTDLP_EXTRACTOR_ARGS =
   trimEnv(process.env.YTDLP_EXTRACTOR_ARGS) ||
   trimEnv(process.env.YOUTUBE_EXTRACTOR_ARGS) ||
   "youtube:player_client=android,web";
 
-const existingCookiesFile =
+const configuredCookiesFile =
   trimEnv(process.env.YTDLP_COOKIES_FILE) ||
   trimEnv(process.env.YTDLP_COOKIE_FILE) ||
   trimEnv(process.env.YOUTUBE_COOKIES_FILE);
 
 const fallbackCookieFiles = [
   path.join(process.cwd(), "cookies.txt"),
+  path.join(process.cwd(), ".cookies.txt"),
   path.join(process.cwd(), "cookie.txt"),
+  path.join(process.cwd(), ".cookie.txt"),
   path.join(process.cwd(), "cooke.txt"),
+  path.join(process.cwd(), ".cooke.txt"),
 ];
 
-const cookiesFromBrowser =
+const rawCookiesFromBrowser =
   trimEnv(process.env.YTDLP_COOKIES_FROM_BROWSER) ||
   trimEnv(process.env.YOUTUBE_COOKIES_FROM_BROWSER);
+
+const SUPPORTED_COOKIE_BROWSERS = new Set([
+  "brave",
+  "chrome",
+  "chromium",
+  "edge",
+  "firefox",
+  "opera",
+  "safari",
+  "vivaldi",
+  "whale",
+]);
+
+const normalizeCookiesFromBrowser = (value) => {
+  if (!value) return { cookiesFromBrowser: "", cookiesFileFromBrowser: "" };
+
+  const normalized = String(value).trim();
+  const browser = normalized.split(":")[0].toLowerCase();
+  if (SUPPORTED_COOKIE_BROWSERS.has(browser)) {
+    return { cookiesFromBrowser: normalized, cookiesFileFromBrowser: "" };
+  }
+
+  const looksLikeFilePath =
+    fs.existsSync(normalized) ||
+    /[\\/]/.test(normalized) ||
+    /\.(txt|cookies?)$/i.test(normalized);
+
+  if (looksLikeFilePath) {
+    console.warn(
+      `[CustomYtDlp] YTDLP_COOKIES_FROM_BROWSER parece caminho de arquivo. Usando como cookies file: ${normalized}`
+    );
+    return { cookiesFromBrowser: "", cookiesFileFromBrowser: normalized };
+  }
+
+  console.warn(
+    `[CustomYtDlp] Valor invalido em YTDLP_COOKIES_FROM_BROWSER: ${normalized}. Ignorando esse parametro.`
+  );
+  return { cookiesFromBrowser: "", cookiesFileFromBrowser: "" };
+};
+
+const { cookiesFromBrowser, cookiesFileFromBrowser } = normalizeCookiesFromBrowser(rawCookiesFromBrowser);
+
+const existingCookiesFile = configuredCookiesFile || cookiesFileFromBrowser;
 
 const rawCookieInput =
   trimEnv(process.env.YTDLP_COOKIE) ||
@@ -110,10 +197,50 @@ const convertCookieHeaderToNetscape = (header) => {
 };
 
 let generatedCookiesFile = "";
+const buildCookieFileCandidates = (inputPath) => {
+  const source = trimEnv(inputPath);
+  if (!source) return [];
+
+  const candidates = [];
+  const pushIfNew = (value) => {
+    const normalized = trimEnv(value);
+    if (!normalized) return;
+    if (!candidates.includes(normalized)) candidates.push(normalized);
+  };
+
+  pushIfNew(source);
+
+  if (!path.isAbsolute(source)) {
+    pushIfNew(path.resolve(process.cwd(), source));
+  }
+
+  const withoutAppPrefix = source.replace(/^\/app[\\/]/i, "");
+  if (withoutAppPrefix !== source) {
+    pushIfNew(path.join(process.cwd(), withoutAppPrefix));
+  }
+
+  const baseName = path.basename(source);
+  if (baseName && baseName !== "." && baseName !== "..") {
+    pushIfNew(path.join(process.cwd(), baseName));
+    if (!baseName.startsWith(".")) {
+      pushIfNew(path.join(process.cwd(), `.${baseName}`));
+    }
+  }
+
+  return candidates;
+};
+
 const resolveCookiesFile = () => {
   if (existingCookiesFile) {
-    if (fs.existsSync(existingCookiesFile)) return existingCookiesFile;
-    console.warn(`[CustomYtDlp] Arquivo de cookies nao encontrado: ${existingCookiesFile}`);
+    const cookieCandidates = buildCookieFileCandidates(existingCookiesFile);
+    for (const file of cookieCandidates) {
+      if (fs.existsSync(file)) return file;
+    }
+    console.warn(
+      `[CustomYtDlp] Arquivo de cookies nao encontrado: ${existingCookiesFile}. Tentativas: ${cookieCandidates.join(
+        ", "
+      )}`
+    );
   }
 
   for (const file of fallbackCookieFiles) {
@@ -141,6 +268,7 @@ const resolveCookiesFile = () => {
 };
 
 const cookiesFile = resolveCookiesFile();
+const cookiesFileExists = cookiesFile ? fs.existsSync(cookiesFile) : false;
 
 const buildBaseFlags = () => {
   const flags = {
@@ -224,10 +352,19 @@ const isYoutubeLikeUrl = (rawUrl) => {
 };
 
 let youtubeiInnertube = null;
+let youtubeiParserPatched = false;
+const silenceYoutubeiParserWarnings = (Parser) => {
+  if (youtubeiParserPatched) return;
+  if (!Parser || typeof Parser.setParserErrorHandler !== "function") return;
+  Parser.setParserErrorHandler(() => undefined);
+  youtubeiParserPatched = true;
+};
+
 const getInnertube = async () => {
   if (youtubeiInnertube) return youtubeiInnertube;
   try {
-    const { Innertube } = require("youtubei.js");
+    const { Innertube, Parser } = require("youtubei.js");
+    silenceYoutubeiParserWarnings(Parser);
     youtubeiInnertube = await Innertube.create({ retrieve_player: true });
     return youtubeiInnertube;
   } catch {
@@ -246,12 +383,12 @@ const getFormatBitrate = (fmt) =>
       0
   );
 
-const resolveYoutubeiFormatUrl = async (fmt) => {
+const resolveYoutubeiFormatUrl = async (fmt, innertube) => {
   const directUrl = String(fmt?.url || "").trim();
   if (directUrl) return directUrl;
   if (typeof fmt?.decipher === "function") {
     try {
-      const deciphered = await fmt.decipher();
+      const deciphered = await fmt.decipher(innertube?.session?.player);
       if (typeof deciphered === "string" && deciphered.trim()) return deciphered.trim();
       const decipheredUrl = String(deciphered?.url || "").trim();
       if (decipheredUrl) return decipheredUrl;
@@ -262,7 +399,7 @@ const resolveYoutubeiFormatUrl = async (fmt) => {
   return "";
 };
 
-const pickBestAudioFromFormats = async (formats = []) => {
+const pickBestAudioFromFormats = async (formats = [], innertube) => {
   const all = Array.isArray(formats) ? formats.filter(Boolean) : [];
   if (!all.length) return "";
 
@@ -273,7 +410,7 @@ const pickBestAudioFromFormats = async (formats = []) => {
   );
 
   for (const candidate of ranked) {
-    const url = await resolveYoutubeiFormatUrl(candidate);
+    const url = await resolveYoutubeiFormatUrl(candidate, innertube);
     if (url) return url;
   }
 
@@ -292,17 +429,7 @@ const getYoutubeiAudioUrl = async (rawUrl) => {
       const info = await innertube.getBasicInfo(ytId, { client });
       const adaptive = Array.isArray(info?.streaming_data?.adaptive_formats) ? info.streaming_data.adaptive_formats : [];
       const muxed = Array.isArray(info?.streaming_data?.formats) ? info.streaming_data.formats : [];
-      let url = await pickBestAudioFromFormats([...adaptive, ...muxed]);
-      if (url) return url;
-
-      const detailedInfo = await innertube.getInfo(ytId, { client });
-      const detailedAdaptive = Array.isArray(detailedInfo?.streaming_data?.adaptive_formats)
-        ? detailedInfo.streaming_data.adaptive_formats
-        : [];
-      const detailedMuxed = Array.isArray(detailedInfo?.streaming_data?.formats)
-        ? detailedInfo.streaming_data.formats
-        : [];
-      url = await pickBestAudioFromFormats([...detailedAdaptive, ...detailedMuxed]);
+      const url = await pickBestAudioFromFormats([...adaptive, ...muxed], innertube);
       if (url) return url;
     } catch {
       // try next client
@@ -350,8 +477,10 @@ const withoutCookieFlags = (flags) => {
   return next;
 };
 
-const json = (url, flags = {}, options = {}) =>
-  new Promise((resolve, reject) => {
+const json = async (url, flags = {}, options = {}) => {
+  await ytdlpDownloadPromise.catch(() => undefined);
+  YTDLP_PATH = getPreferredYtDlpPath();
+  return new Promise((resolve, reject) => {
     const child = spawn(YTDLP_PATH, buildArgs(url, flags), {
       windowsHide: true,
       ...options,
@@ -368,7 +497,9 @@ const json = (url, flags = {}, options = {}) =>
       stderr += chunk.toString();
     });
 
-    child.on("error", reject);
+    child.on("error", (err) => {
+      reject(new Error(`${err?.message || err} (yt-dlp path: ${YTDLP_PATH})`));
+    });
     child.on("close", (code) => {
       if (code !== 0) {
         return reject(new Error((stderr || stdout || `yt-dlp exited with code ${code}`).trim()));
@@ -380,16 +511,38 @@ const json = (url, flags = {}, options = {}) =>
       }
     });
   });
+};
 
 class CustomYtDlpPlugin extends PlayableExtractorPlugin {
   constructor({ update } = {}) {
     super();
+    const shouldUpdateYtDlp = update ?? true;
+    const hasEnvPath = Boolean(trimEnv(process.env.YTDLP_PATH));
+    const hasLocalBinary = Boolean(getProjectRootYtDlpPath());
+    const shouldDownloadYtDlp = shouldUpdateYtDlp && !hasEnvPath && !hasLocalBinary;
+
+    if (shouldDownloadYtDlp) {
+      ytdlpDownloadPromise = download()
+        .then(() => {
+          YTDLP_PATH = getPreferredYtDlpPath();
+          return YTDLP_PATH;
+        })
+        .catch(() => undefined);
+    } else {
+      ytdlpDownloadPromise = Promise.resolve(YTDLP_PATH);
+    }
     if (cookiesFile) {
-      console.log(`[CustomYtDlp] Cookies carregados de: ${cookiesFile}`);
+      const cookieSize = cookiesFileExists ? (fs.statSync(cookiesFile)?.size || 0) : 0;
+      console.log(
+        `[CustomYtDlp] Cookies carregados de: ${cookiesFile} (exists=${cookiesFileExists}, bytes=${cookieSize})`
+      );
     } else {
       console.warn("[CustomYtDlp] Nenhum arquivo de cookies detectado (cookies opcionais nao encontrados).");
     }
-    if (update ?? true) download().catch(() => undefined);
+    if (hasLocalBinary) {
+      console.log("[CustomYtDlp] Usando binario local na raiz do projeto.");
+    }
+    console.log(`[CustomYtDlp] Binario alvo: ${YTDLP_PATH}`);
   }
 
   validate() {
@@ -537,7 +690,7 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
           return ytjsUrl;
         }
       }
-      if (isBotCheckError(lastError) && isYoutubeLikeUrl(song.url)) {
+      if (isYoutubeLikeUrl(song.url)) {
         const fallbackAudioUrl = await getPlayDlAudioUrl(song.url);
         if (fallbackAudioUrl) {
           console.warn("[CustomYtDlp] getStreamURL fallback com play-dl ativado.");

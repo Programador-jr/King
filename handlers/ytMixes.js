@@ -1,87 +1,33 @@
 const YT_MIXES = Object.freeze([
   {
     key: "default",
-    label: "Predefinido",
-    aliases: ["default", "d"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
+    label: "Top Hits",
+    aliases: ["default", "d", "top"],
+    url: "https://open.spotify.com/playlist/0md0lRijhWGpfAo5VnUrWn?si=Lv2HoPyWQGurZn9f93EtWA"
   },
   {
     key: "ncs",
-    label: "NCS",
-    aliases: ["ncs", "n"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
+    label: "Eletronica",
+    aliases: ["ncs", "n", "edm"],
+    url: "https://open.spotify.com/playlist/6gJj32s2qLIYTnAJwjBSrF?si=x_FYjb5LRR-cz0gC3YYHfg"
   },
   {
     key: "pop",
     label: "Pop",
     aliases: ["pop", "p"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
+    url: "https://open.spotify.com/playlist/37i9dQZF1DX6aTaZa0K6VA?si=q64IaP5vQ1-17iz-wMbjvQ"
   },
   {
     key: "rock",
     label: "Rock",
     aliases: ["rock", "ro"],
-    url: "https://youtube.com/playlist?list=PLnAYe9y3M4Cbf-PZCjEs9vJU-OAMqk4o6&si=wZSabnnDqJrsKsoa"
-  },
-  {
-    key: "oldgaming",
-    label: "Old Gaming",
-    aliases: ["oldgaming", "old", "o"],
-    url: "https://www.youtube.com/watch?v=iFOAJ12lDDU&list=PLYUn4YaogdahPQPTnBGCrytV97h8ABEav"
-  },
-  {
-    key: "gaming",
-    label: "Gaming",
-    aliases: ["gaming", "g"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
-  },
-  {
-    key: "charts",
-    label: "Charts",
-    aliases: ["charts", "cha"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
-  },
-  {
-    key: "chill",
-    label: "Chill",
-    aliases: ["chill", "chi"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
-  },
-  {
-    key: "jazz",
-    label: "Jazz",
-    aliases: ["jazz", "j"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
-  },
-  {
-    key: "blues",
-    label: "Blues",
-    aliases: ["blues", "b"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
-  },
-  {
-    key: "strange",
-    label: "Strange",
-    aliases: ["strange", "s"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
-  },
-  {
-    key: "magic",
-    label: "Magic",
-    aliases: ["magic", "ma"],
-    url: "https://www.youtube.com/watch?v=WvMc5_RbQNc&list=PLYUn4Yaogdagvwe69dczceHTNm0K_ZG3P"
-  },
-  {
-    key: "metal",
-    label: "Metal",
-    aliases: ["metal", "me", "h"],
-    url: "https://www.youtube.com/playlist?list=PLMC9KNkIncKvYin_USF1qoJQnIyMAfRxl"
+    url: "https://open.spotify.com/playlist/5gA47nvZB06cll2KXPAEGY?si=gz2Q93x7RfamOAnwL8bunQ"
   },
   {
     key: "remix",
     label: "Remix",
-    aliases: ["remix", "re"],
-    url: "https://www.youtube.com/watch?v=NX7BqdQ1KeU&list=PLYUn4YaogdahwfEkuu5V14gYtTqODx7R2"
+    aliases: ["remix", "re", "dance"],
+    url: "https://open.spotify.com/playlist/7mzOaHuq4kJzlOSsXN73kH?si=A07dgsonQOi3H3STDaVTEw"
   }
 ]);
 
@@ -108,7 +54,7 @@ const getMixKeys = () => YT_MIXES.map((mix) => mix.key);
 const getMixUsage = () => `mix [${getMixKeys().join("|")}]`;
 
 const getMixDescription = () =>
-  "Toca uma mixagem do YouTube por categoria. Use help para ver todas as playlists disponiveis.";
+  "Toca uma mixagem do Spotify por categoria. Use help para ver todas as playlists disponiveis.";
 
 const getMixHelpDetails = () =>
   [

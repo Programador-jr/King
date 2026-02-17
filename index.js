@@ -11,7 +11,6 @@ const ffmpeg = require("ffmpeg-static");
 const voice = require("@discordjs/voice");
 const DisTube = require("distube").default;
 const { GatewayIntentBits, Partials } = Discord;
-const { CustomYtDlpPlugin } = require("./handlers/customYtDlp");
 
 const client = new Discord.Client({
 		restTimeOffset: 0,
@@ -33,6 +32,9 @@ const { SoundCloudPlugin } = require("@distube/soundcloud");
 const spotifyEnabled = String(process.env.SPOTIFY_API_ENABLED);
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+const soundcloudClientId = process.env.SOUNDCLOUD_CLIENT_ID;
+const soundcloudSecret = process.env.SOUNDCLOUD_CLIENT_SECRET || process.env.SOUNDCLOUD_OAUTH_TOKEN;
+const soundcloudUseEnvAuth = /^(1|true|yes)$/i.test(String(process.env.SOUNDCLOUD_USE_ENV_AUTH));
 
 let spotifyoptions = {}
 if (spotifyEnabled && spotifyClientId && spotifyClientSecret) {
@@ -41,6 +43,13 @@ if (spotifyEnabled && spotifyClientId && spotifyClientSecret) {
     clientSecret: spotifyClientSecret,
   }
 }
+
+let soundcloudOptions = {};
+if (soundcloudUseEnvAuth && soundcloudClientId) {
+  soundcloudOptions.clientId = soundcloudClientId;
+  if (soundcloudSecret) soundcloudOptions.oauthToken = soundcloudSecret;
+}
+
 client.distube = new DisTube(client, {
   emitNewSongOnly: false,
   savePreviousSongs: true,
@@ -53,8 +62,7 @@ client.distube = new DisTube(client, {
   customFilters: filters,
   plugins: [
     new SpotifyPlugin(spotifyoptions),
-    new SoundCloudPlugin(),
-    new CustomYtDlpPlugin()
+    Object.keys(soundcloudOptions).length > 0 ? new SoundCloudPlugin(soundcloudOptions) : new SoundCloudPlugin()
   ]
 })
 
