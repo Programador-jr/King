@@ -8,7 +8,7 @@
     "@discordjs/voice": "^0.19.0",
     "@distube/soundcloud": "^2.0.4",
     "@distube/spotify": "^2.0.2",
-    "@distube/yt-dlp": "^2.0.1",
+    "@distube/youtube": "^1.0.4",
     "@snazzah/davey": "^0.1.9",
     "aki-api": "^7.0.1",
     "akinator": "^1.0.1",
@@ -32,7 +32,7 @@
     "passport-discord": "^0.1.4",
     "play-dl": "^1.9.7",
     "pretty-ms": "^9.3.0",
-    "youtubei.js": "^16.0.1"
+    "soundcloud": "^3.3.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

@@ -83,7 +83,7 @@ module.exports = {
 						.addField(`<:Youtube:840260133686870036>  Visualizacao${newTrack.views > 0 ? "es": ""}:`, `>>> \`${newTrack.views}\``, true)
 						.addField(`:thumbsup: Curtida${newTrack.likes > 0 ? "s": ""}:`, `>>> \`${newTrack.likes}\``, true)
 						.addField(`:thumbsdown: Descurtida${newTrack.dislikes > 0 ? "s": ""}:`, `>>> \`${newTrack.dislikes}\``, true)
-						.setThumbnail(`https://img.youtube.com/vi/${newTrack.id}/mqdefault.jpg`)
+						.setThumbnail(newTrack.thumbnail || ee.footericon)
 						.setFooter(`Tocando em: ${guild.name}`, guild.iconURL({
 							dynamic: true
 						})).setTimestamp()

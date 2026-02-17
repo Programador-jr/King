@@ -30,7 +30,7 @@
       const queue = guild ? botClient.distube.getQueue(guild.id) : null;
       const hasQueue = Boolean(queue && Array.isArray(queue.songs) && queue.songs.length > 0);
       const current = hasQueue ? queue.songs[0] : null;
-      const currentCover = current ? (current.thumbnail || (current.id ? `https://img.youtube.com/vi/${current.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 512 }))) : '';
+      const currentCover = current ? (current.thumbnail || botClient.user.displayAvatarURL({ size: 512 })) : '';
       const progress = hasQueue
         ? Math.max(0, Math.min(100, (Math.floor(queue.currentTime) / Math.max(1, Math.floor(current.duration))) * 100))
         : 0;
@@ -221,7 +221,7 @@
                     <%= canControl ? '' : 'disabled' %>
                   >
                     <div class="queue-track-cover">
-                      <img src="<%= song.thumbnail || (song.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 256 })) %>" alt="<%= song.name %>">
+                      <img src="<%= song.thumbnail || botClient.user.displayAvatarURL({ size: 256 }) %>" alt="<%= song.name %>">
                     </div>
                     <div class="queue-track-main">
                       <div class="queue-track-title">
