@@ -80,7 +80,7 @@ module.exports = {
 						.addField(`↪️ Reprodução automática:`, `>>> ${newQueue.autoplay ? `${client.allEmojis.check_mark}` : `${client.allEmojis.x}`}`, true)
 						.addField(`❔ Baixar Música:`, `>>> [\`Clique aqui\`](${newTrack.streamURL})`, true)
 						.addField(`❔ Filtro${currentFilters.length > 0 ? "s": ""}:`, `>>> ${newQueue.filters && currentFilters.length > 0 ? `${currentFilters.map(f=>`\`${f}\``).join(`, `)}` : `${client.allEmojis.x}`}`, currentFilters.length > 1 ? false : true)
-						.setThumbnail(newTrack.thumbnail || ee.footericon)
+						.setThumbnail(`https://img.youtube.com/vi/${newTrack.id}/mqdefault.jpg`)
 						.setFooter(`Tocado em: ${guild.name}`, guild.iconURL({
 							dynamic: true
 						})).setTimestamp()

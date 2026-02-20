@@ -1,173 +1,21 @@
 ﻿const playDl = require("play-dl");
+let Innertube;
+try {
+  ({ Innertube } = require("youtubei.js"));
+} catch (_) {
+  Innertube = null;
+}
 
-const axios = require("axios");
-
-const toNumber = (value, fallback) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const SEARCH_TIMEOUT_MS = Math.max(1000, toNumber(process.env.MUSIC_SEARCH_TIMEOUT_MS, 9000));
-const SEARCH_LIMIT = Math.max(3, toNumber(process.env.MUSIC_SEARCH_LIMIT, 10));
-const ARTIST_FALLBACK_LIMIT = Math.max(1, toNumber(process.env.MUSIC_SEARCH_ARTIST_LIMIT, 5));
-const SCORE_EARLY_STOP = toNumber(process.env.MUSIC_SEARCH_SCORE_STOP, 0.35);
-const DIRECT_QUERY_MODE = String(process.env.MUSIC_SEARCH_DIRECT_QUERY ?? "true").toLowerCase() !== "false";
-const SEARCH_SUFFIXES = String(process.env.MUSIC_SEARCH_SUFFIXES || "musica,oficial,audio")
-  .split(",")
-  .map((entry) => entry.trim())
-  .filter(Boolean);
-const trimEnv = (value) => String(value ?? "").trim();
-const SC_CLIENT_ID = trimEnv(process.env.SOUNDCLOUD_CLIENT_ID);
-const SPOTIFY_CLIENT_ID = trimEnv(process.env.SPOTIFY_CLIENT_ID);
-const SPOTIFY_CLIENT_SECRET = trimEnv(process.env.SPOTIFY_CLIENT_SECRET);
-const SPOTIFY_MARKET = trimEnv(process.env.SPOTIFY_MARKET || "BR");
-let currentSoundcloudClientId = "";
-let spotifyAccessToken = "";
-let spotifyAccessTokenExpiresAt = 0;
-let spotifyTokenPromise = null;
-
-let soundcloudAuthPromise = null;
-const setSoundCloudClientId = async (clientId) => {
-  const normalized = trimEnv(clientId);
-  if (!normalized) return false;
-  const payload = { soundcloud: { client_id: normalized } };
-  await playDl.setToken(payload);
-  currentSoundcloudClientId = normalized;
-  return true;
-};
-
-const refreshSoundCloudClientId = async () => {
-  const freeClientId = await withTimeout(playDl.getFreeClientID(), Math.min(SEARCH_TIMEOUT_MS, 7000));
-  await setSoundCloudClientId(freeClientId);
-  return freeClientId;
-};
-
-const ensureSoundCloudAuth = async () => {
-  if (soundcloudAuthPromise) return soundcloudAuthPromise;
-
-  soundcloudAuthPromise = (async () => {
-    try {
-      await refreshSoundCloudClientId();
-    } catch (_) {
-      try {
-        if (SC_CLIENT_ID) {
-          await setSoundCloudClientId(SC_CLIENT_ID);
-          return;
-        }
-      } catch (_) {
-        currentSoundcloudClientId = "";
-      }
-    }
-  })();
-
-  return soundcloudAuthPromise;
-};
-
-const hasSpotifyCredentials = () => Boolean(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET);
-
-const ensureSpotifyAccessToken = async () => {
-  if (!hasSpotifyCredentials()) return "";
-  const now = Date.now();
-  if (spotifyAccessToken && now < spotifyAccessTokenExpiresAt - 30_000) return spotifyAccessToken;
-  if (spotifyTokenPromise) return spotifyTokenPromise;
-
-  spotifyTokenPromise = (async () => {
-    try {
-      const auth = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString("base64");
-      const response = await withTimeout(
-        axios.post(
-          "https://accounts.spotify.com/api/token",
-          "grant_type=client_credentials",
-          {
-            headers: {
-              Authorization: `Basic ${auth}`,
-              "Content-Type": "application/x-www-form-urlencoded"
-            }
-          }
-        ),
-        Math.min(SEARCH_TIMEOUT_MS, 8000)
-      );
-      spotifyAccessToken = String(response?.data?.access_token || "");
-      const expiresIn = Number(response?.data?.expires_in || 0);
-      spotifyAccessTokenExpiresAt = Date.now() + Math.max(300, expiresIn) * 1000;
-      return spotifyAccessToken;
-    } catch (_) {
-      spotifyAccessToken = "";
-      spotifyAccessTokenExpiresAt = 0;
-      return "";
-    } finally {
-      spotifyTokenPromise = null;
-    }
-  })();
-
-  return spotifyTokenPromise;
-};
-
-const isSoundCloudUrl = (value) => /soundcloud\.com|api(?:-v2)?\.soundcloud\.com/i.test(String(value || ""));
-const isSoundCloudPlaylistUrl = (value) => /soundcloud\.com\/[^/]+\/sets\//i.test(String(value || ""));
-const isSoundCloudAuthError = (error) => {
-  const text = String(error?.message || error || "");
-  return (
-    /status code\s*429/i.test(text) ||
-    /status code\s*403/i.test(text) ||
-    /status code\s*401/i.test(text) ||
-    /reading 'client_id'/i.test(text)
-  );
-};
-
-const getDirectSoundCloudStreamUrl = async (rawUrl) => {
-  const url = String(rawUrl || "").trim();
-  if (!url || !isSoundCloudUrl(url) || isSoundCloudPlaylistUrl(url)) return "";
-
-  const extractStreamUrl = (stream) => String(stream?.url || "").trim();
-
-  const streamFromTrackInfo = async (trackInfo) => {
-    if (!trackInfo) return "";
-    try {
-      const fromInfo = await withTimeout(playDl.stream_from_info(trackInfo), Math.max(SEARCH_TIMEOUT_MS, 12000));
-      const fromInfoUrl = extractStreamUrl(fromInfo);
-      if (fromInfoUrl) return fromInfoUrl;
-    } catch (_) {
-      // continue below
-    }
-    const permalink = String(trackInfo?.permalink || trackInfo?.url || "").trim();
-    if (!permalink || isSoundCloudPlaylistUrl(permalink)) return "";
-    try {
-      const fromPermalink = await withTimeout(playDl.stream(permalink), Math.max(SEARCH_TIMEOUT_MS, 12000));
-      return extractStreamUrl(fromPermalink);
-    } catch (_) {
-      return "";
-    }
-  };
-
-  const getStream = async () => {
-    await ensureSoundCloudAuth().catch(() => {});
-    try {
-      const stream = await withTimeout(playDl.stream(url), Math.max(SEARCH_TIMEOUT_MS, 12000));
-      const direct = extractStreamUrl(stream);
-      if (direct) return direct;
-    } catch (_) {
-      // try resolving track info below
-    }
-    try {
-      const info = await withTimeout(playDl.soundcloud(url), Math.max(SEARCH_TIMEOUT_MS, 12000));
-      return await streamFromTrackInfo(info);
-    } catch (_) {
-      return "";
-    }
-  };
-
-  try {
-    return await getStream();
-  } catch (error) {
-    if (!isSoundCloudAuthError(error)) return "";
-    try {
-      await refreshSoundCloudClientId();
-      return await getStream();
-    } catch (_) {
-      return "";
-    }
+let ytClientPromise = null;
+const getYoutubeClient = async () => {
+  if (!Innertube) return null;
+  if (!ytClientPromise) {
+    ytClientPromise = Innertube.create().catch((err) => {
+      ytClientPromise = null;
+      throw err;
+    });
   }
+  return ytClientPromise;
 };
 
 const normalizeQuery = (input) => {
@@ -182,61 +30,6 @@ const normalizeQuery = (input) => {
 };
 
 const isUrl = (value) => /^https?:\/\//i.test(String(value || "").trim());
-const isSpotifyUrl = (value) => /(?:open\.)?spotify\.com|spotify\.link/i.test(String(value || ""));
-
-const getSpotifyContentType = (rawUrl) => {
-  try {
-    const parsed = new URL(String(rawUrl || "").trim());
-    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
-    if (host === "spotify.link") return "short";
-    if (!host.endsWith("spotify.com")) return "";
-    const segments = parsed.pathname
-      .split("/")
-      .map((part) => part.trim().toLowerCase())
-      .filter(Boolean);
-    const known = new Set(["track", "album", "playlist", "episode", "show", "artist"]);
-    return segments.find((segment) => known.has(segment)) || "";
-  } catch {
-    return "";
-  }
-};
-
-const getSpotifyOembedTitle = async (spotifyUrl) => {
-  try {
-    const response = await withTimeout(
-      axios.get("https://open.spotify.com/oembed", {
-        params: { url: spotifyUrl },
-      }),
-      Math.min(SEARCH_TIMEOUT_MS, 7000)
-    );
-    return String(response?.data?.title || "").trim();
-  } catch {
-    return "";
-  }
-};
-
-const isYoutubeUrl = (value) => {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return false;
-  if (/music\.youtube(?:\.com)?/i.test(trimmed)) return true;
-  if (/youtu\.be/i.test(trimmed)) return true;
-  if (/youtube\.com/i.test(trimmed)) return true;
-  return false;
-};
-
-const withTimeout = async (promise, ms = SEARCH_TIMEOUT_MS) => {
-  let timeoutId;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error("SEARCH_TIMEOUT")), ms);
-      }),
-    ]);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
 
 const stripDecorators = (title) =>
   String(title || "")
@@ -388,19 +181,6 @@ const scoreTitle = (query, title, author) => {
   return score;
 };
 
-const pickBestMatch = (query, items = []) => {
-  let best = null;
-  let bestScore = -Infinity;
-  for (const item of items) {
-    const score = scoreTitle(query, item?.title || "", item?.author || "");
-    if (score > bestScore) {
-      bestScore = score;
-      best = item;
-    }
-  }
-  return best;
-};
-
 const parseDuration = (value) => {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
@@ -408,16 +188,8 @@ const parseDuration = (value) => {
 
 const mapSearchItem = (item) => {
   const title = item?.title || item?.name || item?.video?.title || "";
-  const url =
-    item?.permalink ||
-    item?.permalink_url ||
-    item?.url ||
-    item?.video?.url ||
-    item?.video?.link ||
-    "";
+  const url = item?.url || item?.video?.url || item?.video?.link || "";
   const author =
-    item?.user?.name ||
-    item?.user?.username ||
     item?.channel?.name ||
     item?.author?.name ||
     item?.uploader ||
@@ -433,133 +205,50 @@ const mapSearchItem = (item) => {
   return { title, url, author, duration, isLive };
 };
 
-const mapSpotifyTrackItem = (item) => {
-  const title = String(item?.name || "").trim();
-  const artist = Array.isArray(item?.artists) ? item.artists.map((a) => a?.name).filter(Boolean).join(", ") : "";
-  const url = String(item?.external_urls?.spotify || "").trim();
-  const duration = Math.round(Number(item?.duration_ms || 0) / 1000);
-  const popularity = Number(item?.popularity || 0);
-  return {
-    title,
-    artist,
-    author: artist,
-    url,
-    duration,
-    popularity,
-    searchQuery: `${title} ${artist}`.trim()
-  };
+const mapYoutubeiItem = (item) => {
+  const id = item?.id || item?.video_id || item?.videoId;
+  const title = item?.title?.text || item?.title || "";
+  const author = item?.author?.name || item?.author?.text || item?.author || "";
+  const duration = parseDuration(item?.duration?.seconds || item?.duration?.seconds_text || item?.duration);
+  const isLive = Boolean(item?.is_live || item?.isLive || item?.is_live_content);
+  const url = id ? `https://www.youtube.com/watch?v=${id}` : "";
+  return { title, url, author, duration, isLive };
 };
 
-const searchSpotifyTracks = async (query, limit = 6) => {
-  const token = await ensureSpotifyAccessToken();
-  if (!token) return [];
-  try {
-    const response = await withTimeout(
-      axios.get("https://api.spotify.com/v1/search", {
-        params: {
-          q: query,
-          type: "track",
-          limit,
-          market: SPOTIFY_MARKET || undefined
-        },
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }),
-      Math.min(SEARCH_TIMEOUT_MS, 8000)
-    );
-    const items = Array.isArray(response?.data?.tracks?.items) ? response.data.tracks.items : [];
-    return items.map(mapSpotifyTrackItem).filter((item) => item.title && item.url);
-  } catch (_) {
-    return [];
-  }
-};
-
-const pickBestSpotifyTrack = (query, items = []) => {
-  let best = null;
-  let bestScore = -Infinity;
-  for (const item of items) {
-    const score =
-      scoreTitle(query, item?.title || "", item?.artist || "") +
-      Math.min(0.12, Math.max(0, Number(item?.popularity || 0)) / 1000);
-    if (score > bestScore) {
-      bestScore = score;
-      best = item;
-    }
-  }
-  return best;
-};
-
-const searchSoundCloudTracksOnly = async (query, limit = 10) => {
-  await ensureSoundCloudAuth().catch(() => {});
-  let results = null;
-
-  const run = async () => withTimeout(playDl.search(query, { limit, source: { soundcloud: "tracks" } }));
-
-  try {
-    results = await run();
-  } catch (error) {
-    if (isSoundCloudAuthError(error)) {
-      try {
-        await refreshSoundCloudClientId();
-        results = await run();
-      } catch (_) {
-        results = null;
-      }
-    }
-  }
-
-  const items = Array.isArray(results) ? results : results?.items || [];
-  return items.map(mapSearchItem).filter((item) => item.url && isSoundCloudUrl(item.url));
+const searchWithYoutubei = async (query, limit = 10) => {
+  const yt = await getYoutubeClient();
+  if (!yt) return [];
+  const result = await yt.search(query, { type: "video" });
+  const videos = result?.videos || result?.items || [];
+  return videos.slice(0, limit).map(mapYoutubeiItem).filter((item) => item.url);
 };
 
 const searchWithPlayDl = async (query, limit = 10) => {
-  await ensureSoundCloudAuth().catch(() => {});
-
   let results = null;
   try {
-    results = await withTimeout(playDl.search(query, { limit, source: { soundcloud: "tracks" } }));
-  } catch (error) {
-    if (isSoundCloudAuthError(error)) {
-      try {
-        await refreshSoundCloudClientId();
-        results = await withTimeout(playDl.search(query, { limit, source: { soundcloud: "tracks" } }));
-      } catch (_) {
-        results = null;
-      }
-    } else {
-      results = null;
-    }
-  }
-  if (!results || (Array.isArray(results) && results.length === 0)) {
-    try {
-      results = await withTimeout(playDl.search(query, { limit, source: { soundcloud: "tracks" } }));
-    } catch (_) {
-      results = null;
-    }
-  }
-  if (!results || (Array.isArray(results) && results.length === 0)) {
-    try {
-      results = await withTimeout(playDl.search(query, { limit, source: { soundcloud: "playlists" } }));
-    } catch (_) {
-      results = null;
-    }
-  }
-  if (!results || (Array.isArray(results) && results.length === 0)) {
-    try {
-      results = await withTimeout(playDl.search(query, { limit }));
-    } catch (_) {
-      results = null;
-    }
+    results = await playDl.search(query, { limit, source: { youtube: "video" } });
+  } catch (_) {
+    results = await playDl.search(query, { limit });
   }
   const items = Array.isArray(results) ? results : results?.items || [];
-  return items
-    .map(mapSearchItem)
-    .filter((item) => item.url && !isYoutubeUrl(item.url) && !isSpotifyUrl(item.url));
+  return items.map(mapSearchItem).filter((item) => item.url);
 };
 
 const searchWithFallbacks = async (query, limit = 10) => {
-  return await searchWithPlayDl(query, limit);
+  let lastError = null;
+  try {
+    const videos = await searchWithYoutubei(query, limit);
+    if (videos.length) return videos;
+  } catch (err) {
+    lastError = err;
+  }
+  try {
+    return await searchWithPlayDl(query, limit);
+  } catch (err) {
+    lastError = err;
+  }
+  if (lastError) throw lastError;
+  return [];
 };
 
 const isLongFormQuery = (query) => /mix|set|live|ao vivo|show|festival|hour|1h|2h|dj|extended/i.test(query);
@@ -678,7 +367,7 @@ const findRelatedTracks = async (
   let loggedError = false;
   for (const q of queries) {
     try {
-      const items = await searchWithFallbacks(q, SEARCH_LIMIT);
+      const items = await searchWithFallbacks(q, 10);
       results.push(...items);
     } catch (err) {
       if (!loggedError) {
@@ -727,7 +416,7 @@ const findRelatedTracks = async (
 const findFallbackTrack = async (query) => {
   const normalized = normalizeQuery(query);
   const artist = extractArtist(query);
-  const candidates = [query, normalized, ...SEARCH_SUFFIXES.map((suffix) => `${query} ${suffix}`)].filter(
+  const candidates = [query, normalized, `${query} musica`, `${query} oficial`, `${query} audio`].filter(
     (value, index, self) => value && self.indexOf(value) === index
   );
 
@@ -740,7 +429,7 @@ const findFallbackTrack = async (query) => {
   for (const q of candidates) {
     let videos = [];
     try {
-      videos = await searchWithFallbacks(q, SEARCH_LIMIT);
+      videos = await searchWithFallbacks(q, 10);
     } catch (err) {
       if (!loggedError) {
         console.warn(`[musicSearch] search error: ${err?.message || err}`);
@@ -767,12 +456,12 @@ const findFallbackTrack = async (query) => {
       }
     }
 
-    if (bestScore >= SCORE_EARLY_STOP) break;
+    if (bestScore >= 0.35) break;
   }
 
   if (!best && artist) {
     try {
-      const videos = await searchWithFallbacks(artist, ARTIST_FALLBACK_LIMIT);
+      const videos = await searchWithFallbacks(artist, 5);
       const filtered = videos.filter((video) => !video.isLive && (!video.duration || video.duration <= maxDuration));
       best = filtered[0] || videos[0] || null;
     } catch (err) {
@@ -790,93 +479,36 @@ const findFallbackTrack = async (query) => {
 const resolveQuery = async (query) => {
   const trimmed = String(query || "").trim();
   if (!trimmed) return null;
-  if (isYoutubeUrl(trimmed)) {
+  if (/music\.youtube(?:\.com)?/i.test(trimmed)) {
     return {
-      unsupported: "youtube",
-      message: "YouTube nao suportado. Use Spotify, SoundCloud ou outro link compativel."
+      unsupported: "youtube_music",
+      message: "YouTube Music nao suportado. Tente usar um link do YouTube"
     };
   }
   if (isUrl(trimmed)) {
-    if (isSpotifyUrl(trimmed)) {
-      const spotifyType = getSpotifyContentType(trimmed);
-      if (spotifyType === "track" || spotifyType === "short") {
-        const spotifyTitle = await getSpotifyOembedTitle(trimmed);
-        const fallbackQuery = spotifyTitle || trimmed;
-        try {
-          const soundcloudMatches = await searchSoundCloudTracksOnly(fallbackQuery, Math.min(SEARCH_LIMIT, 8));
-          const fallback =
-            pickBestMatch(fallbackQuery, soundcloudMatches) ||
-            pickBestMatch(spotifyTitle || trimmed, soundcloudMatches) ||
-            soundcloudMatches[0];
-          if (fallback?.url) {
-            return {
-              url: fallback.url,
-              title: fallback.title || spotifyTitle || fallbackQuery,
-              author: fallback.author || ""
-            };
-          }
-        } catch (_) {
-          // keep default behavior below
-        }
-      }
-    }
-    return { url: trimmed, title: trimmed };
-  }
-
-  try {
-    const spotifyTracks = await searchSpotifyTracks(trimmed, Math.min(SEARCH_LIMIT, 8));
-    const bestSpotify = pickBestSpotifyTrack(trimmed, spotifyTracks) || spotifyTracks[0];
-    if (bestSpotify?.searchQuery) {
-      const soundcloudMatches = await searchSoundCloudTracksOnly(bestSpotify.searchQuery, Math.min(SEARCH_LIMIT, 8));
-      const bestSoundCloud =
-        pickBestMatch(bestSpotify.searchQuery, soundcloudMatches) ||
-        pickBestMatch(trimmed, soundcloudMatches) ||
-        soundcloudMatches[0];
-      if (bestSoundCloud?.url) {
+    try {
+      const url = new URL(trimmed);
+      const host = String(url.hostname || "").toLowerCase();
+      if (host === "music.youtube.com" || host.endsWith(".music.youtube.com")) {
         return {
-          url: bestSoundCloud.url,
-          title: bestSoundCloud.title || bestSpotify.title || trimmed,
-          author: bestSoundCloud.author || bestSpotify.artist || ""
+          unsupported: "youtube_music",
+          message: "YouTube Music nao suportado. Tente usar um link do YouTube"
         };
       }
+    } catch (_) {
+      // ignore invalid URL parsing and fallback to normal behavior
     }
-  } catch (_) {
-    // fallback below
-  }
-
-  try {
-    const quickResults = await searchWithPlayDl(trimmed, Math.min(SEARCH_LIMIT, 6));
-    const bestQuick = pickBestMatch(trimmed, quickResults) || quickResults[0];
-    if (bestQuick?.url) {
-      return {
-        url: bestQuick.url,
-        title: bestQuick.title || trimmed,
-        author: bestQuick.author || ""
-      };
-    }
-  } catch (_) {
-    // fallback below
-  }
-
-  const best = await findFallbackTrack(trimmed);
-  if (best?.url) {
-    return { url: best.url, title: best.title || trimmed, author: best.author || "" };
-  }
-
-  if (DIRECT_QUERY_MODE) {
-    // Fallback final: deixa o DisTube/SoundCloudPlugin resolver a busca textual.
     return { url: trimmed, title: trimmed };
   }
-
-  return null;
+  const best = await findFallbackTrack(trimmed);
+  if (!best?.url) return null;
+  return { url: best.url, title: best.title || trimmed, author: best.author || "" };
 };
 
 module.exports = {
   findFallbackTrack,
   findRelatedTracks,
   resolveQuery,
-  getDirectSoundCloudStreamUrl,
-  isSoundCloudUrl,
   isUrl,
   canonicalTrackTitle,
   isSameSongVariant

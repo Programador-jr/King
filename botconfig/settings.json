@@ -4,7 +4,7 @@
   "messages": {
     "cooldown": "Aguarde %{timeleft}%s antes de usar %{commandname}% novamente.",
     "notallowed_to_exec_cmd": {
-      "title": "Voce nao tem permissao para executar este comando.",
+      "title": "Voce nao tem permissão para executar este comando.",
       "description": {
         "memberpermissions": "Voce precisa de: %{commandmemberpermissions}% para usar %{commandname}%.",
         "requiredroles": "Voce precisa de um destes cargos: %{commandrequiredroles}% para usar %{commandname}%.",

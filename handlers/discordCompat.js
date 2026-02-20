@@ -15,7 +15,7 @@ if (!Discord.__legacyCompatPatched) {
     Message,
   } = Discord;
 
-  const ERROR_DELETE_MS = 4000;
+  const ERROR_DELETE_MS = 5000*2; // 10 seconds
 
   const toColorNumber = (value) => {
     if (typeof value === "number" && Number.isFinite(value)) return value >>> 0;
