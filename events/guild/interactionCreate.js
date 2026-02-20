@@ -91,12 +91,18 @@ module.exports = async (client, interaction) => {
   let command = false;
 
   try {
-    if (client.slashCommands.has(CategoryName + interaction.options.getSubcommand())) {
-      command = client.slashCommands.get(CategoryName + interaction.options.getSubcommand());
+    if (interaction.options.getSubcommand()) {
+      if (client.slashCommands.has(CategoryName + interaction.options.getSubcommand())) {
+        command = client.slashCommands.get(CategoryName + interaction.options.getSubcommand());
+      }
     }
-  } catch {
+  } catch {}
+
+  if (!command) {
     if (client.slashCommands.has("normal" + CategoryName)) {
       command = client.slashCommands.get("normal" + CategoryName);
+    } else if (client.slashCommands.has(CategoryName)) {
+      command = client.slashCommands.get(CategoryName);
     }
   }
 
@@ -136,5 +142,9 @@ module.exports = async (client, interaction) => {
     });
   }
 
-  command.run(client, interaction);
+  if (command.runSlash) {
+    command.runSlash(client, interaction);
+  } else {
+    command.run(client, interaction);
+  }
 };

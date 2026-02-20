@@ -22,7 +22,7 @@ module.exports = {
         embeds: [
           new MessageEmbed().setColor(ee.color)
           .setFooter(ee.footertext, ee.footericon)
-          .setDescription(`**WHEN YOU USE THE SOURCE CODE, __GIVE CREDITS__!** :heart:\n\n[Link para a fonte](https://github.com/Programador-jr/King)`)
+          .setDescription(`**AO UTILIZAR O CÓDIGO FONTE, __DÊ OS DEVIDOS CREDITOS__!** :heart:\n\n[Link para a fonte](https://github.com/Programador-jr/King)`)
         ]
       });
     } catch (e) {

@@ -15,7 +15,7 @@ const CATEGORY_ICON = {
   utilidade: "🔧",
   diversao: "🎉",
   jogos: "🎮",
-  dev: "🛠️",
+  moderação: "🛠️",
   outros: "📁",
 };
 

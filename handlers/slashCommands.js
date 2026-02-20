@@ -19,6 +19,9 @@ const dirSetup = [{
 	},{     
 		"Folder": "Filter", "CmdName": "filter",
 		"CmdDescription": "Add Filters to your Music"
+	},{
+		"Folder": "Utilidade", "CmdName": "utilidade",
+		"CmdDescription": "Comandos de utilidade do bot"
 	}];
 module.exports = (client) => {
     try {
