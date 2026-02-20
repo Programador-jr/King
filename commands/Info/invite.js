@@ -22,7 +22,7 @@ module.exports = {
         embeds: [
           new MessageEmbed().setColor(ee.color)
           .setFooter(ee.footertext, ee.footericon)
-          .setDescription(`[**Clique aqui para me convidar!**](https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot%20applications.commands)\n\n||[**Clique aqui para me convidar __SEM__ Comandos Slash!**](https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot)||`)
+          .setDescription(`[**Clique aqui para me convidar!**](https://discord.com/oauth2/authorize?client_id=794291443454836766&permissions=8&integration_type=0&scope=applications.commands+bot)`)
         ]
       });
     } catch (e) {

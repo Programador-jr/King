@@ -25,6 +25,8 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageTyping,
     ],
     presence: {
       activities: [{
@@ -34,18 +36,6 @@ const client = new Discord.Client({
       status: "online",
     },
 });
-
-const proxy = process.env.PROXY || null;
-if (proxy) {
-  const HttpsProxyAgent = require("https-proxy-agent");
-  const agent = new HttpsProxyAgent(proxy);
-  client.rest.setAgent(agent);
-  voice.setDefaultAudioPlayerOptions({
-    requestOptions: {
-      agent,
-    },
-  });
-}
 
 const { SpotifyPlugin } = require("@distube/spotify");
 const { SoundCloudPlugin } = require("@distube/soundcloud");
