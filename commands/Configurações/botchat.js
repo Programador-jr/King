@@ -1,129 +1,49 @@
-const {
-  MessageEmbed
+const { 
+  MessageEmbed, 
+  MessageActionRow, 
+  MessageButton,
+  MessageSelectMenu
 } = require("discord.js");
-const config = require("../../botconfig/config.json");
+
 const ee = require("../../botconfig/embed.json");
-const settings = require("../../botconfig/settings.json");
+
 module.exports = {
-  name: "botchat", //the command name for execution & for helpcmd [OPTIONAL]
+  name: "botchat",
+  category: "Configurações",
+  aliases: ["confcanal"],
+  usage: "botchat",
+  cooldown: 3,
+  description: "Configura o canal de confissões.",
+  memberpermissions: ["MANAGE_GUILD"],
 
-  category: "Configura\u00e7\u00f5es",
-  aliases: ["botch"],
-  usage: "botchat <add/remover> <#Channel>",
+  run: async (client, message) => {
 
-  cooldown: 1, //the command cooldown for execution & for helpcmd [OPTIONAL]
-  description: "Gerencia os bot-chats!", //the command description for helpcmd [OPTIONAL]
-  memberpermissions: ["MANAGE_GUILD "], //Only allow members with specific Permissions to execute a Commmand [OPTIONAL]
-  requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
-  alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
-  run: async (client, message, args) => {
-    try {
-      //things u can directly access in an interaction!
-      const {
-        member,
-        channelId,
-        guildId,
-        applicationId,
-        commandName,
-        deferred,
-        replied,
-        ephemeral,
-        options,
-        id,
-        createdTimestamp
-      } = message;
-      const {
-        guild
-      } = member;
+    client.settings.ensure(message.guild.id, {
+      confessionChannel: null
+    });
 
-      if (!args[0]) {
-        return message.reply({
-          embeds: [new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Por favor, dicione um MÃ©todo + Canal!**`)
-            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
-          ],
-        });
-      }
-      let add_remove = args[0].toLowerCase();
-      if (!["add", "remover"].includes(add_remove)) {
-        return message.reply({
-          embeds: [new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Por favor adicione um MÃ©todo + Canal!**`)
-            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
-          ],
-        });
-      }
-      let Channel = message.mentions.channels.first();
-      if (!Channel) {
-        return message.reply({
-          embeds: [new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Por favor Adicione um MÃ©todo + Canal!**`)
-            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <#Channel>\``)
-          ],
-        });
-      }
-      client.settings.ensure(guild.id, {
-        botchannel: []
-      });
+    const currentChannel = client.settings.get(message.guild.id, "confessionChannel");
 
-      if (add_remove == "add") {
-        if (client.settings.get(guild.id, "botchannel").includes(Channel.id)) {
-          return message.reply({
-            embeds: [
-              new MessageEmbed()
-              .setColor(ee.wrongcolor)
-              .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este canal jÃ¡ Ã© um canal de bot na lista de permissÃµes!**`)
-            ],
-          })
-        }
-        client.settings.push(guild.id, Channel.id, "botchannel");
-        var djs = client.settings.get(guild.id, `botchannel`).map(r => `<#${r}>`);
-        if (djs.length == 0) djs = "`nÃ£o configurado`";
-        else djs.join(", ");
-        return message.reply({
-          embeds: [
-            new MessageEmbed()
-            .setColor(ee.color)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.check_mark} **O canal \`${Channel.name}\` foi adicionado ao ${client.settings.get (guild.id, "djroles").Length - 1} Canais-bot permitidos!**`)
-            .addField(`**Canais-bot${client.settings.get(guild.id, "botchannel").length > 1 ? "": ""}:**`, `>>> ${djs}`, true)
-          ],
-        })
-      } else {
-        if (!client.settings.get(guild.id, "botchannel").includes(Channel.id)) {
-          return message.reply({
-            embeds: [
-              new MessageEmbed()
-              .setColor(ee.wrongcolor)
-              .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este canal ainda nÃ£o Ã© um canal de bot na lista de permissÃµes!**`)
-            ],
-          })
-        }
-        client.settings.remove(guild.id, Channel.id, "botchannel");
-        var djs = client.settings.get(guild.id, `botchannel`).map(r => `<#${r}>`);
-        if (djs.length == 0) djs = "`nÃ£o configurado`";
-        else djs.join(", ");
-        return message.reply({
-          embeds: [
-            new MessageEmbed()
-            .setColor(ee.color)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.check_mark} **O Canal \`${Channel.name}\` foi removido dos Canais-Bot autorizados ${client.settings.get (guild.id, "djroles").Length}!**`)
-            .addField(`**Canias-bot${client.settings.get(guild.id, "botchannel").length > 1 ? "": ""}:**`, `>>> ${djs}`, true)
-          ],
-        })
-      }
+    const row = new MessageActionRow().addComponents(
+      new MessageButton()
+        .setCustomId("setup_confession_channel")
+        .setLabel("Selecionar Canal")
+        .setStyle("PRIMARY")
+    );
 
-    } catch (e) {
-      console.log(String(e.stack).bgRed)
-    }
+    const embed = new MessageEmbed()
+      .setColor(ee.color)
+      .setTitle("⚙️ Configuração de Confissões")
+      .setDescription(
+        currentChannel
+          ? `Canal atual: <#${currentChannel}>\n\nClique abaixo para alterar.`
+          : "Nenhum canal configurado.\n\nClique abaixo para selecionar um canal."
+      )
+      .setFooter(ee.footertext, ee.footericon);
+
+    return message.reply({
+      embeds: [embed],
+      components: [row]
+    });
   }
-}
+};
