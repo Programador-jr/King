@@ -192,8 +192,12 @@ const parseYtDlpJsonOutput = (stdout, stderr) => {
   throw new Error((stderr || stdout || "Failed to parse yt-dlp output").trim());
 };
 
-const isFormatUnavailableError = (err) =>
-  /Requested format is not available/i.test(String(err?.stderr || err || ""));
+const isFormatUnavailableError = (err) => {
+  const errStr = String(err?.stderr || err?.message || err || "");
+  return /Requested format is not available/i.test(errStr) || 
+         /format.*not available/i.test(errStr) ||
+         /no format found/i.test(errStr);
+};
 const isBotCheckError = (err) =>
   /Sign in to confirm you.?re not a bot/i.test(String(err?.stderr || err || "")) ||
   /Use --cookies-from-browser or --cookies/i.test(String(err?.stderr || err || ""));
@@ -498,6 +502,9 @@ class CustomYtDlpPlugin extends PlayableExtractorPlugin {
       { ...base, dumpSingleJson: true, format: "ba/ba*" },
       { ...base, dumpSingleJson: true, format: "bestaudio/best" },
       { ...base, dumpSingleJson: true, format: "best" },
+      { ...base, dumpSingleJson: true, format: "worst" },
+      { ...base, dumpSingleJson: true, format: "bestaudio[ext=m4a]/bestaudio" },
+      { ...base, dumpSingleJson: true, format: "audioonly" },
       { ...altClientTv, dumpSingleJson: true, format: "bestaudio/best" },
       { ...altClientTv, dumpSingleJson: true, format: "best" },
       { ...altClientIos, dumpSingleJson: true, format: "bestaudio/best" },
