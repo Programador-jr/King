@@ -311,7 +311,8 @@ module.exports = client => {
         defaultautoplay: false,
         defaultfilters: [`bassboost6`, `clear`],
         djroles: [],
-        botchannel: []
+        botchannel: [],
+        musicChannels: []
       })
 
 
@@ -362,6 +363,7 @@ module.exports = client => {
       if(req.body.defaultfilters) client.settings.set(guild.id, req.body.defaultfilters, "defaultfilters")
       if(req.body.djroles) client.settings.set(guild.id, req.body.djroles, "djroles")
       if(req.body.botchannel) client.settings.set(guild.id, req.body.botchannel, "botchannel")
+      if(req.body.musicChannels) client.settings.set(guild.id, req.body.musicChannels, "musicChannels")
       // We render template using the absolute path of the template and the merged default data with the additional data provided.
       res.render("settings", {
           req: req,

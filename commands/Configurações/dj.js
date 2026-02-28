@@ -1,127 +1,211 @@
-const {
-  MessageEmbed
+const { 
+  MessageEmbed, 
+  MessageActionRow, 
+  MessageButton,
+  StringSelectMenuBuilder,
+  RoleSelectMenuBuilder
 } = require("discord.js");
-const config = require("../../botconfig/config.json");
+
 const ee = require("../../botconfig/embed.json");
-const settings = require("../../botconfig/settings.json");
+
 module.exports = {
-  name: "dj", //the command name for execution & for helpcmd [OPTIONAL]
+  name: "dj",
+  category: "Configurações",
+  aliases: ["djrole", "drole", "djs", "dj-role"],
+  usage: "dj",
+  cooldown: 3,
+  description: "Gerencia os DJs do servidor.",
+  memberpermissions: ["MANAGE_GUILD"],
 
-  category: "Configura\u00e7\u00f5es",
-  aliases: ["djrole", "role", "drole", "djs", "dj-role"],
-  Use: "dj <add/remove> <@Role>",
+  run: async (client, message) => {
 
-  cooldown: 1, //the command cooldown for execution & for helpcmd [OPTIONAL]
-  description: "Gerencia os Djs!", //the command description for helpcmd [OPTIONAL]
-  memberpermissions: ["MANAGE_GUILD "], //Only allow members with specific Permissions to execute a Commmand [OPTIONAL]
-  requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
-  alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
-  run: async (client, message, args) => {
-    try {
-      //things u can directly access in an interaction!
-      const {
-        member,
-        channelId,
-        guildId,
-        applicationId,
-        commandName,
-        deferred,
-        replied,
-        ephemeral,
-        options,
-        id,
-        createdTimestamp
-      } = message;
-      const {
-        guild
-      } = member;
-      if (!args[0]) {
-        return message.reply({
-          embeds: [new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Adicione um MÃ©todo + FunÃ§Ã£o!**`)
-            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
-          ],
-        });
-      }
-      let add_remove = args[0].toLowerCase();
-      if (!["add", "remover"].includes(add_remove)) {
-        return message.reply({
-          embeds: [new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Adicione um MÃ©todo + FunÃ§Ã£o!**`)
-            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
-          ],
-        });
-      }
-      let Role = message.mentions.channels.first();
-      if (!Role) {
-        return message.reply({
-          embeds: [new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **Adicione um MÃ©todo + FunÃ§Ã£o!**`)
-            .setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}botchat <add/remover> <@Role>\``)
-          ],
-        });
-      }
-      client.settings.ensure(guild.id, {
-        djroles: []
-      });
-      if (add_remove == "add") {
-        if (client.settings.get(guild.id, "djroles").includes(Role.id)) {
-          return message.reply({
-            embeds: [
-              new MessageEmbed()
-              .setColor(ee.wrongcolor)
-              .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este cargo jÃ¡ Ã© um CARGO-DJ!**`)
-            ],
-          })
+    client.settings.ensure(message.guild.id, {
+      djroles: []
+    });
+
+    let currentDJsArr = client.settings.get(message.guild.id, "djroles");
+    if (!Array.isArray(currentDJsArr)) currentDJsArr = [];
+
+    const getEmbed = () => {
+      let djs = client.settings.get(message.guild.id, "djroles");
+      if (!Array.isArray(djs)) djs = [];
+      
+      const roles = djs.length > 0 
+        ? djs.map(r => {
+          const role = message.guild.roles.cache.get(r);
+          return role ? `<@&${r}>` : r;
+        }).join(", ")
+        : "Nenhum cargo configurado";
+      
+      return new MessageEmbed()
+        .setColor(ee.color)
+        .setTitle("🎧 Configuração de DJs")
+        .setDescription(
+          "Cargos DJ podem usar comandos de música mesmo sem ser o solicitante.\n\n" +
+          `**Cargos DJ atuais:** ${roles}`
+        )
+        .setFooter(ee.footertext, ee.footericon);
+    };
+
+    const mainRow = new MessageActionRow().addComponents(
+      new MessageButton()
+        .setCustomId("dj_add")
+        .setLabel("Adicionar DJ")
+        .setStyle("SUCCESS")
+        .setEmoji("➕"),
+      new MessageButton()
+        .setCustomId("dj_remove")
+        .setLabel("Remover DJ")
+        .setStyle("DANGER")
+        .setEmoji("➖"),
+      new MessageButton()
+        .setCustomId("dj_clear")
+        .setLabel("Limpar Todos")
+        .setStyle("SECONDARY")
+        .setEmoji("🗑️")
+    );
+
+    const msg = await message.reply({
+      embeds: [getEmbed()],
+      components: [mainRow]
+    });
+
+    const collector = msg.createMessageComponentCollector({
+      filter: (i) => i.user.id === message.author.id,
+      time: 120000
+    });
+
+    collector.on("collect", async (interaction) => {
+      try {
+        if (interaction.user.id !== message.author.id) {
+          return interaction.reply({ content: "❌ Você não pode usar isso!", ephemeral: true });
         }
-        client.settings.push(guild.id, Role.id, "djroles");
-        var djs = client.settings.get(guild.id, `djroles`).map(r => `<@&${r}>`);
-        if (djs.length == 0) djs = "`nÃ£o configurado";
-        else djs.join(", ");
-        return message.reply({
-          embeds: [
-            new MessageEmbed()
-            .setColor(ee.color)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.check_mark} **Um cargo \`${Role.name}\` foi adicionado ao ${client.settings.get(guild.id, "djroles").length - 1} CARGO-DJ!**`)
-            .addField(`**CARGO-DJ${client.settings.get(guild.id, "djroles").length > 1 ? "s": ""}:**`, `>>> ${djs}`, true)
-          ],
-        })
-      } else {
-        if (!client.settings.get(guild.id, "djroles").includes(Role.id)) {
-          return message.reply({
-            embeds: [
-              new MessageEmbed()
-              .setColor(ee.wrongcolor)
-              .setFooter(ee.footertext, ee.footericon)
-              .setTitle(`${client.allEmojis.x} **Este cargo ainda nÃ£o Ã© um CARGO-DJ!**`)
-            ],
-          })
-        }
-        client.settings.remove(guild.id, Role.id, "djroles");
-        var djs = client.settings.get(guild.id, `djroles`).map(r => `<@&${r}>`);
-        if (djs.length == 0) djs = "`nÃ£o configurado`";
-        else djs.join(", ");
-        return message.reply({
-          embeds: [
-            new MessageEmbed()
-            .setColor(ee.color)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.check_mark} **O cargo \`${Role.name}\` foi removido do ${client.settings.get(guild.id, "djroles").length} CARGO-DJ!**`)
-            .addField(`**CARGO-DJ${client.settings.get(guild.id, "djroles").length > 1 ? "s": ""}:**`, `>>> ${djs}`, true)
-          ],
-        })
-      }
 
-    } catch (e) {
-      console.log(String(e.stack).bgRed)
-    }
+        await interaction.deferUpdate();
+
+        if (interaction.customId === "dj_add") {
+          const roleSelect = new RoleSelectMenuBuilder()
+            .setCustomId("dj_role_add")
+            .setPlaceholder("Selecione um cargo")
+            .setMinValues(1)
+            .setMaxValues(10);
+
+          return interaction.editReply({
+            content: "Selecione o(s) cargo(s) para adicionar como DJ:",
+            embeds: [],
+            components: [
+              new MessageActionRow().addComponents(roleSelect),
+              new MessageActionRow().addComponents(
+                new MessageButton()
+                  .setCustomId("dj_back")
+                  .setLabel("Voltar")
+                  .setStyle("SECONDARY")
+                  .setEmoji("⬅️")
+              )
+            ]
+          });
+        }
+
+        if (interaction.customId === "dj_remove") {
+          let djs = client.settings.get(message.guild.id, "djroles");
+          if (!Array.isArray(djs)) djs = [];
+          
+          if (djs.length === 0) {
+            return interaction.editReply({
+              content: "❌ Nenhum cargo DJ configurado para remover!",
+              embeds: [],
+              components: []
+            });
+          }
+
+          const roleOptions = djs.map(r => {
+            const role = message.guild.roles.cache.get(r);
+            return {
+              label: role ? role.name : "Cargo não encontrado",
+              value: r
+            };
+          });
+
+          const roleSelect = new StringSelectMenuBuilder()
+            .setCustomId("dj_role_remove")
+            .setPlaceholder("Selecione cargos para remover")
+            .setMinValues(1)
+            .setMaxValues(roleOptions.length)
+            .addOptions(roleOptions);
+
+          return interaction.editReply({
+            content: "Selecione o(s) cargo(s) para remover:",
+            embeds: [],
+            components: [
+              new MessageActionRow().addComponents(roleSelect),
+              new MessageActionRow().addComponents(
+                new MessageButton()
+                  .setCustomId("dj_back")
+                  .setLabel("Voltar")
+                  .setStyle("SECONDARY")
+                  .setEmoji("⬅️")
+              )
+            ]
+          });
+        }
+
+        if (interaction.customId === "dj_clear") {
+          client.settings.set(message.guild.id, [], "djroles");
+          
+          return interaction.editReply({
+            content: "✅ Todos os cargos DJ foram removidos!",
+            embeds: [getEmbed()],
+            components: [mainRow]
+          });
+        }
+
+        if (interaction.customId === "dj_back") {
+          return interaction.editReply({
+            content: null,
+            embeds: [getEmbed()],
+            components: [mainRow]
+          });
+        }
+
+        if (interaction.customId === "dj_role_add") {
+          const roleIds = interaction.values;
+          let currentDJsArr = client.settings.get(message.guild.id, "djroles");
+          if (!Array.isArray(currentDJsArr)) currentDJsArr = [];
+          const newDJs = [...new Set([...currentDJsArr, ...roleIds])];
+          
+          client.settings.set(message.guild.id, newDJs, "djroles");
+
+          return interaction.editReply({
+            content: `✅ ${roleIds.length} cargo(s) adicionado(s) como DJ!`,
+            embeds: [getEmbed()],
+            components: [mainRow]
+          });
+        }
+
+        if (interaction.customId === "dj_role_remove") {
+          const roleIdsToRemove = interaction.values;
+          let currentDJsArr = client.settings.get(message.guild.id, "djroles");
+          if (!Array.isArray(currentDJsArr)) currentDJsArr = [];
+          const newDJs = currentDJsArr.filter(r => !roleIdsToRemove.includes(r));
+          
+          client.settings.set(message.guild.id, newDJs, "djroles");
+
+          return interaction.editReply({
+            content: `✅ ${roleIdsToRemove.length} cargo(s) removido(s) dos DJs!`,
+            embeds: [getEmbed()],
+            components: [mainRow]
+          });
+        }
+
+      } catch (e) {
+        console.log("DJ collector error:", e);
+      }
+    });
+
+    collector.on("end", async () => {
+      try {
+        await msg.edit({ components: [] }).catch(() => {});
+      } catch (e) {}
+    });
   }
-}
+};
