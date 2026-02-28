@@ -14,7 +14,8 @@ module.exports = async (client, message) => {
       defaultautoplay: false,
       defaultfilters: [`bassboost6`, `clear`],
       djroles: [],
-      botchannel: []
+      botchannel: [],
+      musicChannels: []
     })
     let prefix = client.settings.get(message.guild.id, `prefix`)
     const prefixRegex = new RegExp(`^(<@!?${client.user.id}>|${escapeRegex(prefix)})`);
@@ -31,6 +32,23 @@ module.exports = async (client, message) => {
     let command = client.commands.get(cmd);
     if(!command) command = client.commands.get(client.aliases.get(cmd));
     if (command) {
+      // Verificação de canais de música
+      const musicChannels = client.settings.get(message.guild.id, "musicChannels") || [];
+      const isMusicCommand = command.category === "Musica";
+      
+      if (isMusicCommand && musicChannels.length > 0) {
+        if (!musicChannels.includes(message.channel.id) && !message.member.permissions.has("ADMINISTRATOR")) {
+          return message.reply({
+            embeds: [new Discord.MessageEmbed()
+              .setColor(ee.wrongcolor)
+              .setFooter(ee.footertext, ee.footericon)
+              .setTitle(`${client.allEmojis.x} **Este comando só pode ser usado em canais específicos!**`)
+              .setDescription(`Por favor, use em um desses canais:\n> ${musicChannels.map(c => `<#${c}>`).join(", ")}`)
+            ]
+          });
+        }
+      }
+
       let botchannels = client.settings.get(message.guild.id, `botchannel`);
       if(!botchannels || !Array.isArray(botchannels)) botchannels = [];
         if (botchannels.length > 0) {

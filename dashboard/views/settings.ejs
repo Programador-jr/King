@@ -63,8 +63,9 @@
                 <h5>Cargos DJ</h5>
                 <p class="form-helper">Usuarios com estes cargos podem usar comandos de controle de musica/fila.</p>
                 <select class="form-control selectpicker" multiple data-width="100%" data-live-search="true" aria-label="DJ Roles" name="djroles">
+                  <% const djroles = botClient.settings.get(guild.id, 'djroles') || []; %>
                   <% guild.roles.cache.filter(role => !role.managed).sort((a, b) => b.rawPosition - a.rawPosition).forEach((role) => { %>
-                    <option value="<%= role.id %>" <%= botClient.settings.get(guild.id, 'djroles').includes(role.id) ? 'selected' : '' %>>
+                    <option value="<%= role.id %>" <%= djroles.includes(role.id) ? 'selected' : '' %>>
                       @<%= role.name %>
                     </option>
                   <% }) %>
@@ -74,6 +75,7 @@
               <div class="settings-group">
                 <h5>Canais liberados para comandos</h5>
                 <p class="form-helper">Se definido, o bot responde comandos apenas nestes canais.</p>
+                <% const botchannels = botClient.settings.get(guild.id, 'botchannel') || []; %>
                 <select class="form-control selectpicker" multiple data-width="100%" data-height="100%" data-live-search="true" aria-label="Bot Channels" name="botchannel">
                   <% guild.channels.cache
                       .filter((channel) => {
@@ -85,7 +87,29 @@
                       })
                       .sort((a, b) => a.rawPosition - b.rawPosition)
                       .forEach((channel) => { %>
-                    <option value="<%= channel.id %>" <%= botClient.settings.get(guild.id, 'botchannel').includes(channel.id) ? 'selected' : '' %>>
+                    <option value="<%= channel.id %>" <%= botchannels.includes(channel.id) ? 'selected' : '' %>>
+                      #<%= channel.name %>
+                    </option>
+                  <% }) %>
+                </select>
+              </div>
+
+              <div class="settings-group">
+                <h5>Canais de Música</h5>
+                <p class="form-helper">Se definido, apenas nestes canais será possível usar comandos de música. Se vazio, qualquer canal pode usar.</p>
+                <% const musicchannels = botClient.settings.get(guild.id, 'musicChannels') || []; %>
+                <select class="form-control selectpicker" multiple data-width="100%" data-height="100%" data-live-search="true" aria-label="Music Channels" name="musicChannels">
+                  <% guild.channels.cache
+                      .filter((channel) => {
+                        const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
+                        const isThread = typeof channel.isThread === 'function' && channel.isThread();
+                        if (!isTextBased || isThread) return false;
+                        const perms = channel.permissionsFor(botClient.user);
+                        return Boolean(perms && perms.has(['ViewChannel', 'SendMessages', 'EmbedLinks']));
+                      })
+                      .sort((a, b) => a.rawPosition - b.rawPosition)
+                      .forEach((channel) => { %>
+                    <option value="<%= channel.id %>" <%= musicchannels.includes(channel.id) ? 'selected' : '' %>>
                       #<%= channel.name %>
                     </option>
                   <% }) %>
@@ -95,9 +119,10 @@
               <div class="settings-group">
                 <h5>Filtros padrao</h5>
                 <p class="form-helper">Filtros que o bot aplica antes de iniciar a reproducao.</p>
+                <% const defaultfilters = botClient.settings.get(guild.id, 'defaultfilters') || []; %>
                 <select class="form-control selectpicker" multiple data-width="100%" data-height="100%" data-live-search="true" aria-label="Default Filters" name="defaultfilters">
                   <% Object.keys(BotFilters).forEach((filter) => { %>
-                    <option value="<%= filter %>" <%= botClient.settings.get(guild.id, 'defaultfilters').includes(filter) ? 'selected' : '' %>>
+                    <option value="<%= filter %>" <%= defaultfilters.includes(filter) ? 'selected' : '' %>>
                       <%= filter %>
                     </option>
                   <% }) %>

@@ -68,8 +68,6 @@ module.exports = async (client, interaction) => {
         components: []
       });
     }
-
-    return;
   }
 
   // ===============================
@@ -84,6 +82,7 @@ module.exports = async (client, interaction) => {
     defaultautoplay: false,
     defaultfilters: [`bassboost6`, `clear`],
     djroles: [],
+    musicChannels: []
   });
 
   let prefix = client.settings.get(interaction.guildId, "prefix");
@@ -107,6 +106,26 @@ module.exports = async (client, interaction) => {
   }
 
   if (!command) return;
+
+  // Verificação de canais de música
+  const musicChannels = client.settings.get(interaction.guildId, "musicChannels") || [];
+  const isMusicCommand = command.category === "Musica";
+
+  if (isMusicCommand && musicChannels.length > 0) {
+    if (!musicChannels.includes(interaction.channelId) &&
+        !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+
+      return interaction.reply({
+        ephemeral: true,
+        embeds: [
+          new EmbedBuilder()
+            .setColor(ee.wrongcolor)
+            .setTitle("❌ Este comando só pode ser usado em canais específicos!")
+            .setDescription(`Por favor, use em um desses canais:\n> ${musicChannels.map(c => `<#${c}>`).join(", ")}`)
+        ]
+      });
+    }
+  }
 
   let botchannels = client.settings.get(interaction.guildId, `botchannel`);
   if (!botchannels || !Array.isArray(botchannels)) botchannels = [];

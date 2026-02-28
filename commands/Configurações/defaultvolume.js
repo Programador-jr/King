@@ -10,7 +10,7 @@ module.exports = {
   aliases: ["dvolume"],
   usage: "defaultvolume <Percentage>",
   cooldown: 1, //the command cooldown for execution & for helpcmd [OPTIONAL]
-  description: "Define o volume padrÃ£o do bot!", //the command description for helpcmd [OPTIONAL]
+  description: "Define o volume padrão do bot!", //the command description for helpcmd [OPTIONAL]
   memberpermissions: ["MANAGE_GUILD "], //Only allow members with specific Permissions to execute a Commmand [OPTIONAL]
   requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
   alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
