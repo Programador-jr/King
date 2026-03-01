@@ -5,7 +5,7 @@ const config = require(`./botconfig/config.json`);
 const settings = require(`./botconfig/settings.json`);
 const filters = require(`./botconfig/filters.json`);
 const colors = require("colors");
-const Enmap = require("enmap").default;
+const { connectMongoDB, MongoDBEnmap } = require("./databases/mongodb");
 const libsodium = require("libsodium-wrappers");
 const ffmpeg = require("ffmpeg-static");
 const voice = require("@discordjs/voice");
@@ -13,7 +13,7 @@ const DisTube = require("distube").default;
 const { GatewayIntentBits, Partials } = Discord;
 const { CustomYtDlpPlugin } = require("./handlers/customYtDlp");
 const client = new Discord.Client({
-		restTimeOffset: 0,
+	restTimeOffset: 0,
     shards: "auto",
     allowedMentions: {
       parse: [ ],
@@ -76,18 +76,30 @@ client.allEmojis = require("./botconfig/emojis.json");
 
 client.setMaxListeners(100); require('events').defaultMaxListeners = 100;
 
-client.settings = new Enmap({ name: "settings",dataDir: "./databases/settings"});
-client.infos = new Enmap({ name: "infos", dataDir: "./databases/infos"});
+client.settings = new MongoDBEnmap();
 
+async function startBot() {
+  try {
+    await connectMongoDB();
+    
+    client.infos = new MongoDBEnmap();
+    
+    //Require the Handlers                  Add the antiCrash file too, if its enabled
+    ["events", "commands", "slashCommands", settings.antiCrash ? "antiCrash" : null, "distubeEvent"]
+        .filter(Boolean)
+        .forEach(h => {
+            require(`./handlers/${h}`)(client);
+        })|| config.token
+    
+    //Start the Bot
+    client.login(process.env.token || process.env.TOKEN || config.token);
+  } catch (error) {
+    console.error("❌ Erro ao iniciar o bot:", error);
+    process.exit(1);
+  }
+}
 
-//Require the Handlers                  Add the antiCrash file too, if its enabled
-["events", "commands", "slashCommands", settings.antiCrash ? "antiCrash" : null, "distubeEvent"]
-    .filter(Boolean)
-    .forEach(h => {
-        require(`./handlers/${h}`)(client);
-    })|| config.token
-//Start the Bot
-client.login(process.env.token || process.env.TOKEN || config.token)
+startBot();
 client.on("clientReady", () => {
   require("./dashboard/index.js")(client);
 })
