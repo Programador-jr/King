@@ -3,6 +3,7 @@ const config = require(`../../botconfig/config.json`);
 const ee = require(`../../botconfig/embed.json`);
 const settings = require(`../../botconfig/settings.json`);
 const { onCoolDown, replacemsg } = require(`../../handlers/functions`);
+const { addCommandUsed } = require(`../../databases/mongodb`);
 const Discord = require(`discord.js`);
 module.exports = async (client, message) => {
     if(!message.guild || !message.channel || message.author.bot) return;
@@ -32,6 +33,7 @@ module.exports = async (client, message) => {
     let command = client.commands.get(cmd);
     if(!command) command = client.commands.get(client.aliases.get(cmd));
     if (command) {
+      addCommandUsed(message.guild.id, cmd);
       // Verificação de canais de música
       const musicChannels = client.settings.get(message.guild.id, "musicChannels") || [];
       const isMusicCommand = command.category === "Musica";

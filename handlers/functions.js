@@ -775,15 +775,10 @@ function onCoolDown(message, command) {
   
   /**
    * 
-   * @param {*} client Discord Client
-   * Function to Change the Status 
-   */
+    * @param {*} client Discord Client
+    * Function to Change the Status 
+    */
+
   function change_status(client) {
-    try {
-      client.user.setActivity(`${config.prefix}help | ${client.guilds.cache.size} Guilda(s) | ${Math.ceil(client.users.cache.size)} Membros`, {
-        type: "PLAYING",
-      });
-    } catch (e) {
-      console.log(String(e.stack).bgRed)
-    }
+    // Presença fixa - não altera
   }

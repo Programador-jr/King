@@ -29,11 +29,11 @@ const client = new Discord.Client({
         GatewayIntentBits.DirectMessageTyping,
     ],
     presence: {
+      status: "online",
       activities: [{
         name: `${config.prefix}help`,
-        type: Discord.ActivityType.Watching,
-      }],
-      status: "online",
+        type: Discord.ActivityType.Playing
+      }]
     },
 });
 

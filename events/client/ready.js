@@ -15,11 +15,7 @@ module.exports = client => {
       console.log(`     ┃ `.bold.brightGreen + " ".repeat(-1+stringlength-` ┃ `.length)+ "┃".bold.brightGreen)
       console.log(`     ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛`.bold.brightGreen)
     }catch{ /* */ }
-    change_status(client);
-    //loop through the status per each 10 minutes
-    setInterval(()=>{
-      change_status(client);
-    }, 15 * 1000);
+    // Presença configurada no index.js
   
   } catch (e){
     console.log(String(e.stack).grey.italic.dim.bgRed)
