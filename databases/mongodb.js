@@ -1,8 +1,9 @@
 const mongoose = require("mongoose");
 const dns = require("node:dns");
 const GuildSettings = require("./settings");
+const GuildStats = require("./infos");
 
-const DNS_SERVERS = (process.env.DNS_SERVERS).split(",");
+const DNS_SERVERS = (process.env.DNS_SERVERS || "1.1.1.1,8.8.8.8").split(",");
 dns.setServers(DNS_SERVERS);
 
 const MONGO_URI = process.env.MONGO_URI;
@@ -151,8 +152,68 @@ class MongoDBEnmap {
   }
 }
 
+async function addSongPlayed(guildId, song) {
+  try {
+    await GuildStats.findByIdAndUpdate(guildId, {
+      $inc: { songsPlayed: 1 }
+    }, { upsert: true });
+  } catch (e) {
+    console.log("Erro ao adicionar música tocada:", e.message);
+  }
+}
+
+async function addMusicTime(guildId, seconds) {
+  try {
+    await GuildStats.findByIdAndUpdate(guildId, {
+      $inc: { totalMusicTime: seconds }
+    }, { upsert: true });
+  } catch (e) {
+    console.log("Erro ao adicionar tempo de música:", e.message);
+  }
+}
+
+async function addCommandUsed(guildId, commandName) {
+  try {
+    const key = `topCommands.${commandName}`;
+    await GuildStats.findByIdAndUpdate(guildId, {
+      $inc: { commandsUsed: 1, [key]: 1 }
+    }, { upsert: true });
+  } catch (e) {
+    console.log("Erro ao adicionar comando usado:", e.message);
+  }
+}
+
+async function addUserJoined(guildId) {
+  try {
+    await GuildStats.findByIdAndUpdate(guildId, {
+      $inc: { usersJoined: 1 }
+    }, { upsert: true });
+  } catch (e) {
+    console.log("Erro ao adicionar usuário Joined:", e.message);
+  }
+}
+
+async function getServerStats(guildId) {
+  try {
+    let stats = await GuildStats.findById(guildId);
+    if (!stats) {
+      stats = await GuildStats.create({ _id: guildId });
+    }
+    return stats;
+  } catch (e) {
+    console.log("Erro ao obter estatísticas:", e.message);
+    return null;
+  }
+}
+
 module.exports = {
   connectMongoDB,
   GuildSettings,
-  MongoDBEnmap
+  GuildStats,
+  MongoDBEnmap,
+  addSongPlayed,
+  addMusicTime,
+  addCommandUsed,
+  addUserJoined,
+  getServerStats
 };

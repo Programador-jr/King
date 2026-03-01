@@ -13,6 +13,7 @@ const {
   check_if_dj
 } = require("./functions");
 const { getSongSearchData, getLyricsWithFallback } = require("./lyricsService");
+const { addSongPlayed, addMusicTime, addCommandUsed, addUserJoined } = require("../databases/mongodb");
 const { getDashboardBaseUrl, getDashboardPort } = require("./dashboardConfig");
 let songEditInterval = null;
 const ytAuthWarnAt = new Map();
@@ -75,6 +76,8 @@ module.exports = (client) => {
     client.distube
       .on(`playSong`, async (queue, track) => {
         try {
+          addSongPlayed(queue.id, track);
+          
           client.guilds.cache.get(queue.id).me.voice.setDeaf(true).catch((e) => {
             console.log(e.stack ? String(e.stack).grey : String(e).grey)
           })

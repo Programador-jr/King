@@ -1,7 +1,7 @@
 {
   "prefix": "k!",
   "version": "4.5.0",
-  "loadSlashsGlobal": false,
+  "loadSlashsGlobal": true,
   "music": {
     "relatedCount": 3
   },
