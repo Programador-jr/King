@@ -88,7 +88,8 @@ module.exports = {
 					})
 				}
 				FiltersSettings.custombassboost = `bass=g=${bass_gain},dynaudnorm=f=200`;
-				client.distube.filters = FiltersSettings;
+				if (!client.distube.customFilters) client.distube.customFilters = {};
+				client.distube.customFilters.custombassboost = FiltersSettings.custombassboost;
 				await newQueue.filters.add("custombassboost", true);
 				message.reply({
 					embeds: [new MessageEmbed()

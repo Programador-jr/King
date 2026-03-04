@@ -26,55 +26,153 @@ async function connectMongoDB() {
 class MongoDBEnmap {
   constructor() {
     this.cache = new Map();
+    this.loading = new Map();
+  }
+
+  _normalizeDoc(guildId, doc = {}) {
+    return { _id: String(guildId), ...doc, _id: String(guildId) };
+  }
+
+  _saveSafe(guildId, data) {
+    this._save(guildId, data).catch((error) => {
+      console.error(`[MongoDBEnmap] Falha ao salvar guild ${guildId}:`, error.message);
+    });
+  }
+
+  async _loadFromDatabase(guildId) {
+    const id = String(guildId);
+    const doc = await GuildSettings.findById(id).lean().exec();
+    if (!doc) {
+      return null;
+    }
+
+    const normalized = this._normalizeDoc(id, doc);
+    this.cache.set(id, normalized);
+    return normalized;
   }
 
   async _load(guildId) {
-    if (this.cache.has(guildId)) {
-      return this.cache.get(guildId);
+    const id = String(guildId);
+
+    if (this.loading.has(id)) {
+      await this.loading.get(id);
+      return this.cache.get(id) || { _id: id };
     }
-    
-    let doc = await GuildSettings.findById(guildId).lean().exec();
-    if (!doc) {
-      doc = { _id: guildId };
+
+    if (this.cache.has(id)) {
+      return this.cache.get(id);
     }
-    
-    this.cache.set(guildId, doc);
-    return doc;
+
+    const loadPromise = this._loadFromDatabase(id).catch((error) => {
+      console.error(`[MongoDBEnmap] Falha ao carregar guild ${id}:`, error.message);
+      return null;
+    });
+
+    this.loading.set(id, loadPromise);
+
+    try {
+      const loaded = await loadPromise;
+      if (loaded) {
+        return loaded;
+      }
+
+      const empty = { _id: id };
+      this.cache.set(id, empty);
+      return empty;
+    } finally {
+      this.loading.delete(id);
+    }
   }
 
   async _save(guildId, data) {
+    const id = String(guildId);
     const toSave = { ...data };
     delete toSave._id;
     
-    await GuildSettings.findByIdAndUpdate(guildId, toSave, { upsert: true });
-    this.cache.set(guildId, { _id: guildId, ...toSave });
+    await GuildSettings.findByIdAndUpdate(id, toSave, { upsert: true });
+    this.cache.set(id, { _id: id, ...toSave });
+  }
+
+  async warmCache() {
+    const docs = await GuildSettings.find({}).lean().exec();
+
+    for (const doc of docs) {
+      if (!doc || !doc._id) continue;
+      const id = String(doc._id);
+      this.cache.set(id, this._normalizeDoc(id, doc));
+    }
+
+    return docs.length;
   }
 
   ensure(guildId, defaults = {}) {
-    if (this.cache.has(guildId)) {
-      const doc = this.cache.get(guildId);
-      const hasData = Object.keys(doc).some(k => k !== '_id' && doc[k] !== undefined && doc[k] !== null && 
-        (Array.isArray(doc[k]) ? doc[k].length > 0 : true));
-      
-      if (!hasData) {
-        this._save(guildId, defaults);
-        this.cache.set(guildId, { _id: guildId, ...defaults });
+    const id = String(guildId);
+    const cached = this.cache.get(id);
+
+    if (cached) {
+      if (this.loading.has(id)) {
+        return cached;
       }
-      return doc;
+
+      let changed = false;
+      const merged = { ...cached };
+
+      for (const [key, value] of Object.entries(defaults)) {
+        if (merged[key] === undefined || merged[key] === null) {
+          merged[key] = value;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        this.cache.set(id, merged);
+        this._saveSafe(id, merged);
+      }
+
+      return merged;
     }
-    
-    this._save(guildId, defaults);
-    const doc = { _id: guildId, ...defaults };
-    this.cache.set(guildId, doc);
-    return doc;
+
+    const seeded = this._normalizeDoc(id, defaults);
+    this.cache.set(id, seeded);
+
+    const loadPromise = this._loadFromDatabase(id)
+      .then((docFromDb) => {
+        if (!docFromDb) {
+          this._saveSafe(id, seeded);
+          return seeded;
+        }
+
+        const merged = { ...defaults, ...docFromDb, _id: id };
+        const needsBackfill = Object.keys(defaults).some(
+          (key) => docFromDb[key] === undefined || docFromDb[key] === null
+        );
+
+        this.cache.set(id, merged);
+        if (needsBackfill) {
+          this._saveSafe(id, merged);
+        }
+
+        return merged;
+      })
+      .catch((error) => {
+        console.error(`[MongoDBEnmap] Falha ao sincronizar guild ${id}:`, error.message);
+        return seeded;
+      })
+      .finally(() => {
+        this.loading.delete(id);
+      });
+
+    this.loading.set(id, loadPromise);
+    return seeded;
   }
 
   get(guildId, key) {
-    if (!this.cache.has(guildId)) {
+    const id = String(guildId);
+    if (!this.cache.has(id)) {
       return undefined;
     }
     
-    const doc = this.cache.get(guildId);
+    const doc = this.cache.get(id);
     
     if (key === undefined) {
       const obj = { ...doc };
@@ -91,18 +189,24 @@ class MongoDBEnmap {
   }
 
   set(guildId, value, key) {
+    const id = String(guildId);
+
     if (!key) {
-      this._save(guildId, value);
+      const doc = this._normalizeDoc(id, value);
+      this.cache.set(id, doc);
+      this._saveSafe(id, doc);
       return;
     }
 
-    let doc = this.cache.get(guildId) || { _id: guildId };
+    let doc = { ...(this.cache.get(id) || { _id: id }) };
     doc[key] = value;
-    this._save(guildId, doc);
+    this.cache.set(id, doc);
+    this._saveSafe(id, doc);
   }
 
   push(guildId, value, key) {
-    let doc = this.cache.get(guildId) || { _id: guildId };
+    const id = String(guildId);
+    let doc = { ...(this.cache.get(id) || { _id: id }) };
     const current = doc[key] || [];
     
     if (!Array.isArray(current)) {
@@ -111,11 +215,13 @@ class MongoDBEnmap {
       doc[key] = [...current, value];
     }
     
-    this._save(guildId, doc);
+    this.cache.set(id, doc);
+    this._saveSafe(id, doc);
   }
 
   remove(guildId, value, key) {
-    let doc = this.cache.get(guildId) || { _id: guildId };
+    const id = String(guildId);
+    let doc = { ...(this.cache.get(id) || { _id: id }) };
     const current = doc[key] || [];
     
     if (Array.isArray(current)) {
@@ -124,31 +230,36 @@ class MongoDBEnmap {
       doc[key] = [];
     }
     
-    this._save(guildId, doc);
+    this.cache.set(id, doc);
+    this._saveSafe(id, doc);
   }
 
   has(guildId, key) {
-    if (!this.cache.has(guildId)) {
+    const id = String(guildId);
+    if (!this.cache.has(id)) {
       return false;
     }
     
-    const doc = this.cache.get(guildId);
+    const doc = this.cache.get(id);
     return key in doc;
   }
 
   delete(guildId, key) {
-    let doc = this.cache.get(guildId) || { _id: guildId };
+    const id = String(guildId);
+    let doc = { ...(this.cache.get(id) || { _id: id }) };
     delete doc[key];
-    this._save(guildId, doc);
+    this.cache.set(id, doc);
+    this._saveSafe(id, doc);
   }
 
   async fetch(guildId) {
     await this._load(guildId);
-    return this.cache.get(guildId);
+    return this.cache.get(String(guildId));
   }
 
   clear() {
     this.cache.clear();
+    this.loading.clear();
   }
 }
 

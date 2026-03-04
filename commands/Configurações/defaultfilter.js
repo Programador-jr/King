@@ -1,81 +1,79 @@
-const {
-  MessageEmbed
-} = require("discord.js");
-const config = require("../../botconfig/config.json");
+const { MessageEmbed } = require("discord.js");
 const ee = require("../../botconfig/embed.json");
-const settings = require("../../botconfig/settings.json");
-const filters = require("../../botconfig/filters.json")
-module.exports = {
-  name: "defaultfilter", //the command name for execution & for helpcmd [OPTIONAL]
-	category: "Configura\u00e7\u00f5es",
+const filters = require("../../botconfig/filters.json");
 
+module.exports = {
+  name: "defaultfilter",
+  category: "Configurações",
   aliases: ["dfilter"],
-  usage: "defaultfilter <Filter1 Filter2>",
-  cooldown: 10, //the command cooldown for execution & for helpcmd [OPTIONAL]
-  usage: "defaultfilter", //the command usage for helpcmd [OPTIONAL]
-  description: "Define o(s) filtro(s) padrão", //the command description for helpcmd [OPTIONAL]
-  memberpermissions: ["MANAGE_GUILD "], //Only allow members with specific Permissions to execute a Commmand [OPTIONAL]
-  requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
-  alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL], //Only allow specific Users to execute a Command [OPTIONAL]
+  usage: "defaultfilter <filtro1 filtro2 ...>",
+  cooldown: 10,
+  description: "Define os filtros padrao aplicados ao iniciar a fila",
+  memberpermissions: ["MANAGE_GUILD"],
+  requiredroles: [],
+  alloweduserids: [],
 
   run: async (client, message, args) => {
     try {
-      //things u can directly access in an interaction!
-      const {
-        member,
-        channelId,
-        guildId,
-        applicationId,
-        commandName,
-        deferred,
-        replied,
-        ephemeral,
-        options,
-        id,
-        createdTimestamp
-      } = message;
-      const {
-        guild
-      } = member;
+      const guild = message?.guild;
+      if (!guild) return;
+
       client.settings.ensure(guild.id, {
         defaultvolume: 50,
         defaultautoplay: false,
-        defaultfilters: [`bassboost6`, `clear`]
+        defaultfilters: ["bassboost6", "clear"],
       });
-      if (args.some(a => !filters[a])) {
+
+      const normalized = [...new Set((args || []).map((a) => String(a).trim().toLowerCase()).filter(Boolean))];
+      const validNames = Object.keys(filters);
+
+      if (!normalized.length) {
+        const current = client.settings.get(guild.id, "defaultfilters") || [];
         return message.reply({
           embeds: [
             new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setFooter(ee.footertext, ee.footericon)
-            .setTitle(`${client.allEmojis.x} **You added at least one Filter, which is invalid!**`)
-            .setDescription("**To define Multiple Filters add a SPACE (` `) in between!**")
-            .addField("**All Valid Filters:**", Object.keys(filters).map(f => `\`${f}\``).join(", "))
+              .setColor(ee.color)
+              .setFooter(ee.footertext, ee.footericon)
+              .setTitle(`${client.allEmojis.check_mark} **Filtros padrao atuais:**`)
+              .setDescription(current.length ? current.map((name) => `\`${name}\``).join(", ") : "`nenhum`")
+              .addField("**Filtros validos:**", validNames.map((name) => `\`${name}\``).join(", ")),
           ],
-        })
+        });
       }
 
-      client.settings.set(guild.id, args, "defaultfilters");
+      const invalid = normalized.filter((name) => !filters[name]);
+      if (invalid.length > 0) {
+        return message.reply({
+          embeds: [
+            new MessageEmbed()
+              .setColor(ee.wrongcolor)
+              .setFooter(ee.footertext, ee.footericon)
+              .setTitle(`${client.allEmojis.x} **Voce adicionou filtro(s) invalido(s).**`)
+              .setDescription(`Invalidos: ${invalid.map((name) => `\`${name}\``).join(", ")}`)
+              .addField("**Filtros validos:**", validNames.map((name) => `\`${name}\``).join(", ")),
+          ],
+        });
+      }
+
+      client.settings.set(guild.id, normalized, "defaultfilters");
       return message.reply({
         embeds: [
           new MessageEmbed()
-          .setColor(ee.color)
-          .setFooter(ee.footertext, ee.footericon)
-          .setTitle(`${client.allEmojis.check_mark} **The new Default-Filter${args.length > 0 ? "s are": " is"}:**`)
-          .setDescription(`${args.map(a=>`\`${a}\``).join(", ")}`)
+            .setColor(ee.color)
+            .setFooter(ee.footertext, ee.footericon)
+            .setTitle(`${client.allEmojis.check_mark} **Novos filtros padrao salvos:**`)
+            .setDescription(normalized.map((name) => `\`${name}\``).join(", ")),
         ],
-      })
+      });
     } catch (e) {
-      console.log(String(e.stack).bgRed)
+      console.log(e?.stack || e);
+      return message.reply({
+        embeds: [
+          new MessageEmbed()
+            .setColor(ee.wrongcolor)
+            .setTitle(`${client.allEmojis.x} **Falha ao salvar filtros padrao.**`),
+        ],
+      }).catch(() => {});
     }
-  }
-}
-/**
- * @INFO
- * Bot Coded by Tomato#6966 | https://github.com/Tomato6966/Discord-Js-Handler-Template
- * @INFO
- * Work for Milrato Development | https://milrato.eu
- * @INFO
- * Please mention Him / Milrato Development, when using this Code!
- * @INFO
- */
+  },
+};

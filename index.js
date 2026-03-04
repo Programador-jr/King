@@ -7,11 +7,7 @@ const filters = require(`./botconfig/filters.json`);
 const colors = require("colors");
 const { connectMongoDB, MongoDBEnmap } = require("./databases/mongodb");
 const libsodium = require("libsodium-wrappers");
-const ffmpeg = require("ffmpeg-static");
-const voice = require("@discordjs/voice");
-const DisTube = require("distube").default;
 const { GatewayIntentBits, Partials } = Discord;
-const { CustomYtDlpPlugin } = require("./handlers/customYtDlp");
 const client = new Discord.Client({
 	restTimeOffset: 0,
     shards: "auto",
@@ -37,34 +33,36 @@ const client = new Discord.Client({
     },
 });
 
-const { SpotifyPlugin } = require("@distube/spotify");
-const { SoundCloudPlugin } = require("@distube/soundcloud");
+const LavalinkManagerWrapper = require("./handlers/lavalinkClient");
+client.lavalink = new LavalinkManagerWrapper(client);
+
+client.distube = {
+    getQueue: (guildId) => {
+        return client.lavalink.getQueue(guildId);
+    },
+    play: async (voiceChannel, url, options = {}) => {
+        return await client.lavalink.play(voiceChannel, url, options);
+    },
+    skip: async (guildId) => {
+        return await client.lavalink.skip(guildId);
+    },
+    stop: async (guildId) => {
+        return await client.lavalink.stop(guildId);
+    },
+    pause: async (guildId) => {
+        return await client.lavalink.pause(guildId, true);
+    },
+    resume: async (guildId) => {
+        return await client.lavalink.resume(guildId);
+    },
+    filters: {},
+    customFilters: filters,
+};
+
 const { request } = require("http");
 const spotifyEnabled = String(process.env.SPOTIFY_API_ENABLED);
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-
-let spotifyoptions = {}
-if (spotifyEnabled && spotifyClientId && spotifyClientSecret) {
-  spotifyoptions.api = {
-    clientId: spotifyClientId,
-    clientSecret: spotifyClientSecret,
-  }
-}
-client.distube = new DisTube(client, {
-  emitNewSongOnly: false,
-  savePreviousSongs: true,
-  emitAddSongWhenCreatingQueue: false,
-  ffmpeg: {
-    path: ffmpeg,
-  },
-  customFilters: filters,
-  plugins: [
-    new SpotifyPlugin(spotifyoptions),
-    new SoundCloudPlugin(),
-    new CustomYtDlpPlugin()
-  ]
-})
 
 //Define some Global Collections
 client.commands = new Discord.Collection();
@@ -81,11 +79,13 @@ client.settings = new MongoDBEnmap();
 async function startBot() {
   try {
     await connectMongoDB();
+    const cachedGuildSettings = await client.settings.warmCache();
+    console.log(`[MongoDBEnmap] ${cachedGuildSettings} servidor(es) com settings em cache`);
     
     client.infos = new MongoDBEnmap();
     
     //Require the Handlers                  Add the antiCrash file too, if its enabled
-    ["events", "commands", "slashCommands", settings.antiCrash ? "antiCrash" : null, "distubeEvent"]
+    ["events", "commands", "slashCommands", settings.antiCrash ? "antiCrash" : null, "lavalinkEvents"]
         .filter(Boolean)
         .forEach(h => {
             require(`./handlers/${h}`)(client);
@@ -93,6 +93,16 @@ async function startBot() {
     
     //Start the Bot
     client.login(process.env.token || process.env.TOKEN || config.token);
+    
+    // Connect to Lavalink after bot is ready
+    client.once("clientReady", async () => {
+      try {
+        await client.lavalink.connect();
+        console.log("[Lavalink] Conectado ao servidor Lavalink");
+      } catch (error) {
+        console.error("[Lavalink] Erro ao conectar:", error);
+      }
+    });
   } catch (error) {
     console.error("❌ Erro ao iniciar o bot:", error);
     process.exit(1);

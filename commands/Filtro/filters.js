@@ -180,7 +180,11 @@ module.exports = {
             const selectedFilters = interaction.values;
             const queueFilters = queue.filters;
             
-            await queueFilters.add(selectedFilters);
+            if (isAdd) {
+              await queueFilters.add(selectedFilters);
+            } else {
+              await queueFilters.remove(selectedFilters);
+            }
             
             const updatedFilters = getCurrentFilters(client.distube.getQueue(guildId));
             

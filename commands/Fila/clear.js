@@ -76,7 +76,7 @@ module.exports = {
 					});
 				}
 				let amount = newQueue.songs.length - 2;
-				newQueue.songs = [newQueue.songs[0]];
+				await newQueue.clear();
 				message.reply({
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)

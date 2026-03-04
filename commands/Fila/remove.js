@@ -118,7 +118,7 @@ module.exports = {
 					],
 
 				})
-				newQueue.songs.splice(songIndex, amount);
+				await newQueue.remove(songIndex, amount);
 				message.reply({
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
