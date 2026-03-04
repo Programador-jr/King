@@ -131,10 +131,7 @@ module.exports = {
 
 				})
 				let song = newQueue.songs[songIndex];
-				//remove the song
-				newQueue.songs.splice(songIndex);
-				//Add it to a specific Position
-				newQueue.addToQueue(song, position)
+				await newQueue.move(songIndex, position);
 				message.reply({
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)

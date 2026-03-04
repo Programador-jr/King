@@ -1,6 +1,5 @@
-﻿const { MessageEmbed, PermissionFlagsBits } = require("discord.js");
+const { MessageEmbed, PermissionFlagsBits } = require("discord.js");
 const ee = require("../../botconfig/embed.json");
-const { resolveQuery } = require("../../handlers/musicSearch");
 
 const ERROR_DELETE_MS = 4000;
 const deleteLater = (msg) => {
@@ -87,48 +86,12 @@ module.exports = {
 			}).catch(() => null);
 
 			try {
-				const resolved = await resolveQuery(Text);
-				if (resolved?.unsupported === "youtube_music") {
-					await newmsg?.edit({
-						content: `${client.allEmojis.x} **YouTube Music nao suportado. Tente usar um link do YouTube**`
-					}).catch(() => {});
-					deleteLater(message);
-					deleteLater(newmsg);
-					return;
-				}
-				if (!resolved?.url) {
-					await newmsg?.edit({ content: `${client.allEmojis.x} Nao encontrei resultado para: ` + "```" + Text + "```" }).catch(() => {});
-					deleteLater(message);
-					deleteLater(newmsg);
-					return;
-				}
-				const playWithRetry = async () => {
-					let retried = false;
-					for (;;) {
-						try {
-							const existingQueue = client.distube.getQueue(guildId);
-							if (existingQueue?.stopped) {
-								existingQueue.remove();
-							}
-							await client.distube.play(channel, resolved.url, {
-								member: member,
-								textChannel: guild.channels.cache.get(channelId)
-							});
-							return;
-						} catch (err) {
-							const code = err?.code || err?.errorCode || "";
-							if (!retried && (String(err).includes("QUEUE_STOPPED") || code === "QUEUE_STOPPED")) {
-								const existingQueue = client.distube.getQueue(guildId);
-								if (existingQueue) existingQueue.remove();
-								retried = true;
-								continue;
-							}
-							throw err;
-						}
-					}
-				};
-				await playWithRetry();
-				newmsg?.edit({ content: "Tocando: ```" + (resolved.title || Text) + "```" }).catch(() => {});
+				await client.lavalink.play(channel, Text, {
+					member: member,
+					textChannel: guild.channels.cache.get(channelId)
+				});
+				
+				newmsg?.edit({ content: "Tocando: ```" + Text + "```" }).catch(() => {});
 			} catch (e) {
 				console.log(e.stack ? e.stack : e);
 				return replyError(message, {
