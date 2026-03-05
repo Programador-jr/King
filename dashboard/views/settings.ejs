@@ -55,7 +55,7 @@
               <div class="settings-group">
                 <h5>Volume padrao</h5>
                 <p class="form-helper">Volume aplicado quando uma nova fila é criada.</p>
-                <input oninput="this.nextElementSibling.value = this.value" type="range" class="form-range" min="1" max="150" step="1" value="<%= botClient.settings.get(guild.id, 'defaultvolume') %>" name="defaultvolume" id="defaultvolume">
+                <input oninput="this.closest('.settings-group').querySelector('output').value = this.value" type="range" class="form-range" min="1" max="150" step="1" value="<%= botClient.settings.get(guild.id, 'defaultvolume') %>" name="defaultvolume" id="defaultvolume">
                 <p class="slider-value">Volume atual: <output><%= botClient.settings.get(guild.id, 'defaultvolume') %></output>%</p>
               </div>
 
@@ -142,7 +142,7 @@
               <div class="settings-group">
                 <h5>Mix padrão</h5>
                 <p class="form-helper">Plataforma padrão para o comando mix. Se a playlist selected falhar, usa a outra como fallback.</p>
-                <% const mixDefault = botClient.settings.get(guild.id, 'mixDefault') || 'spotify'; %>
+                <% const mixDefault = botClient.settings.get(guild.id, 'mixDefault') || 'youtube'; %>
                 <select class="form-control selectpicker" data-width="100%" data-live-search="false" aria-label="Mix Default" name="mixDefault">
                   <option value="spotify" <%= mixDefault === 'spotify' ? 'selected' : '' %>>Spotify (padrão)</option>
                   <option value="youtube" <%= mixDefault === 'youtube' ? 'selected' : '' %>>YouTube (padrão)</option>

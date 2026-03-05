@@ -944,7 +944,17 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     getFilterSet(guildId) {
         if (!this.filterState.has(guildId)) {
-            this.filterState.set(guildId, new Set());
+            const seeded = new Set();
+            try {
+                const defaults = this.getGuildPlaybackDefaults(guildId).defaultfilters;
+                for (const filterName of this.normalizeFilters(defaults)) {
+                    if (filterName === "clear") continue;
+                    seeded.add(filterName);
+                }
+            } catch {
+                // ignore and fallback to empty set
+            }
+            this.filterState.set(guildId, seeded);
         }
         return this.filterState.get(guildId);
     }

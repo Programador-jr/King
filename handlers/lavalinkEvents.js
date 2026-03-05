@@ -378,7 +378,7 @@ module.exports = (client) => {
   function receiveQueueData(newQueue, newTrack) {
     const appliedFilters = Array.isArray(newQueue?.filters?.names)
       ? newQueue.filters.names
-      : [];
+      : (newQueue?.filters?.collection ? [...newQueue.filters.collection.keys()] : []);
     var djs = client.settings.get(newQueue.id, `djroles`);
     if(!djs || !Array.isArray(djs)) djs = [];
     else djs = djs.map(r => `<@&${r}>`);

@@ -82,7 +82,10 @@ module.exports = async (client, interaction) => {
     defaultautoplay: false,
     defaultfilters: [`bassboost6`, `clear`],
     djroles: [],
-    musicChannels: []
+    botchannel: [],
+    musicChannels: [],
+    confessionChannel: null,
+    mixDefault: "spotify"
   });
 
   let prefix = client.settings.get(interaction.guildId, "prefix");
