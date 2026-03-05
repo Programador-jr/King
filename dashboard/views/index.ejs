@@ -17,8 +17,8 @@
       <div class="hero-card">
         <span class="hero-badge">PAINEL OFICIAL</span>
         <h1><%= botClient.user.username %> | Bot Completo para Comunidades</h1>
-        <p class="subtext" style="text-align:left; margin-top: 10px;">
-          Gerencie comandos, configuracoes, utilidades, jogos e musica em uma interface moderna, rapida e responsiva.
+        <p class="subtext hero-lead">
+          Gerencie comandos, configurações, utilidades, jogos e música em uma interface moderna, rápida e responsiva.
         </p>
         <div class="hero-actions">
           <a class="btn-modern btn-modern-primary" href="/dashboard">Abrir Dashboard</a>
@@ -27,8 +27,8 @@
       </div>
 
       <div class="hero-card">
-        <h5 style="margin-top:0; margin-bottom: 12px;">Resumo rapido</h5>
-        <div class="feature-grid" style="margin-top:0;">
+        <h5 class="hero-summary-title">Resumo rápido</h5>
+        <div class="feature-grid feature-grid-summary">
           <div class="feature-card">
             <div class="feature-body">
               <h5><%= typeof commands.size === 'number' ? commands.size : commands.length %> Comandos</h5>
@@ -43,14 +43,14 @@
           </div>
           <div class="feature-card">
             <div class="feature-body">
-              <h5>Automacoes e controle</h5>
-              <p>Configure comportamento padrao, permissao por cargo e canais dedicados.</p>
+              <h5>Automações e controle</h5>
+              <p>Configure comportamento padrão, permissão por cargo e canais dedicados.</p>
             </div>
           </div>
           <div class="feature-card">
             <div class="feature-body">
-              <h5>Gestao por servidor</h5>
-              <p>Cada guilda com configuracao independente.</p>
+              <h5>Gestão por servidor</h5>
+              <p>Cada guild com configuração independente.</p>
             </div>
           </div>
         </div>
@@ -59,9 +59,9 @@
 
     <section class="legacy-floating">
       <div class="custom-1 pt-10">
-        <img class="legacy-float-img" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80" alt="Comandos">
+        <div class="legacy-icon legacy-icon-command" aria-hidden="true"><i class="fas fa-layer-group"></i></div>
         <h3>Todos os comandos necessários para o seu servidor</h3>
-        <p>
+<p>
           Você está cansado de ter um Bot de Música com milhares de comandos? King tem todos os comandos necessários em apenas um único bot!
           <br>
           Embora eles não vejam "muito", você pode usar nossas estruturas de comando para adicionar um dos <b><%= Object.keys(BotFilters).length %> Filtros!</b>
@@ -69,21 +69,21 @@
       </div>
 
       <div class="custom-2 pt-16">
-        <img class="legacy-float-img" src="https://cdn.discordapp.com/attachments/838108210007113748/904491634991984650/filters.png" alt="Filtros">
+        <div class="legacy-icon legacy-icon-filter" aria-hidden="true"><i class="fas fa-sliders-h"></i></div>
         <h3>Experiência de Música definitiva significa <%= Object.keys(BotFilters).length %> Filtros para ajustar o seu áudio!</h3>
-        <p>Estamos usando o FFMPEG, para dar a você a mais alta qualidade de áudio possível! Na verdade, nós os geramos instantaneamente e não temos lag!</p>
+        <p>Estamos usando o FFMPEG para dar a você a mais alta qualidade de áudio possível. Na verdade, nós os geramos instantaneamente e quase não temos lag!</p>
       </div>
 
       <div class="custom-1 pt-16">
-        <img class="legacy-float-img" src="https://www.pcguia.pt/wp-content/uploads/2019/12/Spotify_musica.jpg" alt="Plataformas">
-        <h3>Spotify, Soundcloud, Youtube e 1100+ outros links suportados!</h3>
-        <p>Apoiamos tudo o que você ouve! INCLUINDO PLAYLISTS E <b>20 PLAYLISTS PREDEFINIDAS, otimizadas! (mix)</b></p>
+        <div class="legacy-icon legacy-icon-music" aria-hidden="true"><i class="fas fa-compact-disc"></i></div>
+<h3>Spotify, Soundcloud, Youtube e 1100+ outros links suportados!</h3>
+        <p>Apoiamos tudo o que você ouve! INCLUINDO PLAYLISTS E <b><%= SPOTIFY_MIXES ? SPOTIFY_MIXES.length : ytMixesTotal %> PLAYLISTS PREDEFINIDAS, otimizadas! (mix)</b></p>
       </div>
 
       <div class="custom-2 pt-16">
-        <img class="legacy-float-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1400&q=80" alt="Interface">
+        <div class="legacy-icon legacy-icon-dashboard" aria-hidden="true"><i class="fas fa-tachometer-alt"></i></div>
         <h3>Interface clara, com logs e botões instantâneos!</h3>
-        <p>Para que você possa obter tudo o que deseja instantaneamente do Bot e ver tudo o que / quem aconteceu!</p>
+        <p>Para que voce possa obter tudo o que deseja instantaneamente do Bot e ver tudo o que / quem aconteceu!</p>
       </div>
     </section>
 

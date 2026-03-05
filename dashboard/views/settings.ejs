@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
-    <title>Configuracoes | <%= guild.name %></title>
+    <title>Configurações | <%= guild.name %></title>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
@@ -23,8 +23,8 @@
         <div class="form-content">
           <div class="form-items">
             <div class="settings-header">
-              <h3>Configuracoes do servidor</h3>
-              <p>Edite as configuracoes do <%= botClient.user.username %> em <b><%= guild.name %></b>.</p>
+              <h3>Configurações do servidor</h3>
+              <p>Edite as configurações do <%= botClient.user.username %> em <b><%= guild.name %></b>.</p>
             </div>
 
             <form method="POST" class="settings-form">
@@ -35,8 +35,8 @@
               </div>
 
               <div class="settings-group">
-                <h5>Reproducao automatica padrao</h5>
-                <p class="form-helper">Ativa autoplay por padrao quando a fila iniciar.</p>
+                <h5>Reprodução automática padrão</h5>
+                <p class="form-helper">Ativa autoplay por padrão quando a fila iniciar.</p>
                 <div class="form-check form-switch">
                   <input
                     class="form-check-input"
@@ -54,14 +54,14 @@
 
               <div class="settings-group">
                 <h5>Volume padrao</h5>
-                <p class="form-helper">Volume aplicado quando uma nova fila e criada.</p>
+                <p class="form-helper">Volume aplicado quando uma nova fila é criada.</p>
                 <input oninput="this.nextElementSibling.value = this.value" type="range" class="form-range" min="1" max="150" step="1" value="<%= botClient.settings.get(guild.id, 'defaultvolume') %>" name="defaultvolume" id="defaultvolume">
                 <p class="slider-value">Volume atual: <output><%= botClient.settings.get(guild.id, 'defaultvolume') %></output>%</p>
               </div>
 
               <div class="settings-group">
                 <h5>Cargos DJ</h5>
-                <p class="form-helper">Usuarios com estes cargos podem usar comandos de controle de musica/fila.</p>
+                <p class="form-helper">Usuários com estes cargos podem usar comandos de controle de música/fila.</p>
                 <select class="form-control selectpicker" multiple data-width="100%" data-live-search="true" aria-label="DJ Roles" name="djroles">
                   <% const djroles = botClient.settings.get(guild.id, 'djroles') || []; %>
                   <% guild.roles.cache.filter(role => !role.managed).sort((a, b) => b.rawPosition - a.rawPosition).forEach((role) => { %>
@@ -93,6 +93,28 @@
                   <% }) %>
                 </select>
               </div>
+              <div class="settings-group">
+                <h5>Canal de Confissões</h5>
+                <p class="form-helper">Canal usado para enviar confissões anônimas. Se vazio, o comando de confissões fica desativado.</p>
+                <% const confessionChannel = botClient.settings.get(guild.id, 'confessionChannel') || ''; %>
+                <select class="form-control selectpicker" data-width="100%" data-live-search="true" aria-label="Confession Channel" name="confessionChannel">
+                  <option value="" <%= !confessionChannel ? 'selected' : '' %>>Nenhum canal (desativa comando)</option>
+                  <% guild.channels.cache
+                      .filter((channel) => {
+                        const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
+                        const isThread = typeof channel.isThread === 'function' && channel.isThread();
+                        if (!isTextBased || isThread) return false;
+                        const perms = channel.permissionsFor(botClient.user);
+                        return Boolean(perms && perms.has(['ViewChannel', 'SendMessages', 'EmbedLinks']));
+                      })
+                      .sort((a, b) => a.rawPosition - b.rawPosition)
+                      .forEach((channel) => { %>
+                    <option value="<%= channel.id %>" <%= String(confessionChannel) === String(channel.id) ? 'selected' : '' %>>
+                      #<%= channel.name %>
+                    </option>
+                  <% }) %>
+                </select>
+              </div>
 
               <div class="settings-group">
                 <h5>Canais de Música</h5>
@@ -116,12 +138,24 @@
                 </select>
               </div>
 
+
               <div class="settings-group">
-                <h5>Filtros padrao</h5>
+                <h5>Mix padrão</h5>
+                <p class="form-helper">Plataforma padrão para o comando mix. Se a playlist selected falhar, usa a outra como fallback.</p>
+                <% const mixDefault = botClient.settings.get(guild.id, 'mixDefault') || 'spotify'; %>
+                <select class="form-control selectpicker" data-width="100%" data-live-search="false" aria-label="Mix Default" name="mixDefault">
+                  <option value="spotify" <%= mixDefault === 'spotify' ? 'selected' : '' %>>Spotify (padrão)</option>
+                  <option value="youtube" <%= mixDefault === 'youtube' ? 'selected' : '' %>>YouTube (padrão)</option>
+                </select>
+              </div>
+
+              <div class="settings-group">
+                <h5>Filtros padrão</h5>
                 <p class="form-helper">Filtros que o bot aplica antes de iniciar a reproducao.</p>
                 <% const defaultfilters = botClient.settings.get(guild.id, 'defaultfilters') || []; %>
+                <% const blockedDashboardFilters = new Set(['custombassboost', 'customspeed', 'clear']); %>
                 <select class="form-control selectpicker" multiple data-width="100%" data-height="100%" data-live-search="true" aria-label="Default Filters" name="defaultfilters">
-                  <% Object.keys(BotFilters).forEach((filter) => { %>
+                  <% Object.keys(BotFilters).filter((filter) => !blockedDashboardFilters.has(filter)).forEach((filter) => { %>
                     <option value="<%= filter %>" <%= defaultfilters.includes(filter) ? 'selected' : '' %>>
                       <%= filter %>
                     </option>
@@ -132,7 +166,7 @@
               <div class="settings-actions">
                 <a href="/dashboard" class="btn-modern btn-modern-secondary">Voltar</a>
                 <button type="submit" class="btn-modern btn-modern-primary">
-                  Salvar Configuracoes
+                  Salvar Configurações
                 </button>
               </div>
             </form>

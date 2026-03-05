@@ -18,7 +18,7 @@
         <h1>Dashboard de Servidores</h1>
       </div>
       <p class="dashboard-intro">
-        Gerencie configuracoes por guilda. Apenas usuarios com permissao <b>Gerenciar Servidor</b> podem editar.
+        Gerencie configurações por guild. Apenas usuários com permissão <b>Gerenciar Servidor</b> podem editar.
       </p>
 
       <% if (user && user.id) { %>
@@ -48,22 +48,22 @@
                   <img src="<%= guildIcon %>" class="card-img-top" alt="<%= guild.name %>">
                   <div class="card-body">
                     <span class="status-pill <%= onServer ? 'status-pill-ok' : 'status-pill-warn' %>">
-                      <%= onServer ? 'Online no servidor' : 'Bot nao adicionado' %>
+                      <%= onServer ? 'Online no servidor' : 'Bot não adicionado' %>
                     </span>
                     <h5 class="card-title"><%= guild.name %></h5>
 
                     <% if (onServer) { %>
                       <p class="card-text">
-                        Edite as configuracoes de <b><%= guild.name %></b> pelo painel.
+                        Edite as configurações de <b><%= guild.name %></b> pelo painel.
                       </p>
                       <div class="card-actions">
                         <a href="/dashboard/<%- guild.id %>" class="btn btn-sm btn-primary px-3">
-                          Editar Configuracoes
+                          Editar Configurações
                         </a>
                       </div>
                     <% } else { %>
                       <p class="card-text">
-                        O bot ainda nao esta neste servidor. Adicione para liberar o painel.
+                        O bot ainda não está neste servidor. Adicione para liberar o painel.
                       </p>
                       <div class="card-actions">
                         <a
@@ -83,18 +83,18 @@
           </div>
         <% } else { %>
           <div class="hero-card dashboard-empty-card">
-            <h5 style="margin-top:0;">Nenhum servidor disponivel</h5>
+            <h5 style="margin-top:0;">Nenhum servidor disponível</h5>
             <p class="subtext" style="text-align:left; margin: 10px 0 0;">
-              Nao foi encontrado nenhum servidor com permissao de <b>Gerenciar Servidor</b> na sua conta.
+              Não foi encontrado nenhum servidor com permissão de <b>Gerenciar Servidor</b> na sua conta.
             </p>
           </div>
         <% } %>
       <% } else { %>
         <div class="hero-card dashboard-empty-card">
-          <h5 style="margin-top:0;">Login necessario</h5>
-          <p class="subtext" style="text-align:left; margin: 10px 0 0;">
-            Entre com sua conta Discord para acessar os servidores disponiveis no painel.
-          </p>
+          <h5 style="margin-top:0;">Login necessário</h5>
+<p class="subtext" style="text-align:left; margin: 10px 0 0;">
+              Entre com sua conta Discord para acessar os servidores disponíveis no painel.
+            </p>
           <div class="hero-actions">
             <a class="btn-modern btn-modern-primary" href="/login">Fazer login</a>
           </div>
