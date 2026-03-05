@@ -86,7 +86,8 @@ module.exports = {
       const spotifyLink = selectedMix.spotify.url;
       const youtubeLink = selectedMix.youtube.url;
       const mixLabel = selectedMix.spotify.label;
-      const mixDefault = client.settings.get(guildId, "mixDefault") || "spotify";
+      const rawMixDefault = String(client.settings.get(guildId, "mixDefault") || "youtube").toLowerCase();
+      const mixDefault = rawMixDefault === "youtube" ? "youtube" : "spotify";
 
       const loadingMsg = await message.reply({
         content: `${client.allEmojis.loading} Carregando o **Mix de musica ${mixLabel}**`

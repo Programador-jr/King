@@ -16,7 +16,9 @@ module.exports = async (client, message) => {
       defaultfilters: [`bassboost6`, `clear`],
       djroles: [],
       botchannel: [],
-      musicChannels: []
+      musicChannels: [],
+      confessionChannel: null,
+      mixDefault: "spotify"
     })
     let prefix = client.settings.get(message.guild.id, `prefix`)
     const prefixRegex = new RegExp(`^(<@!?${client.user.id}>|${escapeRegex(prefix)})`);

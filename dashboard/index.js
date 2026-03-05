@@ -97,6 +97,15 @@ module.exports = client => {
       return unique.filter((filter) => Object.prototype.hasOwnProperty.call(BotFilters, filter) && !DASHBOARD_HIDDEN_FILTERS.has(filter));
     };
 
+    const normalizeSettingsArray = (value) => {
+      const values = Array.isArray(value)
+        ? value
+        : value
+          ? [value]
+          : [];
+      return [...new Set(values.map((item) => String(item || "").trim()).filter(Boolean))];
+    };
+
     const checkApiAuth = (req, res, next) => {
       if (req.isAuthenticated()) return next();
       const redirectTo = `/queue/${req.params.guildID}`;
@@ -405,22 +414,32 @@ module.exports = client => {
       //mix default (spotify or youtube)
       if (req.body.mixDefault) {
         const validMixDefaults = ["spotify", "youtube"];
-        const mixDefault = validMixDefaults.includes(req.body.mixDefault) ? req.body.mixDefault : "spotify";
+        const rawMixDefault = Array.isArray(req.body.mixDefault)
+          ? String(req.body.mixDefault[0] || "")
+          : String(req.body.mixDefault || "");
+        const normalizedMixDefault = rawMixDefault.trim().toLowerCase();
+        const mixDefault = validMixDefaults.includes(normalizedMixDefault) ? normalizedMixDefault : "spotify";
         client.settings.set(guild.id, mixDefault, "mixDefault");
       }
       
-      //if there are new defaultfilters, sanitize and set them
-      if (req.body.defaultfilters) {
-        const safeFilters = sanitizeDashboardFilters(req.body.defaultfilters);
-        if (safeFilters.length) {
-          client.settings.set(guild.id, safeFilters, "defaultfilters");
-        } else {
-          client.settings.set(guild.id, ["bassboost5"], "defaultfilters");
-        }
+      // defaultfilters / roles / channels must always be stored as arrays
+      const safeFilters = sanitizeDashboardFilters(req.body.defaultfilters);
+      const savedDefaultFilters = safeFilters.length ? safeFilters : ["bassboost5"];
+      client.settings.set(guild.id, savedDefaultFilters, "defaultfilters");
+
+      const activeQueue = client.distube.getQueue(guild.id);
+      if (activeQueue?.filters && typeof activeQueue.filters.set === "function") {
+        await activeQueue.filters.set(savedDefaultFilters).catch(() => {});
       }
-      if(req.body.djroles) client.settings.set(guild.id, req.body.djroles, "djroles")
-      if(req.body.botchannel) client.settings.set(guild.id, req.body.botchannel, "botchannel")
-      if(req.body.musicChannels) client.settings.set(guild.id, req.body.musicChannels, "musicChannels")
+
+      const safeDjRoles = normalizeSettingsArray(req.body.djroles);
+      client.settings.set(guild.id, safeDjRoles, "djroles");
+
+      const safeBotChannels = normalizeSettingsArray(req.body.botchannel);
+      client.settings.set(guild.id, safeBotChannels, "botchannel");
+
+      const safeMusicChannels = normalizeSettingsArray(req.body.musicChannels);
+      client.settings.set(guild.id, safeMusicChannels, "musicChannels");
       if (typeof req.body.confessionChannel === "string") {
         const requestedChannelId = req.body.confessionChannel.trim();
         if (!requestedChannelId) {
