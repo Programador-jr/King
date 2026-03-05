@@ -28,7 +28,7 @@ module.exports = {
   name: "filters",
   category: "Filtro",
   usage: "filters",
-  aliases: ["listfilter", "listfilters", "allfilters", "filtros", "filtro"],
+  aliases: ["filtros", "filtro", "filter"],
   description: "Liste todos os filtros ativos e possíveis!",
   cooldown: 5,
   requiredroles: [],
@@ -52,12 +52,12 @@ module.exports = {
             .setPlaceholder("Escolha uma ação")
             .addOptions([
               {
-                label: "➕ Adicionar Filtro",
+                label: "Adicionar Filtro",
                 value: "add",
                 emoji: "➕"
               },
               {
-                label: "➖ Remover Filtro",
+                label: "Remover Filtro",
                 value: "remove",
                 emoji: "➖"
               }
@@ -137,7 +137,7 @@ module.exports = {
         try {
           if (interaction.user.id !== member.id) {
             return interaction.reply({
-              content: "❌ Você não pode usar isso!",
+              content: "<a:declined:876968121116807208> Você não pode usar isso!",
               ephemeral: true
             }).catch(() => {});
           }
@@ -147,7 +147,7 @@ module.exports = {
           const queue = client.distube.getQueue(guildId);
           if (!queue) {
             return interaction.editReply({
-              content: "❌ Não há música tocando!",
+              content: "<a:declined:876968121116807208> Não há música tocando!",
               components: []
             }).catch(() => {});
           }
@@ -160,7 +160,7 @@ module.exports = {
             
             if (!selectRow) {
               return interaction.editReply({
-                content: action === "add" ? "✅ Todos os filtros regulares já estão ativos!" : "❌ Nenhum filtro regular ativo para remover!",
+                content: action === "add" ? "<a:true:891138804734373918> Todos os filtros regulares já estão ativos!" : "<a:declined:876968121116807208> Nenhum filtro regular ativo para remover!",
                 components: []
               }).catch(() => {});
             }
@@ -190,8 +190,8 @@ module.exports = {
             
             await interaction.editReply({
               content: isAdd 
-                ? `✅ Filtros adicionados: ${selectedFilters.map(f => `\`${f}\``).join(", ")}` 
-                : `✅ Filtros removidos: ${selectedFilters.map(f => `\`${f}\``).join(", ")}`,
+                ? `<a:true:891138804734373918> Filtros adicionados: ${selectedFilters.map(f => `\`${f}\``).join(", ")}` 
+                : `<a:true:891138804734373918> Filtros removidos: ${selectedFilters.map(f => `\`${f}\``).join(", ")}`,
               embeds: [
                 new MessageEmbed()
                   .setColor(ee.color)

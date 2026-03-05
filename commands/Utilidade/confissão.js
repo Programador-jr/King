@@ -4,6 +4,14 @@ const ee = require("../../botconfig/embed.json");
 const CONFESSION_TIMEOUT = 120000;
 const pendingConfessions = new Map();
 
+function isValidTargetChannel(channel) {
+  if (!channel) return false;
+
+  const isTextBased = typeof channel.isTextBased === "function" && channel.isTextBased();
+  const isThread = typeof channel.isThread === "function" && channel.isThread();
+  return isTextBased && !isThread;
+}
+
 module.exports = {
   name: "confissão",
   aliases: ["confessar", "conf", "anonimo", "anonymous"],
@@ -40,23 +48,6 @@ async function startConfession(client, context, user) {
     });
   }
 
-  const dmChannel = await user.createDM().catch(() => null);
-
-  if (!dmChannel) {
-    const embed = new MessageEmbed()
-      .setColor(ee.color)
-      .setTitle("💭 Confissão")
-      .setDescription("❌ Não foi possível abrir DM com você.\nVerifique suas configurações de privacidade.")
-      .setFooter(ee.footertext, ee.footericon);
-
-    if (isInteraction) {
-      return context.reply({ embeds: [embed], ephemeral: true });
-    }
-    return context.reply({ embeds: [embed] }).then(() => {
-      setTimeout(() => context.delete().catch(() => {}), 3000);
-    });
-  }
-
   let guildId, channelId;
 
   if (isInteraction) {
@@ -67,6 +58,55 @@ async function startConfession(client, context, user) {
     guildId = context.guild.id;
     client.settings.ensure(guildId, { confessionChannel: null });
     channelId = client.settings.get(guildId, "confessionChannel");
+  }
+
+  const guild = isInteraction ? context.guild || client.guilds.cache.get(guildId) : context.guild;
+
+  if (!channelId) {
+    const embed = new MessageEmbed()
+      .setColor(ee.wrongcolor)
+      .setTitle("💭 Confissão")
+      .setDescription("<a:declined:876968121116807208> O canal de confissões não foi configurado neste servidor.\nPeça para um administrador configurar em `botchat` ou no painel.")
+      .setFooter(ee.footertext, ee.footericon);
+
+    if (isInteraction) {
+      return context.reply({ embeds: [embed], ephemeral: true });
+    }
+    return context.reply({ embeds: [embed] }).catch(() => {});
+  }
+
+  const configuredChannel = guild
+    ? guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null)
+    : null;
+
+  if (!isValidTargetChannel(configuredChannel)) {
+    const embed = new MessageEmbed()
+      .setColor(ee.wrongcolor)
+      .setTitle("💭 Confissão")
+      .setDescription("<a:declined:876968121116807208> O canal de confissões configurado não foi encontrado ou não é válido.\nPeça para um administrador configurar novamente em `botchat` ou no painel.")
+      .setFooter(ee.footertext, ee.footericon);
+
+    if (isInteraction) {
+      return context.reply({ embeds: [embed], ephemeral: true });
+    }
+    return context.reply({ embeds: [embed] }).catch(() => {});
+  }
+
+  const dmChannel = await user.createDM().catch(() => null);
+
+  if (!dmChannel) {
+    const embed = new MessageEmbed()
+      .setColor(ee.wrongcolor)
+      .setTitle("💭 Confissão")
+      .setDescription("<a:declined:876968121116807208> Não foi possível abrir DM com você.\nVerifique suas configurações de privacidade.")
+      .setFooter(ee.footertext, ee.footericon);
+
+    if (isInteraction) {
+      return context.reply({ embeds: [embed], ephemeral: true });
+    }
+    return context.reply({ embeds: [embed] }).then(() => {
+      setTimeout(() => context.delete().catch(() => {}), 3000);
+    });
   }
 
   const instructionsEmbed = new MessageEmbed()
@@ -93,7 +133,7 @@ async function startConfession(client, context, user) {
         dmChannel.send({
           embeds: [
             new MessageEmbed()
-              .setColor(ee.color)
+              .setColor(ee.wrongcolor)
               .setTitle("💭 Confissão")
               .setDescription("⏰ Tempo expirado. Sua confissão foi cancelada.")
               .setFooter(ee.footertext, ee.footericon)
@@ -106,7 +146,7 @@ async function startConfession(client, context, user) {
   const confirmEmbed = new MessageEmbed()
     .setColor(ee.color)
     .setTitle("💭 Confissão")
-    .setDescription("✅ Uma DM foi enviada para você com as instruções!\nVerifique suas mensagens diretas.")
+    .setDescription("<a:true:891138804734373918> Uma DM foi enviada para você com as instruções!\nVerifique suas mensagens diretas.")
     .setFooter(ee.footertext, ee.footericon);
 
   if (isInteraction) {
@@ -135,9 +175,9 @@ module.exports.handleDM = async (client, dmMessage) => {
     dmMessage.reply({
       embeds: [
         new MessageEmbed()
-          .setColor(ee.color)
+          .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("❌ Confissão cancelada.")
+          .setDescription("<a:declined:876968121116807208> Confissão cancelada.")
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -154,9 +194,9 @@ module.exports.handleDM = async (client, dmMessage) => {
     dmMessage.reply({
       embeds: [
         new MessageEmbed()
-          .setColor(ee.color)
+          .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("❌ Servidor não encontrado.")
+          .setDescription("<a:declined:876968121116807208> Servidor não encontrado.")
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -165,15 +205,15 @@ module.exports.handleDM = async (client, dmMessage) => {
 
   const targetChannel = channelId
     ? guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null)
-    : guild.systemChannel || guild.channels.cache.find(c => c.type === "GUILD_TEXT") || await guild.channels.fetch().then(channels => channels.find(c => c.type === "GUILD_TEXT")).catch(() => null);
+    : null;
 
-  if (!targetChannel) {
+  if (!isValidTargetChannel(targetChannel)) {
     dmMessage.reply({
       embeds: [
         new MessageEmbed()
-          .setColor(ee.color)
+          .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("❌ Nenhum canal disponível para enviar a confissão.")
+          .setDescription("<a:declined:876968121116807208> O canal de confissões não está configurado corretamente neste servidor.\nPeça para um administrador configurar novamente.")
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -191,9 +231,9 @@ module.exports.handleDM = async (client, dmMessage) => {
     dmMessage.reply({
       embeds: [
         new MessageEmbed()
-          .setColor(ee.color)
+          .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("❌ Erro ao enviar confissão. O bot pode não ter permissão.")
+          .setDescription("<a:declined:876968121116807208> Erro ao enviar confissão. O bot pode não ter permissão.")
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -206,8 +246,8 @@ module.exports.handleDM = async (client, dmMessage) => {
         .setColor(ee.color)
         .setTitle("💭 Confissão Enviada!")
         .setDescription(
-          "✅ Sua confissão foi enviada com sucesso!\n\n" +
-          (channelId ? `📍 Canal: ${targetChannel}` : "📍 Canal: Canal padrão do servidor")
+          "<a:true:891138804734373918> Sua confissão foi enviada com sucesso!\n\n" +
+          `📍 Canal: ${targetChannel}`
         )
         .setFooter(ee.footertext, ee.footericon)
     ]

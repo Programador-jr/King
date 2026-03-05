@@ -153,8 +153,18 @@ module.exports = async (client, message) => {
               .setDescription(command.argstoomany_message && command.argstoomany_message.trim().length > 0 ? command.argsmissing_message : command.usage ? `Uso: ` + command.usage : `Uso de comando errado`)]
             }).then(msg => {setTimeout(()=>{msg.delete().catch((e) => {console.log(String(e).grey)})}, settings.timeout.maxplusargs)}).catch((e) => {console.log(String(e).grey)});
           }
-          //run the command with the parameters:  client, message, args, Cmduser, text, prefix,
-          command.run(client, message, args, args.join(` `).split(`++`).filter(Boolean), message.member, args.join(` `), prefix);
+          // Run command and await promise rejections to avoid unhandled crashes.
+          await Promise.resolve(
+            command.run(
+              client,
+              message,
+              args,
+              args.join(` `).split(`++`).filter(Boolean),
+              message.member,
+              args.join(` `),
+              prefix
+            )
+          );
         } catch (error) {
           if (settings.somethingwentwrong_cmd) {
             return message.reply({

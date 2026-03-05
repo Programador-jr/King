@@ -19,7 +19,7 @@
           <h1>Servidores Compartilhados</h1>
         </div>
         <p class="dashboard-intro">
-          Ordenado pelo tamanho da fila atual: os servidores com mais musicas aparecem primeiro.
+          Ordenado pelo tamanho da fila atual: os servidores com mais músicas aparecem primeiro.
         </p>
 
         <div class="row g-3 server-grid">
@@ -43,10 +43,10 @@
                 <img src="<%= icon %>" class="card-img-top" alt="<%= guild.name %>">
                 <div class="card-body">
                   <span class="status-pill status-pill-ok">
-                    <%= queueSize > 0 ? `${queueSize} musica(s) na fila` : 'Fila vazia' %>
+                    <%= queueSize > 0 ? `${queueSize} música(s) na fila` : 'Fila vazia' %>
                   </span>
                   <h5 class="card-title"><%= guild.name %></h5>
-                  <p class="card-text">Fila atual com <b><%= queueSize %></b> musicas.</p>
+                  <p class="card-text">Fila atual com <b><%= queueSize %></b> músicas.</p>
                   <div class="card-actions">
                     <a href="/queue/<%- guild.id %>" class="btn btn-sm btn-primary px-3">
                       Mostrar Fila

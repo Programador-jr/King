@@ -9,9 +9,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
     <link rel="stylesheet" href="/commands.css">
+    <style>
+      .accordion-collapse { transition: all 0.3s ease !important; }
+    </style>
     <title>Comandos | <%= bot.name %></title>
   </head>
-  <body>
+  <body class="commands-page">
     <%- include('header'); -%>
     <%
       const resolveHelpDetails = (cmd) => {
@@ -29,9 +32,9 @@
     <section id="botcommands" class="botcommands">
       <h1>Meus Comandos</h1>
       <p>
-        Todos os comandos de texto e slash em um unico lugar.
+        Todos os comandos de texto e slash em um único lugar.
         <a href="https://discord.com/api/oauth2/authorize?client_id=<%= botClient.user.id %>&permissions=8&scope=bot%20applications.commands" target="_blank" rel="noopener noreferrer">
-          Convite com permissoes recomendadas
+          Convite com permissões recomendadas
         </a>
       </p>
 
@@ -75,7 +78,7 @@
                         >
                           <div class="accordion-body">
                             <% const cmdHelpDetails = resolveHelpDetails(cmd); %>
-                            <code>Descricao:</code> <%= cmd.description || 'Sem descricao.' %><br>
+                            <code>Descrição:</code> <%= cmd.description || 'Sem descrição.' %><br>
                             <code>Aliases:</code>
                             <% if (cmd.aliases && cmd.aliases.length > 0) { %>
                               <small class="text-muted">[<%= cmd.aliases.join(', ') %>]</small>
@@ -103,10 +106,10 @@
     </section>
 
     <section id="audiofilters" class="audiofilters">
-      <h1>Filtros de Audio</h1>
-      <p>
-        Aplique filtros com os comandos <b>addfilter</b>, <b>removefilter</b>, <b>setfilter</b>
-        ou via slash commands. Alguns efeitos podem levar ate 2 segundos para aplicar.
+      <h1 id="audiofilters-title">Filtros de Áudio</h1>
+      <p id="audiofilters-desc">
+        Aplique filtros com os comandos <code>addfilter</code>, <code>removefilter</code>, <code>setfilter</code>
+        ou via slash commands. Alguns efeitos podem levar até 2 segundos para aplicar.
       </p>
 
       <div class="container px-lg-5" id="filters_menu">
@@ -115,6 +118,9 @@
             <div class="list-group" role="tablist">
               <a class="allfilters list-group-item list-group-item-action active" data-bs-toggle="list" href="#filters" role="tab" aria-controls="filters">
                 Todos os filtros
+              </a>
+              <a class="allmixes list-group-item list-group-item-action" data-bs-toggle="list" href="#mixes" role="tab" aria-controls="mixes">
+                Todos os Mix
               </a>
             </div>
           </div>
@@ -149,7 +155,41 @@
                             <p><b>Filtro personalizado:</b> possui comandos dedicados para ajuste de ganho/valor.</p>
                           <% } %>
                           <code>FFmpeg Arg:</code> <small class="text-muted"><kbd><%= BotFilters[String(filter)] %></kbd></small><br>
-                          <code>Acao:</code> Aplica o efeito <b><%= filter %></b> no audio.
+                          <code>Ação:</code> Aplica o efeito <b><%= filter %></b> no áudio.
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
+                </div>
+              </div>
+
+              <div class="tab-pane fade" id="mixes" role="tabpanel">
+                <div class="accordion" id="acc_mixes">
+                  <% SPOTIFY_MIXES.forEach((mix, i) => { %>
+                    <div class="accordion-item slide-up-fade-in">
+                      <h2 class="accordion-header" id="h_mix_<%= mix.key %>">
+                        <button
+                          class="accordion-button <%= i === 0 ? '' : 'collapsed' %>"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#c_mix_<%= mix.key %>"
+                          aria-expanded="<%= i === 0 ? 'true' : 'false' %>"
+                          aria-controls="mix_<%= mix.key %>"
+                        >
+                          <b><%= mix.label %></b>
+                        </button>
+                      </h2>
+                      <div
+                        id="c_mix_<%= mix.key %>"
+                        class="accordion-collapse collapse <%= i === 0 ? 'show' : '' %>"
+                        aria-labelledby="h_mix_<%= mix.key %>"
+                        data-bs-parent="#acc_mixes"
+                      >
+                        <div class="accordion-body">
+                          <code>Spotify:</code> <small class="text-muted"><%= mix.url %></small><br>
+                          <code>YouTube:</code> <small class="text-muted"><%= YT_MIXES.find(y => y.key === mix.key)?.url || 'N/A' %></small><br>
+                          <code>Comando:</code> <kbd>mix <%= mix.aliases[0] %></kbd><br>
+                          <code>Alias:</code> <small class="text-muted">[<%= mix.aliases.slice(1).join(', ') %>]</small>
                         </div>
                       </div>
                     </div>
@@ -163,6 +203,33 @@
     </section>
 
     <%- include('footer'); -%>
+
+    <script>
+      const filtersTitle = document.getElementById('audiofilters-title');
+      const filtersDesc = document.getElementById('audiofilters-desc');
+      
+      const filtersText = {
+        title: 'Filtros de Áudio',
+        desc: 'Aplique filtros com os comandos <code>addfilter</code>, <code>removefilter</code>, <code>setfilter</code> ou via slash commands. Alguns efeitos podem levar até 2 segundos para aplicar.'
+      };
+      
+      const mixesText = {
+        title: 'Playlists Mix',
+        desc: 'Use o comando <code>mix</code> para tocar uma playlist predefinida com base em um gênero.'
+      };
+      
+      document.querySelectorAll('[data-bs-toggle="list"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', () => {
+          if (tab.getAttribute('href') === '#mixes') {
+            filtersTitle.textContent = mixesText.title;
+            filtersDesc.innerHTML = mixesText.desc;
+          } else {
+            filtersTitle.textContent = filtersText.title;
+            filtersDesc.innerHTML = filtersText.desc;
+          }
+        });
+      });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
   </body>

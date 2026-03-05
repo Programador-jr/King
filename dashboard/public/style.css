@@ -1,21 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg-900: #04101d;
-  --bg-800: #0a1a2d;
-  --bg-700: #0f243d;
-  --text-100: #e8f6ff;
-  --text-300: #a4bfd3;
+  --bg-900: #000000;
+  --bg-800: #09090a;
+  --bg-700: #141416;
+  --text-100: #ffffff;
+  --text-300: #d2e2ee;
   --accent-500: #00bfff;
   --accent-400: #56d4ff;
   --accent-700: #008ab8;
   --danger-500: #ff4f6d;
   --shadow-lg: 0 20px 45px rgba(2, 10, 23, 0.45);
   --radius-lg: 18px;
-  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-fast: 0.28s;
-  --motion-base: 0.36s;
-  --motion-slow: 0.5s;
 }
 
 * {
@@ -27,11 +23,12 @@ body {
   color: var(--text-100);
   background: var(--bg-900);
   font-family: "Sora", "Outfit", sans-serif;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
   text-decoration: none !important;
+  transition: color 0.3s ease;
 }
 
 .wrapper {
@@ -39,10 +36,21 @@ a {
   top: 0;
   z-index: 1000;
   width: 100%;
-  background: rgba(4, 16, 29, 0.9);
+  background: rgba(0, 0, 0, 0.9);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(0, 191, 255, 0.22);
-  animation: nav-enter var(--motion-base) var(--motion-ease);
+  border-bottom: 1px solid rgba(0, 191, 255, 0.34);
+  animation: nav-enter 0.5s ease;
+}
+
+@keyframes nav-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .wrapper nav {
@@ -65,13 +73,13 @@ nav .menu-icon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(72, 201, 255, 0.25);
-  background: rgba(9, 28, 46, 0.7);
+  border: 1px solid rgba(72, 201, 255, 0.4);
+  background: rgba(12, 12, 13, 0.84);
   color: var(--text-100);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
 }
 
 nav .content {
@@ -93,7 +101,7 @@ nav .content {
   font-size: 1.1rem;
   line-height: 1.2;
   white-space: nowrap;
-  transition: color var(--motion-base) var(--motion-ease);
+  transition: color 0.3s ease;
 }
 
 .content .brand span {
@@ -109,7 +117,7 @@ nav .content {
   height: 34px;
   border-radius: 50%;
   border: 2px solid rgba(72, 201, 255, 0.6);
-  transition: transform var(--motion-base) var(--motion-ease), box-shadow var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .content .brand:hover {
@@ -143,12 +151,12 @@ nav .content .links {
   height: 40px;
   padding: 0 13px;
   border-radius: 12px;
-  color: #c2e8f8;
+  color: #d9f3ff;
   font-size: 0.88rem;
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: 0.01em;
-  transition: all var(--motion-base) var(--motion-ease);
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
@@ -161,7 +169,7 @@ nav .content .links {
   inset: 0;
   background: linear-gradient(145deg, rgba(0, 191, 255, 0.18), rgba(0, 138, 184, 0.16));
   opacity: 0;
-  transition: opacity var(--motion-base) var(--motion-ease);
+  transition: opacity 0.3s ease;
   z-index: -1;
 }
 
@@ -181,7 +189,8 @@ nav .content .links {
 .content .links li a.active-link {
   color: var(--text-100);
   background: linear-gradient(145deg, rgba(0, 191, 255, 0.28), rgba(0, 138, 184, 0.26));
-  border-color: rgba(0, 191, 255, 0.5);
+  border-color: rgba(0, 191, 255, 0.76);
+  box-shadow: 0 0 14px rgba(0, 191, 255, 0.35);
 }
 
 .content .links li a.icon-link {
@@ -209,15 +218,15 @@ nav .content .links {
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: #031018;
+  color: #001018;
   background: linear-gradient(145deg, #00bfff, #0096cc);
   cursor: pointer;
-  transition: transform var(--motion-base) var(--motion-ease), box-shadow var(--motion-base) var(--motion-ease), background var(--motion-base) var(--motion-ease);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
 .nav-auth .auth-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(0, 150, 204, 0.35);
+  box-shadow: 0 0 18px rgba(0, 191, 255, 0.45), 0 10px 22px rgba(0, 150, 204, 0.35);
 }
 
 .nav-auth .auth-btn:active {
@@ -225,8 +234,8 @@ nav .content .links {
 }
 
 .nav-auth .auth-btn.auth-btn-danger {
-  color: #fff;
-  background: linear-gradient(145deg, #ff5b79, #f03f61);
+  color: #001018;
+  background: linear-gradient(145deg, #00bfff, #0096cc);
 }
 
 .nav-auth .auth-btn img {
@@ -285,13 +294,13 @@ nav .content .links {
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
-    background: linear-gradient(180deg, rgba(5, 21, 37, 0.98), rgba(4, 16, 29, 0.99));
-    border-right: 1px solid rgba(0, 191, 255, 0.22);
+    background: linear-gradient(180deg, rgba(10, 10, 11, 0.98), rgba(0, 0, 0, 0.99));
+    border-right: 1px solid rgba(0, 191, 255, 0.36);
     box-shadow: var(--shadow-lg);
     opacity: 0;
     transform: translateX(-16px);
     pointer-events: none;
-    transition: left var(--motion-base) var(--motion-ease), opacity var(--motion-base) var(--motion-ease), transform var(--motion-base) var(--motion-ease);
+    transition: left 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
   }
 
   nav #show-menu:checked ~ .content .links {
@@ -369,17 +378,6 @@ nav .content .links {
     min-width: 86px;
     font-size: 0.75rem;
     letter-spacing: 0.02em;
-  }
-}
-
-@keyframes nav-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

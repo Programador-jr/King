@@ -12,6 +12,7 @@ const BotConfig = require("../botconfig/config.json");
 const BotFilters = require("../botconfig/filters.json");
 const BotEmojis = require("../botconfig/emojis.json");
 const BotEmbed = require("../botconfig/embed.json");
+const { YT_MIXES, SPOTIFY_MIXES } = require("../handlers/customMixes");
 const { getSongSearchData, getLyricsWithFallback } = require("../handlers/lyricsService");
 const {
   getDashboardPort,
@@ -82,6 +83,18 @@ module.exports = client => {
       const userGuild = req.user.guilds.find((entry) => String(entry.id) === String(guildId));
       if (!userGuild) return false;
       return hasManageGuildPermission(userGuild.permissions_new);
+    };
+
+    const DASHBOARD_HIDDEN_FILTERS = new Set(["custombassboost", "customspeed", "clear"]);
+    const sanitizeDashboardFilters = (filtersInput) => {
+      const filtersArray = Array.isArray(filtersInput)
+        ? filtersInput
+        : filtersInput
+          ? [filtersInput]
+          : [];
+
+      const unique = [...new Set(filtersArray.map((filter) => String(filter || "").trim()).filter(Boolean))];
+      return unique.filter((filter) => Object.prototype.hasOwnProperty.call(BotFilters, filter) && !DASHBOARD_HIDDEN_FILTERS.has(filter));
     };
 
     const checkApiAuth = (req, res, next) => {
@@ -234,7 +247,10 @@ module.exports = client => {
           commands: client.commands, 
           BotConfig: BotConfig,
           BotFilters: BotFilters,
+          SPOTIFY_MIXES: SPOTIFY_MIXES,
+          YT_MIXES: YT_MIXES,
           BotEmojis: BotEmojis,
+          ytMixesTotal: Object.keys(YT_MIXES || {}).length,
         });
     })
 
@@ -253,6 +269,8 @@ module.exports = client => {
         commands: client.commands, 
         BotConfig: BotConfig,
         BotFilters: BotFilters,
+          SPOTIFY_MIXES: SPOTIFY_MIXES,
+          YT_MIXES: YT_MIXES,
         BotEmojis: BotEmojis,
       })
     })
@@ -284,6 +302,8 @@ module.exports = client => {
           commands: client.commands, 
           BotConfig: BotConfig,
           BotFilters: BotFilters,
+          SPOTIFY_MIXES: SPOTIFY_MIXES,
+          YT_MIXES: YT_MIXES,
           BotEmojis: BotEmojis,
         });
     })
@@ -309,11 +329,32 @@ module.exports = client => {
         prefix: BotConfig.prefix,      
         defaultvolume: 50,
         defaultautoplay: false,
-        defaultfilters: [`bassboost6`, `clear`],
+        defaultfilters: [`bassboost5`],
         djroles: [],
         botchannel: [],
-        musicChannels: []
+        musicChannels: [],
+        confessionChannel: null,
+        mixDefault: "spotify"
       })
+
+      const storedDefaultFilters = client.settings.get(guild.id, "defaultfilters");
+      const storedArray = Array.isArray(storedDefaultFilters) ? storedDefaultFilters.map((f) => String(f || "").trim()).filter(Boolean) : [];
+      const isLegacyDefault =
+        storedArray.length === 2 &&
+        storedArray.includes("bassboost6") &&
+        storedArray.includes("clear");
+      const normalizedDefaultFilters = sanitizeDashboardFilters(storedDefaultFilters);
+
+      if (isLegacyDefault || !normalizedDefaultFilters.length) {
+        client.settings.set(guild.id, ["bassboost5"], "defaultfilters");
+      } else {
+        const isDifferent =
+          storedArray.length !== normalizedDefaultFilters.length ||
+          storedArray.some((filter, idx) => filter !== normalizedDefaultFilters[idx]);
+        if (isDifferent) {
+          client.settings.set(guild.id, normalizedDefaultFilters, "defaultfilters");
+        }
+      }
 
 
       // We render template using the absolute path of the template and the merged default data with the additional data provided.
@@ -329,6 +370,8 @@ module.exports = client => {
           commands: client.commands, 
           BotConfig: BotConfig,
           BotFilters: BotFilters,
+          SPOTIFY_MIXES: SPOTIFY_MIXES,
+          YT_MIXES: YT_MIXES,
           BotEmojis: BotEmojis,
         }
       );
@@ -356,14 +399,52 @@ module.exports = client => {
       if(req.body.defaultvolume) client.settings.set(guild.id, Number(req.body.defaultvolume), "defaultvolume")
       //if autoplay is enabled set it to true
       if(req.body.defaultautoplay) client.settings.set(guild.id, true, "defaultautoplay")
-      //otherwise not
+//otherwise not
       else client.settings.set(guild.id, false, "defaultautoplay")
       
-      //if there are new defaultfilters, set them
-      if(req.body.defaultfilters) client.settings.set(guild.id, req.body.defaultfilters, "defaultfilters")
+      //mix default (spotify or youtube)
+      if (req.body.mixDefault) {
+        const validMixDefaults = ["spotify", "youtube"];
+        const mixDefault = validMixDefaults.includes(req.body.mixDefault) ? req.body.mixDefault : "spotify";
+        client.settings.set(guild.id, mixDefault, "mixDefault");
+      }
+      
+      //if there are new defaultfilters, sanitize and set them
+      if (req.body.defaultfilters) {
+        const safeFilters = sanitizeDashboardFilters(req.body.defaultfilters);
+        if (safeFilters.length) {
+          client.settings.set(guild.id, safeFilters, "defaultfilters");
+        } else {
+          client.settings.set(guild.id, ["bassboost5"], "defaultfilters");
+        }
+      }
       if(req.body.djroles) client.settings.set(guild.id, req.body.djroles, "djroles")
       if(req.body.botchannel) client.settings.set(guild.id, req.body.botchannel, "botchannel")
       if(req.body.musicChannels) client.settings.set(guild.id, req.body.musicChannels, "musicChannels")
+      if (typeof req.body.confessionChannel === "string") {
+        const requestedChannelId = req.body.confessionChannel.trim();
+        if (!requestedChannelId) {
+          client.settings.set(guild.id, null, "confessionChannel");
+        } else {
+          let confessionChannel = guild.channels.cache.get(requestedChannelId);
+          if (!confessionChannel) {
+            try {
+              confessionChannel = await guild.channels.fetch(requestedChannelId);
+            } catch {
+              confessionChannel = null;
+            }
+          }
+
+          const isTextBased = Boolean(confessionChannel && typeof confessionChannel.isTextBased === "function" && confessionChannel.isTextBased());
+          const isThread = Boolean(confessionChannel && typeof confessionChannel.isThread === "function" && confessionChannel.isThread());
+          const perms = confessionChannel ? confessionChannel.permissionsFor(client.user) : null;
+          const hasSendPerms = Boolean(perms && perms.has(["ViewChannel", "SendMessages", "EmbedLinks"]));
+
+          if (isTextBased && !isThread && hasSendPerms) {
+            client.settings.set(guild.id, requestedChannelId, "confessionChannel");
+          }
+        }
+      }
       // We render template using the absolute path of the template and the merged default data with the additional data provided.
       res.render("settings", {
           req: req,
@@ -378,6 +459,8 @@ module.exports = client => {
           commands: client.commands, 
           BotConfig: BotConfig,
           BotFilters: BotFilters,
+          SPOTIFY_MIXES: SPOTIFY_MIXES,
+          YT_MIXES: YT_MIXES,
           BotEmojis: BotEmojis,
         }
       );
@@ -399,6 +482,8 @@ module.exports = client => {
         commands: client.commands, 
         BotConfig: BotConfig,
         BotFilters: BotFilters,
+          SPOTIFY_MIXES: SPOTIFY_MIXES,
+          YT_MIXES: YT_MIXES,
         BotEmojis: BotEmojis,
       });
     })
@@ -591,6 +676,8 @@ module.exports = client => {
         commands: client.commands, 
         BotConfig: BotConfig,
         BotFilters: BotFilters,
+          SPOTIFY_MIXES: SPOTIFY_MIXES,
+          YT_MIXES: YT_MIXES,
         BotEmojis: BotEmojis,
       });
     })

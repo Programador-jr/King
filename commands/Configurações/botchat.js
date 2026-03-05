@@ -8,6 +8,10 @@ const {
 
 const ee = require("../../botconfig/embed.json");
 
+function isIgnorableInteractionError(error) {
+  return error?.code === 10062 || error?.code === 40060;
+}
+
 module.exports = {
   name: "botchat",
   category: "Configurações",
@@ -23,9 +27,6 @@ module.exports = {
       confessionChannel: null,
       musicChannels: []
     });
-
-    const currentConfession = client.settings.get(message.guild.id, "confessionChannel");
-    const currentMusicChannels = client.settings.get(message.guild.id, "musicChannels");
 
     const createMainMenu = () => {
       return new MessageActionRow().addComponents(
@@ -48,18 +49,21 @@ module.exports = {
     };
 
     const getConfessionEmbed = () => {
+      const currentConfession = client.settings.get(message.guild.id, "confessionChannel");
+
       return new MessageEmbed()
         .setColor(ee.color)
         .setTitle("⚙️ Configuração de Confissões")
         .setDescription(
           currentConfession
             ? `Canal atual: <#${currentConfession}>\n\nClique abaixo para alterar.`
-            : "Nenhum canal configurado.\n\nClique abaixo para selecionar um canal."
+            : "Nenhum canal configurado.\n\nSem este canal, o comando de confissão não funciona. Clique abaixo para selecionar."
         )
         .setFooter(ee.footertext, ee.footericon);
     };
 
     const getMusicEmbed = () => {
+      const currentMusicChannels = client.settings.get(message.guild.id, "musicChannels") || [];
       const channels = currentMusicChannels.length > 0 
         ? currentMusicChannels.map(c => `<#${c}>`).join(", ")
         : "Nenhum canal configurado";
@@ -76,7 +80,9 @@ module.exports = {
     };
 
     const getMainEmbed = () => {
-      const confessionStatus = currentConfession ? `<#${currentConfession}>` : "Não configurado";
+      const currentConfession = client.settings.get(message.guild.id, "confessionChannel");
+      const currentMusicChannels = client.settings.get(message.guild.id, "musicChannels") || [];
+      const confessionStatus = currentConfession ? `<#${currentConfession}>` : "Não configurado (comando desativado)";
       const musicStatus = currentMusicChannels.length > 0 
         ? currentMusicChannels.map(c => `<#${c}>`).join(", ")
         : "Qualquer canal";
@@ -110,22 +116,32 @@ module.exports = {
       time: 120000
     });
 
+    const safeUpdate = async (interaction, payload) => {
+      try {
+        if (interaction.deferred || interaction.replied) {
+          return await interaction.editReply(payload);
+        }
+        return await interaction.update(payload);
+      } catch (error) {
+        if (isIgnorableInteractionError(error)) return null;
+        throw error;
+      }
+    };
+
     let currentView = "main";
 
     collector.on("collect", async (interaction) => {
       try {
         if (interaction.user.id !== message.author.id) {
-          return interaction.reply({ content: "❌ Você não pode usar isso!", ephemeral: true });
+          return interaction.reply({ content: "<a:declined:876968121116807208> Você não pode usar isso!", ephemeral: true }).catch(() => null);
         }
-
-        await interaction.deferUpdate();
 
         if (interaction.customId === "botchat_menu") {
           const value = interaction.values[0];
           
           if (value === "confession") {
             currentView = "confession";
-            return interaction.editReply({
+            return safeUpdate(interaction, {
               embeds: [getConfessionEmbed()],
               components: [
                 new MessageActionRow().addComponents(
@@ -141,7 +157,7 @@ module.exports = {
           
           if (value === "music") {
             currentView = "music";
-            return interaction.editReply({
+            return safeUpdate(interaction, {
               embeds: [getMusicEmbed()],
               components: [
                 new MessageActionRow().addComponents(
@@ -162,7 +178,7 @@ module.exports = {
 
         if (interaction.customId === "botchat_back") {
           currentView = "main";
-          return interaction.editReply({
+          return safeUpdate(interaction, {
             embeds: [getMainEmbed()],
             components: [mainRow]
           });
@@ -181,7 +197,7 @@ module.exports = {
               value: c.id
             })));
 
-          return interaction.editReply({
+          return safeUpdate(interaction, {
             content: "Selecione o canal de confissões:",
             embeds: [],
             components: [
@@ -196,8 +212,8 @@ module.exports = {
           client.settings.set(message.guild.id, channelId, "confessionChannel");
           
           currentView = "main";
-          return interaction.editReply({
-            content: `✅ Canal de confissões configurado: <#${channelId}>`,
+          return safeUpdate(interaction, {
+            content: `<a:true:891138804734373918> Canal de confissões configurado: <#${channelId}>`,
             embeds: [getMainEmbed()],
             components: [mainRow]
           });
@@ -222,7 +238,7 @@ module.exports = {
             .setMaxValues(options.length)
             .addOptions(options);
 
-          return interaction.editReply({
+          return safeUpdate(interaction, {
             content: "Selecione os canais onde comandos de música podem ser usados:",
             embeds: [],
             components: [
@@ -237,10 +253,10 @@ module.exports = {
           client.settings.set(message.guild.id, channelIds, "musicChannels");
           
           currentView = "main";
-          return interaction.editReply({
+          return safeUpdate(interaction, {
             content: channelIds.length > 0 
-              ? `✅ Canais de música atualizados: ${channelIds.map(c => `<#${c}>`).join(", ")}`
-              : "✅ Canais de música removidos. Agora qualquer canal pode usar comandos de música.",
+              ? `<a:true:891138804734373918> Canais de música atualizados: ${channelIds.map(c => `<#${c}>`).join(", ")}`
+              : "<a:true:891138804734373918> Canais de música removidos. Agora qualquer canal pode usar comandos de música.",
             embeds: [getMainEmbed()],
             components: [mainRow]
           });
@@ -250,14 +266,15 @@ module.exports = {
           client.settings.set(message.guild.id, [], "musicChannels");
           
           currentView = "main";
-          return interaction.editReply({
-            content: "✅ Todos os canais de música foram removidos.",
+          return safeUpdate(interaction, {
+            content: "<a:true:891138804734373918> Todos os canais de música foram removidos.",
             embeds: [getMainEmbed()],
             components: [mainRow]
           });
         }
 
       } catch (e) {
+        if (isIgnorableInteractionError(e)) return;
         console.log("Botchat collector error:", e);
       }
     });

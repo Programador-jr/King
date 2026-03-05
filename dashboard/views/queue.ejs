@@ -34,7 +34,7 @@
       const progress = hasQueue
         ? Math.max(0, Math.min(100, (Math.floor(queue.currentTime) / Math.max(1, Math.floor(current.duration))) * 100))
         : 0;
-      const loopLabel = hasQueue ? (queue.repeatMode === 2 ? "Fila" : queue.repeatMode === 1 ? "Musica" : "Off") : "Off";
+      const loopLabel = hasQueue ? (queue.repeatMode === 2 ? "Fila" : queue.repeatMode === 1 ? "Música" : "Off") : "Off";
       const canControl = Boolean(
         guild &&
         user &&
@@ -113,7 +113,7 @@
                 <div
                   class="progress queue-progress-shell <%= canSeek ? 'is-seekable' : 'is-locked' %>"
                   data-seek-progress
-                  aria-label="Barra de progresso da musica"
+                  aria-label="Barra de progresso da música"
                 >
                   <div
                     class="progress-bar progress-bar-striped progress-bar-animated queue-progress-fill"
@@ -147,7 +147,7 @@
                     type="button"
                     class="player-btn player-btn-round"
                     data-queue-action="previous"
-                    aria-label="Musica anterior"
+                    aria-label="Música anterior"
                     <%= canControl ? '' : 'disabled' %>
                   >
                     <i class="bi bi-skip-start-fill"></i>
@@ -167,7 +167,7 @@
                     type="button"
                     class="player-btn player-btn-round"
                     data-queue-action="skip"
-                    aria-label="Proxima musica"
+                    aria-label="Próxima música"
                     <%= canControl ? '' : 'disabled' %>
                   >
                     <i class="bi bi-skip-end-fill"></i>
@@ -190,9 +190,9 @@
             <% if (!canControl) { %>
               <p class="queue-permission-note">
                 <% if (!user || !user.id) { %>
-                  Faca login no dashboard para interagir com a fila.
+                  Faça login no dashboard para interagir com a fila.
                 <% } else { %>
-                  Voce precisa da permissao <b>Gerenciar Servidor</b> para interagir com a fila.
+                  Você precisa da permissão <b>Gerenciar Servidor</b> para interagir com a fila.
                 <% } %>
               </p>
             <% } %>
@@ -207,8 +207,8 @@
 
             <div class="ym-panel is-active" id="ym-panel-queue" role="tabpanel">
               <div class="queue-title-line">
-                <h2><i class="bi bi-music-note-list"></i> Fila de Reproducao</h2>
-                <span class="badge bg-dark" id="queueamount"><%= queue.songs.length %> Musicas</span>
+                <h2><i class="bi bi-music-note-list"></i> Fila de Reprodução</h2>
+                <span class="badge bg-dark" id="queueamount"><%= queue.songs.length %> Músicas</span>
               </div>
 
               <div id="wholequeue">
@@ -250,7 +250,7 @@
                 <h2><i class="bi bi-mic"></i> Letras</h2>
                 <span class="badge bg-secondary" id="lyrics-source">Fonte: -</span>
               </div>
-              <p class="lyrics-meta" id="lyrics-song-meta">Buscando letra da musica atual...</p>
+              <p class="lyrics-meta" id="lyrics-song-meta">Buscando letra da música atual...</p>
               <div class="lyrics-box" id="lyrics-content">
                 <p class="lyrics-placeholder">Carregando...</p>
               </div>
@@ -260,8 +260,8 @@
 
       <% } else { %>
         <div class="hero-card" style="max-width: 760px; margin: 28px auto 0; text-align:center;">
-          <h3 style="color:#8ad7ff; margin:0;">Atualmente nao ha nada tocando</h3>
-          <p class="subtext" style="margin-top:8px;">Inicie uma musica no servidor para ver o player ao vivo aqui.</p>
+          <h3 style="color:#8ad7ff; margin:0;">Atualmente não há nada tocando</h3>
+          <p class="subtext" style="margin-top:8px;">Inicie uma música no servidor para ver o player ao vivo aqui.</p>
         </div>
       <% } %>
     </section>
@@ -537,7 +537,7 @@
           contentEl.innerHTML = "";
           const pre = document.createElement("pre");
           pre.className = text ? "lyrics-pre" : "lyrics-placeholder";
-          pre.textContent = text || "Nao foi possivel carregar a letra.";
+          pre.textContent = text || "Não foi possível carregar a letra.";
           contentEl.appendChild(pre);
         }
       };
@@ -546,14 +546,14 @@
         if (!guildId) return;
         const songKey = getCurrentSongKey();
         if (!songKey) {
-          setLyricsState({ source: "-", meta: "Nenhuma musica tocando.", text: "" });
+          setLyricsState({ source: "-", meta: "Nenhuma música tocando.", text: "" });
           cachedLyricsSongKey = "";
           return;
         }
         if (!force && cachedLyricsSongKey === songKey) return;
 
         const token = ++lyricsToken;
-        setLyricsState({ source: "-", meta: "Buscando letra da musica atual...", text: "Carregando..." });
+        setLyricsState({ source: "-", meta: "Buscando letra da música atual...", text: "Carregando..." });
 
         try {
           const response = await fetch(`/api/queue/${guildId}/lyrics`, {
@@ -563,20 +563,20 @@
           if (token !== lyricsToken) return;
 
           if (!response.ok || !data.ok) {
-            const title = data?.song?.title ? `Musica: ${data.song.title}` : "";
+const title = data?.song?.title ? `Música: ${data.song.title}` : "";
             const artist = data?.song?.artist ? `Artista: ${data.song.artist}` : "";
-            const meta = [title, artist].filter(Boolean).join(" | ") || (data.message || "Letra nao encontrada.");
+            const meta = [title, artist].filter(Boolean).join(" | ") || (data.message || "Letra não encontrada.");
             setLyricsState({
               source: "-",
               meta,
-              text: data.message || "Nao encontrei letra para esta musica.",
+              text: data.message || "Não encontrei letra para esta música.",
               isError: true
             });
             cachedLyricsSongKey = songKey;
             return;
           }
 
-          const title = data?.song?.title ? `Musica: ${data.song.title}` : "";
+          const title = data?.song?.title ? `Música: ${data.song.title}` : "";
           const artist = data?.song?.artist ? `Artista: ${data.song.artist}` : "";
           setLyricsState({
             source: data?.song?.source || "desconhecida",

@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 require("./handlers/discordCompat");
 require("dotenv").config();
+const dns = require("node:dns");
 const config = require(`./botconfig/config.json`);
 const settings = require(`./botconfig/settings.json`);
 const filters = require(`./botconfig/filters.json`);
@@ -60,6 +61,14 @@ client.distube = {
 };
 
 const { request } = require("http");
+
+try {
+  const dnsOrder = String(process.env.DNS_RESULT_ORDER || "ipv4first").trim();
+  dns.setDefaultResultOrder(dnsOrder);
+} catch (err) {
+  console.warn("[DNS] Failed to set default result order:", err?.message || err);
+}
+
 const spotifyEnabled = String(process.env.SPOTIFY_API_ENABLED);
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -85,7 +94,7 @@ async function startBot() {
     client.infos = new MongoDBEnmap();
     
     //Require the Handlers                  Add the antiCrash file too, if its enabled
-    ["events", "commands", "slashCommands", settings.antiCrash ? "antiCrash" : null, "lavalinkEvents"]
+    [settings.antiCrash !== false ? "antiCrash" : null, "events", "commands", "slashCommands", "lavalinkEvents"]
         .filter(Boolean)
         .forEach(h => {
             require(`./handlers/${h}`)(client);

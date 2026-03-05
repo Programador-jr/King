@@ -17,7 +17,7 @@ module.exports = {
     if (mentions.size === 0) {
       const embed = new Discord.MessageEmbed()
         .setColor(ee.wrongcolor)
-        .setDescription("**❌ Você precisa mencionar dois usuários para shippar.**");
+        .setDescription("**<a:declined:876968121116807208> Você precisa mencionar dois usuários para shippar.**");
       return message.reply({ embeds: [embed] });
     }
 

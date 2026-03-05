@@ -5,7 +5,7 @@ const {
   getMixUsage,
   getMixDescription,
   getMixHelpDetails
-} = require("../../handlers/ytMixes");
+} = require("../../handlers/customMixes");
 
 const ERROR_DELETE_MS = 4000;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -83,12 +83,16 @@ module.exports = {
       }
 
       const selectedMix = selectYtMix(args.join(" "));
-      const link = selectedMix.url;
+      const spotifyLink = selectedMix.spotify.url;
+      const youtubeLink = selectedMix.youtube.url;
+      const mixLabel = selectedMix.spotify.label;
+      const mixDefault = client.settings.get(guildId, "mixDefault") || "spotify";
+
       const loadingMsg = await message.reply({
-        content: `${client.allEmojis.loading} Carregando o **Mix de musica ${selectedMix.label}**`
+        content: `${client.allEmojis.loading} Carregando o **Mix de musica ${mixLabel}**`
       });
 
-      const playWithRetry = async () => {
+      const playWithRetry = async (link, isSpotify = false) => {
         let retriedStopped = false;
         let retriedVoiceConnect = 0;
         for (;;) {
@@ -99,7 +103,7 @@ module.exports = {
               member,
               textChannel: guild.channels.cache.get(channelId)
             });
-            return;
+            return true;
           } catch (err) {
             const code = err?.code || err?.errorCode || "";
             if (!retriedStopped && (String(err).includes("QUEUE_STOPPED") || code === "QUEUE_STOPPED")) {
@@ -117,15 +121,37 @@ module.exports = {
                 continue;
               }
             }
-            throw err;
+            return false;
           }
         }
       };
 
-      await playWithRetry();
+      let success = false;
+      let usedLink = "";
+
+      const tryFirst = mixDefault === "youtube" ? youtubeLink : spotifyLink;
+      const trySecond = mixDefault === "youtube" ? spotifyLink : youtubeLink;
+      const firstIsSpotify = mixDefault !== "youtube";
+
+      if (tryFirst !== "spotify:playlist:placeholder") {
+        success = await playWithRetry(tryFirst, firstIsSpotify);
+        if (success) {
+          usedLink = tryFirst;
+        }
+      }
+
+      if (!success) {
+        const fallbackName = firstIsSpotify ? "YouTube" : "Spotify";
+        await loadingMsg.edit({
+          content: `${client.allEmojis.loading} ${firstIsSpotify ? "Spotify" : "YouTube"} indisponivel, tentando ${fallbackName}...`
+        });
+        success = await playWithRetry(trySecond, !firstIsSpotify);
+        usedLink = trySecond;
+      }
+
       const queue = client.distube.getQueue(guildId);
       await loadingMsg.edit({
-        content: `${queue?.songs?.length > 1 ? "Carregado" : "Tocando Agora"}: **${selectedMix.label}**`
+        content: `${queue?.songs?.length > 1 ? "Carregado" : "Tocando Agora"}: **${mixLabel}**`
       });
     } catch (e) {
       console.log(e.stack ? e.stack : e);

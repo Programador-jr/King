@@ -161,9 +161,27 @@ module.exports = async (client, interaction) => {
     });
   }
 
-  if (command.runSlash) {
-    command.runSlash(client, interaction);
-  } else {
-    command.run(client, interaction);
+  try {
+    if (command.runSlash) {
+      await Promise.resolve(command.runSlash(client, interaction));
+    } else {
+      await Promise.resolve(command.run(client, interaction));
+    }
+  } catch (error) {
+    console.error("[interactionCreate] Falha ao executar comando:", error);
+    const payload = {
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setColor(ee.wrongcolor)
+          .setTitle("Erro ao executar o comando.")
+      ]
+    };
+
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload).catch(() => {});
+    } else {
+      await interaction.reply(payload).catch(() => {});
+    }
   }
 };
