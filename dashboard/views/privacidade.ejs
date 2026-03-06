@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="/index.css">
+    <title>Política de Privacidade - <%= botClient.user.username %></title>
+  </head>
+  <body class="theme-discord">
+    <%- include('header'); -%>
+
+    <style>
+
+    </style>
+
+    <div class="legal-page">
+      <div class="legal-container">
+        <span class="legal-icon">🔒</span>
+        <h1>Política de Privacidade</h1>
+        <p class="last-updated">Última atualização: <%= new Date().toLocaleDateString('pt-BR') %></p>
+
+        <div class="legal-section">
+          <h2>1. Introdução</h2>
+          <p>
+            Esta Política de Privacidade descreve como o <strong><%= botClient.user.username %></strong> 
+            coleta, usa e protege suas informações. Ao utilizar nosso bot, você concorda com esta política.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>2. Dados que Coletamos</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tipo de Dados</th>
+                <th>Finalidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ID do servidor (Guild ID)</td>
+                <td>Gerenciar configurações por servidor</td>
+              </tr>
+              <tr>
+                <td>ID do usuário (User ID)</td>
+                <td>Identificar usuários e moderar ações</td>
+              </tr>
+              <tr>
+                <td>Nome de usuário</td>
+                <td>Exibir informações em comandos e logs</td>
+              </tr>
+              <tr>
+                <td>Configurações do servidor</td>
+                <td>Personalizar experiência por servidor</td>
+              </tr>
+              <tr>
+                <td>Mensagens de confissão</td>
+                <td>Encaminhar mensagens anônimas (quando ativado)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="legal-section">
+          <h2>3. Como Usamos Seus Dados</h2>
+          <p>Utilizamos seus dados para:</p>
+          <ul>
+            <li>Fornecer e manter as funcionalidades do bot</li>
+            <li>Personalizar a experiência do usuário</li>
+            <li>Melhorar e atualizar nossos serviços</li>
+            <li>Responder a suas solicitações e fornecer suporte</li>
+            <li>Prevenir abuso e proteger a segurança do serviço</li>
+          </ul>
+        </div>
+
+        <div class="legal-section">
+          <h2>4. Armazenamento e Segurança</h2>
+          <p>
+            Os dados são armazenados em servidores seguros. Implementamos medidas técnicas e organizacionais 
+            para proteger suas informações contra acesso não autorizado, perda ou alteração.
+          </p>
+          <p>
+            <strong>Nota:</strong> As confissões anônimas são enviadas sem identificação do autor. 
+            Não armazenamos registros que vinculem uma confissão ao seu autor.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>5. Compartilhamento de Dados</h2>
+          <p>
+            Não vendemos seus dados pessoais. Compartilhamos informações apenas quando necessário para:
+          </p>
+          <ul>
+            <li>Cumprir obrigações legais</li>
+            <li>Proteger nossos direitos ou segurança</li>
+            <li>Prestadores de serviços que nos auxiliam (sob acordos de confidencialidade)</li>
+          </ul>
+        </div>
+
+        <div class="legal-section">
+          <h2>6. Seus Direitos</h2>
+          <p>Você tem o direito de:</p>
+          <ul>
+            <li>Acessar seus dados pessoais que armazenamos</li>
+            <li>Solicitar correção de dados incorretos</li>
+            <li>Solicitar exclusão de seus dados</li>
+            <li>Optar por não receber comunicações</li>
+          </ul>
+          <p>
+            Para exercer esses direitos, entre em contato através do nosso 
+            <a href="https://discord.gg/" target="_blank">servidor de suporte</a>.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>7. Cookies e Tecnologias Semelhantes</h2>
+          <p>
+            O bot em si não utiliza cookies. O painel web (dashboard) pode usar cookies essenciais 
+            para autenticação e funcionamento adequado.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>8. Crianças</h2>
+          <p>
+            Nosso serviço não é direcionado a menores de 13 anos. Não coletamos intencionalmente 
+            informações de crianças menores de 13 anos.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>9. Alterações nesta Política</h2>
+          <p>
+            Podemos atualizar esta política periodicamente. Notificaremos sobre alterações significativas 
+            através do servidor de suporte do Discord.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>10. Contato</h2>
+          <p>
+            Para questões sobre esta Política de Privacidade, entre em contato através do nosso 
+            <a href="https://discord.gg/" target="_blank">servidor de suporte</a> no Discord.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">↑</button>
+
+    <%- include('footer'); -%>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+  </body>
+</html>

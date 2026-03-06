@@ -15,7 +15,7 @@
       </a>
 
       <ul class="links">
-        <li><a href="/" class="<%= isActive('/') && !isActive('/dashboard') && !isActive('/commands') && !isActive('/queue') && !isActive('/queuedashboard') ? 'active-link' : '' %>">Início</a></li>
+        <li><a href="/" class="<%= isActive('/') && !isActive('/dashboard') && !isActive('/commands') && !isActive('/queue') && !isActive('/queuedashboard') && !isActive('/termos') && !isActive('/privacidade') ? 'active-link' : '' %>">Início</a></li>
         <li><a href="/commands" class="<%= isActive('/commands') ? 'active-link' : '' %>">Comandos</a></li>
         <li><a href="/dashboard" class="<%= isActive('/dashboard') ? 'active-link' : '' %>">Dashboard</a></li>
         <li><a href="/queuedashboard" class="<%= isActive('/queuedashboard') || isActive('/queue') ? 'active-link' : '' %>">Fila</a></li>
@@ -32,6 +32,19 @@
             <i class="fab fa-github"></i>
           </a>
         </li>
+        <li class="nav-theme">
+  <button
+    id="theme-toggle"
+    class="theme-toggle"
+    type="button"
+    aria-label="Alternar tema"
+    title="Alternar tema"
+  >
+    <i class="fas fa-moon theme-icon theme-icon-moon"></i>
+    <i class="fas fa-bolt theme-icon theme-icon-bolt"></i>
+    <span class="theme-toggle-text">Tema</span>
+  </button>
+</li>
 
         <li class="nav-auth">
           <% if (user && user.id) { %>
@@ -62,6 +75,49 @@
 </div>
 
 <script>
+  (() => {
+    const THEME_KEY = 'king-dashboard-theme';
+
+    function applyTheme(theme) {
+      const finalTheme = theme === 'king' ? 'king' : 'discord';
+      document.documentElement.setAttribute('data-theme', finalTheme);
+
+      if (document.body) {
+        document.body.classList.remove('theme-discord', 'theme-king');
+        document.body.classList.add(finalTheme === 'king' ? 'theme-king' : 'theme-discord');
+      }
+
+      const toggle = document.getElementById('theme-toggle');
+      if (toggle) {
+        toggle.setAttribute(
+          'aria-label',
+          finalTheme === 'king' ? 'Mudar para tema Discord' : 'Mudar para tema King'
+        );
+        toggle.setAttribute(
+          'title',
+          finalTheme === 'king' ? 'Mudar para tema Discord' : 'Mudar para tema King'
+        );
+      }
+    }
+
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'discord';
+    applyTheme(savedTheme);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      applyTheme(localStorage.getItem(THEME_KEY) || 'discord');
+
+      const toggle = document.getElementById('theme-toggle');
+      if (!toggle) return;
+
+      toggle.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme') || 'discord';
+        const next = current === 'king' ? 'discord' : 'king';
+        localStorage.setItem(THEME_KEY, next);
+        applyTheme(next);
+      });
+    });
+  })();
+
   const urlParams = new URLSearchParams(window.location.search);
   let myParam = urlParams.get('error');
   if (myParam) alert(myParam);

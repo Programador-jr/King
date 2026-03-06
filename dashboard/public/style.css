@@ -1,17 +1,84 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
+  --shadow-lg: 0 20px 45px rgba(2, 10, 23, 0.45);
+  --radius-lg: 18px;
+}
+
+body.theme-discord {
+  --bg-900: #1e1f22;
+  --bg-800: #2b2d31;
+  --bg-700: #313338;
+  --text-100: #ffffff;
+  --text-300: #dcddde;
+  --text-400: #b5bac1;
+  --text-500: #72767d;
+  --accent-500: #5865f2;
+  --accent-400: #7b86ff;
+  --accent-300: #e0e3ff;
+  --accent-700: #4752c4;
+  --border-500: #40444b;
+  --danger-500: #ff4f6d;
+  --badge-500: #00bfff;
+  --badge-400: #56d4ff;
+  --badge-700: #008ab8;
+
+  --nav-bg: rgba(30, 31, 34, 0.92);
+  --nav-bg-mobile: linear-gradient(180deg, rgba(43, 45, 49, 0.98), rgba(30, 31, 34, 0.99));
+  --nav-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  --nav-link-overlay: linear-gradient(145deg, rgba(88, 101, 242, 0.18), rgba(71, 82, 196, 0.16));
+  --nav-link-hover-bg: rgba(88, 101, 242, 0.14);
+  --nav-link-hover-border: rgba(88, 101, 242, 0.4);
+  --nav-link-active-bg: linear-gradient(145deg, rgba(88, 101, 242, 0.28), rgba(71, 82, 196, 0.26));
+  --nav-link-active-shadow: 0 0 14px rgba(88, 101, 242, 0.28);
+  --nav-brand-ring: rgba(88, 101, 242, 0.65);
+  --nav-brand-ring-hover: #7b86ff;
+  --nav-brand-shadow: 0 8px 20px rgba(88, 101, 242, 0.28);
+  --nav-menu-shadow: 0 0 18px rgba(88, 101, 242, 0.18);
+  --nav-btn-bg: linear-gradient(145deg, #5865f2, #4752c4);
+  --nav-btn-text: #ffffff;
+  --nav-btn-shadow: 0 0 18px rgba(88, 101, 242, 0.34), 0 10px 22px rgba(71, 82, 196, 0.28);
+  --toggle-bg: rgba(88, 101, 242, 0.12);
+  --toggle-bg-hover: rgba(88, 101, 242, 0.18);
+  --toggle-shadow: 0 0 16px rgba(88, 101, 242, 0.18);
+}
+
+body.theme-king {
   --bg-900: #000000;
   --bg-800: #09090a;
   --bg-700: #141416;
   --text-100: #ffffff;
   --text-300: #d2e2ee;
+  --text-400: #9cb7c8;
+  --text-500: #6f8796;
   --accent-500: #00bfff;
   --accent-400: #56d4ff;
+  --accent-300: #9adfff;
   --accent-700: #008ab8;
+  --border-500: rgba(0, 191, 255, 0.34);
   --danger-500: #ff4f6d;
-  --shadow-lg: 0 20px 45px rgba(2, 10, 23, 0.45);
-  --radius-lg: 18px;
+  --badge-500: #00bfff;
+  --badge-400: #56d4ff;
+  --badge-700: #008ab8;
+
+  --nav-bg: rgba(0, 0, 0, 0.9);
+  --nav-bg-mobile: linear-gradient(180deg, rgba(10, 10, 11, 0.98), rgba(0, 0, 0, 0.99));
+  --nav-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  --nav-link-overlay: linear-gradient(145deg, rgba(0, 191, 255, 0.18), rgba(0, 138, 184, 0.16));
+  --nav-link-hover-bg: rgba(0, 191, 255, 0.15);
+  --nav-link-hover-border: rgba(0, 191, 255, 0.4);
+  --nav-link-active-bg: linear-gradient(145deg, rgba(0, 191, 255, 0.28), rgba(0, 138, 184, 0.26));
+  --nav-link-active-shadow: 0 0 14px rgba(0, 191, 255, 0.35);
+  --nav-brand-ring: rgba(72, 201, 255, 0.6);
+  --nav-brand-ring-hover: rgba(110, 220, 255, 0.95);
+  --nav-brand-shadow: 0 8px 20px rgba(0, 191, 255, 0.28);
+  --nav-menu-shadow: 0 0 18px rgba(0, 191, 255, 0.18);
+  --nav-btn-bg: linear-gradient(145deg, #00bfff, #0096cc);
+  --nav-btn-text: #001018;
+  --nav-btn-shadow: 0 0 18px rgba(0, 191, 255, 0.45), 0 10px 22px rgba(0, 150, 204, 0.35);
+  --toggle-bg: rgba(0, 191, 255, 0.12);
+  --toggle-bg-hover: rgba(0, 191, 255, 0.18);
+  --toggle-shadow: 0 0 16px rgba(0, 191, 255, 0.18);
 }
 
 * {
@@ -36,9 +103,10 @@ a {
   top: 0;
   z-index: 1000;
   width: 100%;
-  background: rgba(0, 0, 0, 0.9);
+  background: var(--nav-bg);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(0, 191, 255, 0.34);
+  border-bottom: 1px solid var(--border-500);
+  box-shadow: var(--nav-shadow);
   animation: nav-enter 0.5s ease;
 }
 
@@ -73,13 +141,19 @@ nav .menu-icon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(72, 201, 255, 0.4);
-  background: rgba(12, 12, 13, 0.84);
+  border: 1px solid var(--border-500);
+  background: var(--bg-800);
   color: var(--text-100);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+nav .menu-icon:hover {
+  border-color: var(--accent-500);
+  background: var(--bg-700);
+  box-shadow: var(--nav-menu-shadow);
 }
 
 nav .content {
@@ -116,18 +190,18 @@ nav .content {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 2px solid rgba(72, 201, 255, 0.6);
+  border: 2px solid var(--nav-brand-ring);
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .content .brand:hover {
-  color: #f4fbff;
+  color: var(--accent-300);
 }
 
 .content .brand:hover img {
   transform: rotate(-6deg) scale(1.05);
-  border-color: rgba(110, 220, 255, 0.95);
-  box-shadow: 0 8px 20px rgba(0, 191, 255, 0.28);
+  border-color: var(--nav-brand-ring-hover);
+  box-shadow: var(--nav-brand-shadow);
 }
 
 nav .content .links {
@@ -151,7 +225,7 @@ nav .content .links {
   height: 40px;
   padding: 0 13px;
   border-radius: 12px;
-  color: #d9f3ff;
+  color: var(--text-300);
   font-size: 0.88rem;
   line-height: 1.2;
   font-weight: 600;
@@ -167,7 +241,7 @@ nav .content .links {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(145deg, rgba(0, 191, 255, 0.18), rgba(0, 138, 184, 0.16));
+  background: var(--nav-link-overlay);
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: -1;
@@ -176,8 +250,8 @@ nav .content .links {
 .content .links li a:hover,
 .content .links li a:focus-visible {
   color: var(--text-100);
-  border-color: rgba(0, 191, 255, 0.4);
-  background: rgba(0, 191, 255, 0.15);
+  border-color: var(--nav-link-hover-border);
+  background: var(--nav-link-hover-bg);
   transform: translateY(-1px);
 }
 
@@ -188,9 +262,9 @@ nav .content .links {
 
 .content .links li a.active-link {
   color: var(--text-100);
-  background: linear-gradient(145deg, rgba(0, 191, 255, 0.28), rgba(0, 138, 184, 0.26));
-  border-color: rgba(0, 191, 255, 0.76);
-  box-shadow: 0 0 14px rgba(0, 191, 255, 0.35);
+  background: var(--nav-link-active-bg);
+  border-color: var(--accent-500);
+  box-shadow: var(--nav-link-active-shadow);
 }
 
 .content .links li a.icon-link {
@@ -208,6 +282,9 @@ nav .content .links {
 }
 
 .nav-auth .auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 42px;
   min-width: 104px;
   padding: 0 14px;
@@ -218,15 +295,16 @@ nav .content .links {
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: #001018;
-  background: linear-gradient(145deg, #00bfff, #0096cc);
+  color: var(--nav-btn-text);
+  background: var(--nav-btn-bg);
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, filter 0.3s ease;
 }
 
 .nav-auth .auth-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 18px rgba(0, 191, 255, 0.45), 0 10px 22px rgba(0, 150, 204, 0.35);
+  box-shadow: var(--nav-btn-shadow);
+  filter: brightness(1.04);
 }
 
 .nav-auth .auth-btn:active {
@@ -234,8 +312,8 @@ nav .content .links {
 }
 
 .nav-auth .auth-btn.auth-btn-danger {
-  color: #001018;
-  background: linear-gradient(145deg, #00bfff, #0096cc);
+  color: var(--nav-btn-text);
+  background: var(--nav-btn-bg);
 }
 
 .nav-auth .auth-btn img {
@@ -244,6 +322,71 @@ nav .content .links {
   border-radius: 50%;
   margin-right: 6px;
   vertical-align: middle;
+}
+
+.nav-theme {
+  display: inline-flex;
+  align-items: center;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-500);
+  background: var(--toggle-bg);
+  color: var(--text-100);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-500);
+  background: var(--toggle-bg-hover);
+  box-shadow: var(--toggle-shadow);
+}
+
+.theme-toggle:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.theme-toggle-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.theme-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.theme-icon-bolt {
+  display: none;
+}
+
+body.theme-king .theme-icon-moon {
+  display: none;
+}
+
+body.theme-king .theme-icon-bolt {
+  display: inline-block;
+  color: var(--badge-500);
+}
+
+body.theme-discord .theme-icon-moon {
+  display: inline-block;
+  color: var(--accent-300);
+}
+
+body.theme-discord .theme-icon-bolt {
+  display: none;
 }
 
 @media (max-width: 1080px) {
@@ -294,8 +437,8 @@ nav .content .links {
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
-    background: linear-gradient(180deg, rgba(10, 10, 11, 0.98), rgba(0, 0, 0, 0.99));
-    border-right: 1px solid rgba(0, 191, 255, 0.36);
+    background: var(--nav-bg-mobile);
+    border-right: 1px solid var(--border-500);
     box-shadow: var(--shadow-lg);
     opacity: 0;
     transform: translateX(-16px);
@@ -331,6 +474,16 @@ nav .content .links {
   .content .links li a.icon-link {
     justify-content: center;
     font-size: 1.1rem;
+  }
+
+  .nav-theme {
+    width: 100%;
+  }
+
+  .theme-toggle {
+    width: 100%;
+    justify-content: flex-start;
+    height: 42px;
   }
 
   .nav-auth {
@@ -373,7 +526,8 @@ nav .content .links {
     font-size: 0.84rem;
   }
 
-  .nav-auth .auth-btn {
+  .nav-auth .auth-btn,
+  .theme-toggle {
     height: 36px;
     min-width: 86px;
     font-size: 0.75rem;

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="/index.css">
+    <title>Termos de Serviço - <%= botClient.user.username %></title>
+  </head>
+  <body class="theme-discord">
+    <%- include('header'); -%>
+
+    <div class="legal-page">
+      <div class="legal-container">
+        <span class="legal-icon">📜</span>
+        <h1>Termos de Serviço</h1>
+        <p class="last-updated">Última atualização: <%= new Date().toLocaleDateString('pt-BR') %></p>
+
+        <div class="legal-section">
+          <h2>1. Aceitação dos Termos</h2>
+          <p>
+            Ao utilizar o <strong><%= botClient.user.username %></strong>, você concorda em cumprir estes Termos de Serviço. 
+            Se você não concorda com qualquer parte destes termos, não utilize nosso bot.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>2. Descrição do Serviço</h2>
+          <p>
+            O <%= botClient.user.username %> é um bot do Discord que oferece funcionalidades de música, 
+            utilitários, moderação e outras ferramentas para servidores do Discord.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>3. Uso Responsável</h2>
+          <p>Você concorda em:</p>
+          <ul>
+            <li>Não utilizar o bot para qualquer propósito ilegal</li>
+            <li>Não tentar explorar ou vulnerar o sistema do bot</li>
+            <li>Respeitar os termos de serviço do Discord</li>
+            <li>Não usar o bot de forma que possa causar danos a outros usuários</li>
+          </ul>
+        </div>
+
+        <div class="legal-section">
+          <h2>4. Isenção de Garantias</h2>
+          <p>
+            O serviço é fornecido "como está", sem garantias de qualquer tipo, expressas ou implícitas. 
+            Não garantimos que o serviço será ininterrupto, seguro ou livre de erros.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>5. Limitação de Responsabilidade</h2>
+          <p>
+            O <%= botClient.user.username %> e seus desenvolvedores não serão responsáveis por quaisquer 
+            danos indiretos, incidentais, especiais ou consequenciais decorrentes do uso ou incapacidade 
+            de usar o serviço.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>6. Modificações do Serviço</h2>
+          <p>
+            Reservamos o direito de modificar ou descontinuar o serviço a qualquer momento, com ou sem aviso prévio.
+          </p>
+        </div>
+
+        <div class="legal-section">
+          <h2>7. Contato</h2>
+          <p>
+            Para questões sobre estes Termos de Serviço, entre em contato através do nosso 
+            <a href="https://discord.gg/" target="_blank">servidor de suporte</a> no Discord.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">↑</button>
+
+    <%- include('footer'); -%>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+  </body>
+</html>
