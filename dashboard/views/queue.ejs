@@ -25,16 +25,21 @@
         const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
         const item = lookup.slice().reverse().find((entry) => num >= entry.value);
         return item ? (num / item.value).toFixed(digits).replace(rx, '$1') + item.symbol : '0';
-      }
+      };
 
       const queue = guild ? botClient.distube.getQueue(guild.id) : null;
       const hasQueue = Boolean(queue && Array.isArray(queue.songs) && queue.songs.length > 0);
       const current = hasQueue ? queue.songs[0] : null;
-      const currentCover = current ? (current.thumbnail || (current.id ? `https://img.youtube.com/vi/${current.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 512 }))) : '';
+      const currentCover = current
+        ? (current.thumbnail || (current.id ? `https://img.youtube.com/vi/${current.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 512 })))
+        : '';
       const progress = hasQueue
         ? Math.max(0, Math.min(100, (Math.floor(queue.currentTime) / Math.max(1, Math.floor(current.duration))) * 100))
         : 0;
-      const loopLabel = hasQueue ? (queue.repeatMode === 2 ? "Fila" : queue.repeatMode === 1 ? "Música" : "Off") : "Off";
+      const loopLabel = hasQueue
+        ? (queue.repeatMode === 2 ? "Fila" : queue.repeatMode === 1 ? "Música" : "Off")
+        : "Off";
+
       const canControl = Boolean(
         guild &&
         user &&
@@ -46,19 +51,27 @@
             const perms = BigInt(entry.permissions_new || 0);
             const MANAGE_GUILD = 0x20n;
             return (perms & MANAGE_GUILD) === MANAGE_GUILD;
-          } catch {
+          } catch (err) {
             return false;
           }
         })
       );
-      const canSeek = Boolean(canControl && current && Number.isFinite(Number(current.duration)) && Number(current.duration) > 0);
+
+      const canSeek = Boolean(
+        canControl &&
+        current &&
+        Number.isFinite(Number(current.duration)) &&
+        Number(current.duration) > 0
+      );
+
       const currentSongKey = current ? `${current.id || ''}:${current.name || ''}` : '';
       const currentSeconds = hasQueue ? Math.max(0, Number(queue.currentTime || 0)) : 0;
       const totalSeconds = hasQueue ? Math.max(1, Number(current.duration || 0)) : 1;
     %>
   </head>
+
   <body>
-    <%- include('header'); -%>
+    <%- include('header') %>
 
     <section id="queue" class="dashboard-page queue-app">
       <% if (guild && hasQueue) { %>
@@ -86,7 +99,11 @@
             >
               <div class="ym-player-top">
                 <div class="ym-cover-wrap">
-                  <img class="img-thumbnail" src="<%= currentCover %>" alt="<%= String(current.name).substr(0, 80) %>">
+                  <img
+                    class="img-thumbnail"
+                    src="<%= currentCover %>"
+                    alt="<%= String(current.name).substr(0, 80) %>"
+                  >
                 </div>
 
                 <div class="ym-meta-wrap">
@@ -124,6 +141,7 @@
                     aria-valuemax="<%= Math.floor(totalSeconds) %>"
                   ></div>
                 </div>
+
                 <div class="ym-time-row">
                   <b id="queue-current-time"><%= queue.formattedCurrentTime %></b>
                   <b id="queue-total-time"><%= current.formattedDuration %></b>
@@ -196,7 +214,6 @@
                 <% } %>
               </p>
             <% } %>
-
           </article>
 
           <aside class="ym-panel-card">
@@ -221,8 +238,12 @@
                     <%= canControl ? '' : 'disabled' %>
                   >
                     <div class="queue-track-cover">
-                      <img src="<%= song.thumbnail || (song.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 256 })) %>" alt="<%= song.name %>">
+                      <img
+                        src="<%= song.thumbnail || (song.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 256 })) %>"
+                        alt="<%= song.name %>"
+                      >
                     </div>
+
                     <div class="queue-track-main">
                       <div class="queue-track-title">
                         <% if (i === 0) { %>
@@ -232,11 +253,13 @@
                         <% } %>
                         <span><%= song.name %></span>
                       </div>
+
                       <div class="queue-track-meta">
                         <span>Por: <%= song.user.tag %></span>
                         <span><%= i === 0 ? `${queue.formattedCurrentTime} / ${song.formattedDuration}` : song.formattedDuration %></span>
                       </div>
                     </div>
+
                     <span class="queue-track-action">
                       <%= i === 0 ? 'Tocando' : 'Tocar agora' %>
                     </span>
@@ -257,7 +280,6 @@
             </div>
           </aside>
         </div>
-
       <% } else { %>
         <div class="hero-card" style="max-width: 760px; margin: 28px auto 0; text-align:center;">
           <h3 style="color:#8ad7ff; margin:0;">Atualmente não há nada tocando</h3>
@@ -266,7 +288,7 @@
       <% } %>
     </section>
 
-    <%- include('footer'); -%>
+    <%- include('footer') %>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
 
@@ -275,6 +297,7 @@
       const canControlQueue = <%= canControl ? 'true' : 'false' %>;
       const canSeekQueue = <%= canSeek ? 'true' : 'false' %>;
       const alertContainerEl = document.getElementById("queue-alert-container");
+
       let activePanel = "queue";
       let lyricsToken = 0;
       let cachedLyricsSongKey = "";
@@ -284,16 +307,18 @@
       let activeAlertInstance = null;
       let clockRaf = null;
       let refreshTicker = null;
+
       let playerClock = {
         baseCurrent: 0,
         total: 1,
         baseTs: performance.now(),
-        paused: true,
+        paused: true
       };
+
       const dragSeekState = {
         active: false,
         pointerId: null,
-        targetSeconds: null,
+        targetSeconds: null
       };
 
       const formatClock = (seconds) => {
@@ -301,7 +326,11 @@
         const h = Math.floor(safe / 3600);
         const m = Math.floor((safe % 3600) / 60);
         const s = Math.floor(safe % 60);
-        if (h > 0) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+
+        if (h > 0) {
+          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        }
+
         return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
       };
 
@@ -322,6 +351,7 @@
 
       const setFeedback = (message, type = "info", autoHide = true) => {
         if (!alertContainerEl) return;
+
         if (feedbackTimer) {
           clearTimeout(feedbackTimer);
           feedbackTimer = null;
@@ -330,9 +360,13 @@
         if (activeAlertInstance && window.bootstrap?.Alert) {
           try {
             activeAlertInstance.close();
-          } catch {}
+          } catch (err) {}
         }
-        if (activeAlertEl && activeAlertEl.isConnected) activeAlertEl.remove();
+
+        if (activeAlertEl && activeAlertEl.isConnected) {
+          activeAlertEl.remove();
+        }
+
         activeAlertEl = null;
         activeAlertInstance = null;
 
@@ -393,11 +427,13 @@
         }
 
         if (!autoHide) return;
+
         feedbackTimer = setTimeout(() => {
           if (!alertEl.isConnected) {
             feedbackTimer = null;
             return;
           }
+
           if (window.bootstrap?.Alert) {
             if (activeAlertEl === alertEl && activeAlertInstance) {
               activeAlertInstance.close();
@@ -411,19 +447,23 @@
               if (alertEl.isConnected) alertEl.remove();
             }, 180);
           }
+
           if (activeAlertEl === alertEl) {
             activeAlertEl = null;
             activeAlertInstance = null;
           }
+
           feedbackTimer = null;
         }, 3000);
       };
 
       const setButtonsDisabled = (disabled) => {
         if (!canControlQueue) return;
+
         document.querySelectorAll("[data-jump-index]").forEach((el) => {
           el.disabled = Boolean(disabled);
         });
+
         document.querySelectorAll("[data-queue-action]").forEach((el) => {
           el.disabled = Boolean(disabled);
         });
@@ -432,15 +472,18 @@
       const readClockFromDom = () => {
         const nowPlaying = getNowPlayingElement();
         if (!nowPlaying) return;
+
         const current = Math.max(0, Number(nowPlaying.dataset.currentSeconds || 0));
         const total = Math.max(1, Number(nowPlaying.dataset.totalSeconds || 1));
         const paused = String(nowPlaying.dataset.paused || "false") === "true";
+
         playerClock = {
           baseCurrent: Number.isFinite(current) ? current : 0,
           total: Number.isFinite(total) ? total : 1,
           baseTs: performance.now(),
-          paused,
+          paused
         };
+
         renderClock(playerClock.baseCurrent, playerClock.total);
       };
 
@@ -451,15 +494,17 @@
       };
 
       const renderClock = (seconds, totalOverride = null) => {
-        const { shell, fill, currentLabel, totalLabel } = getProgressElements();
+        const { fill, currentLabel, totalLabel } = getProgressElements();
         const total = Math.max(1, Number((totalOverride ?? playerClock.total) || 1));
         const safeSeconds = Math.max(0, Math.min(total, Number(seconds || 0)));
         const percent = (safeSeconds / total) * 100;
+
         if (fill) {
           fill.style.width = `${percent}%`;
           fill.setAttribute("aria-valuenow", String(Math.floor(safeSeconds)));
           fill.setAttribute("aria-valuemax", String(Math.floor(total)));
         }
+
         if (currentLabel) currentLabel.textContent = formatClock(safeSeconds);
         if (totalLabel) totalLabel.textContent = formatClock(total);
       };
@@ -472,8 +517,10 @@
       const seekSecondsFromClientX = (clientX) => {
         const { shell } = getProgressElements();
         if (!shell) return null;
+
         const rect = shell.getBoundingClientRect();
         if (!rect.width) return null;
+
         const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
         const seconds = ratio * Math.max(1, playerClock.total || 1);
         renderClock(seconds);
@@ -491,13 +538,16 @@
 
       const stopSeekState = (commit = true) => {
         if (!dragSeekState.active) return;
+
         const { shell } = getProgressElements();
         if (shell) shell.classList.remove("is-dragging");
+
         if (commit && Number.isFinite(dragSeekState.targetSeconds)) {
           commitSeek(dragSeekState.targetSeconds);
         } else {
           renderClock(getLiveCurrentSeconds());
         }
+
         dragSeekState.active = false;
         dragSeekState.pointerId = null;
         dragSeekState.targetSeconds = null;
@@ -506,6 +556,7 @@
 
       const setPanel = (panel) => {
         activePanel = panel === "lyrics" ? "lyrics" : "queue";
+
         document.querySelectorAll("[data-panel-tab]").forEach((btn) => {
           const selected = btn.getAttribute("data-panel-tab") === activePanel;
           btn.classList.toggle("is-active", selected);
@@ -514,10 +565,12 @@
 
         const queuePanel = document.getElementById("ym-panel-queue");
         const lyricsPanel = document.getElementById("ym-panel-lyrics");
+
         if (queuePanel) {
           queuePanel.classList.toggle("is-active", activePanel === "queue");
           queuePanel.setAttribute("aria-hidden", activePanel === "queue" ? "false" : "true");
         }
+
         if (lyricsPanel) {
           lyricsPanel.classList.toggle("is-active", activePanel === "lyrics");
           lyricsPanel.setAttribute("aria-hidden", activePanel === "lyrics" ? "false" : "true");
@@ -528,11 +581,14 @@
         const sourceEl = document.getElementById("lyrics-source");
         const metaEl = document.getElementById("lyrics-song-meta");
         const contentEl = document.getElementById("lyrics-content");
+
         if (sourceEl) sourceEl.textContent = `Fonte: ${source}`;
+
         if (metaEl) {
           metaEl.textContent = meta || "";
           metaEl.classList.toggle("is-error", Boolean(isError));
         }
+
         if (contentEl) {
           contentEl.innerHTML = "";
           const pre = document.createElement("pre");
@@ -544,49 +600,64 @@
 
       const loadLyrics = async (force = false) => {
         if (!guildId) return;
+
         const songKey = getCurrentSongKey();
         if (!songKey) {
           setLyricsState({ source: "-", meta: "Nenhuma música tocando.", text: "" });
           cachedLyricsSongKey = "";
           return;
         }
+
         if (!force && cachedLyricsSongKey === songKey) return;
 
         const token = ++lyricsToken;
-        setLyricsState({ source: "-", meta: "Buscando letra da música atual...", text: "Carregando..." });
+        setLyricsState({
+          source: "-",
+          meta: "Buscando letra da música atual...",
+          text: "Carregando..."
+        });
 
         try {
           const response = await fetch(`/api/queue/${guildId}/lyrics`, {
-            headers: { "Accept": "application/json" }
+            headers: { Accept: "application/json" }
           });
+
           const data = await response.json().catch(() => ({}));
           if (token !== lyricsToken) return;
 
           if (!response.ok || !data.ok) {
-const title = data?.song?.title ? `Música: ${data.song.title}` : "";
+            const title = data?.song?.title ? `Música: ${data.song.title}` : "";
             const artist = data?.song?.artist ? `Artista: ${data.song.artist}` : "";
-            const meta = [title, artist].filter(Boolean).join(" | ") || (data.message || "Letra não encontrada.");
+            const meta =
+              [title, artist].filter(Boolean).join(" | ") ||
+              data.message ||
+              "Letra não encontrada.";
+
             setLyricsState({
               source: "-",
               meta,
               text: data.message || "Não encontrei letra para esta música.",
               isError: true
             });
+
             cachedLyricsSongKey = songKey;
             return;
           }
 
           const title = data?.song?.title ? `Música: ${data.song.title}` : "";
           const artist = data?.song?.artist ? `Artista: ${data.song.artist}` : "";
+
           setLyricsState({
             source: data?.song?.source || "desconhecida",
             meta: [title, artist].filter(Boolean).join(" | "),
             text: data.lyrics || "",
             isError: false
           });
+
           cachedLyricsSongKey = songKey;
-        } catch (e) {
+        } catch (err) {
           if (token !== lyricsToken) return;
+
           setLyricsState({
             source: "-",
             meta: "Falha ao carregar letra.",
@@ -598,27 +669,33 @@ const title = data?.song?.title ? `Música: ${data.song.title}` : "";
 
       const runQueueAction = async (action, extra = {}) => {
         if (!guildId) return;
+
         setButtonsDisabled(true);
         setFeedback("Executando acao...", "info", false);
+
         try {
           const response = await fetch(`/api/queue/${guildId}/control`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action, ...extra })
           });
+
           const data = await response.json().catch(() => ({}));
+
           if (response.status === 401 && data.login) {
             window.location.href = data.login;
             return;
           }
+
           if (!response.ok || !data.ok) {
             setFeedback(data.message || "Falha ao executar acao.", "error");
             if (action === "seek_seconds") refreshQueue();
             return;
           }
+
           setFeedback(data.message || "Acao executada.", "success");
           refreshQueue();
-        } catch (e) {
+        } catch (err) {
           setFeedback("Erro de conexao ao controlar a fila.", "error");
           if (action === "seek_seconds") refreshQueue();
         } finally {
@@ -653,15 +730,18 @@ const title = data?.song?.title ? `Música: ${data.song.title}` : "";
         const seekShell = event.target.closest("[data-seek-progress]");
         if (!seekShell || !canSeekQueue) return;
         if (!canControlQueue) return;
+
         event.preventDefault();
         dragSeekState.active = true;
         dragSeekState.pointerId = event.pointerId;
         seekShell.classList.add("is-dragging");
+
         if (typeof seekShell.setPointerCapture === "function") {
           try {
             seekShell.setPointerCapture(event.pointerId);
-          } catch {}
+          } catch (err) {}
         }
+
         isSeeking = true;
         dragSeekState.targetSeconds = seekSecondsFromClientX(event.clientX);
       });
@@ -681,20 +761,14 @@ const title = data?.song?.title ? `Música: ${data.song.title}` : "";
         stopSeekState(false);
       });
 
-      window.onload = () => {
-        readClockFromDom();
-        setPanel(activePanel);
-        loadLyrics(true);
-        startClockTicker();
-        startInterval();
-      };
-
       function startClockTicker() {
         if (clockRaf) cancelAnimationFrame(clockRaf);
+
         const loop = () => {
           updateClockTick();
           clockRaf = requestAnimationFrame(loop);
         };
+
         clockRaf = requestAnimationFrame(loop);
       }
 
@@ -759,11 +833,20 @@ const title = data?.song?.title ? `Música: ${data.song.title}` : "";
 
       function startInterval() {
         if (refreshTicker) clearInterval(refreshTicker);
+
         refreshTicker = setInterval(() => {
           refreshQueue();
           loadLyrics(false);
         }, 2000);
       }
+
+      window.onload = () => {
+        readClockFromDom();
+        setPanel(activePanel);
+        loadLyrics(true);
+        startClockTicker();
+        startInterval();
+      };
 
       window.addEventListener("beforeunload", () => {
         if (clockRaf) cancelAnimationFrame(clockRaf);

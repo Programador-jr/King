@@ -342,12 +342,12 @@ module.exports = (client) => {
         textChannel.send({
             embeds: [
                 new MessageEmbed()
-                    .setColor(ee.color)
+                    .setColor(ee.wrongcolor)
                     .setFooter(ee.footertext, ee.footericon)
                     .setTitle("SAINDO DO CANAL")
                     .setDescription("<:queue:893912259535966238> **Nao ha mais musicas restantes**")
                     .setTimestamp()
-            ]
+            ] 
         });
         
         await client.lavalink.stop(player.guildId);
@@ -360,7 +360,16 @@ module.exports = (client) => {
     try {
         const textChannel = client.channels.cache.get(player.textChannelId);
         if (textChannel) {
-            sendToChannel(textChannel, `O canal de voz está vazio! Saindo do canal...`);
+            textChannel.send({
+                embeds: [
+                    new MessageEmbed()
+                        .setColor(ee.wrongcolor)
+                        .setFooter(ee.footertext, ee.footericon)
+                        .setTitle("CANAL VAZIO")
+                        .setDescription("<:queue:893912259535966238> **O canal de voz ficou vazio, saindo do canal...**")
+                        .setTimestamp()
+                ]
+            });
         }
     } catch (e) {
         console.error(e);

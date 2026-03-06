@@ -14,7 +14,7 @@
     </style>
     <title>Comandos | <%= bot.name %></title>
   </head>
-  <body class="commands-page">
+  <body class="commands-page theme-discord">
     <%- include('header'); -%>
     <%
       const resolveHelpDetails = (cmd) => {
@@ -201,7 +201,7 @@
         </div>
       </div>
     </section>
-
+     <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">↑</button>
     <%- include('footer'); -%>
 
     <script>

@@ -264,6 +264,27 @@ module.exports = client => {
     })
 
 
+    app.get("/termos", (req, res) => {
+      res.render("termos", {
+        req: req,
+        user: req.isAuthenticated() ? req.user : null,
+        botClient: client,
+        Permissions: Permissions,
+        bot: websiteInfo,
+      });
+    })
+
+    app.get("/privacidade", (req, res) => {
+      res.render("privacidade", {
+        req: req,
+        user: req.isAuthenticated() ? req.user : null,
+        botClient: client,
+        Permissions: Permissions,
+        bot: websiteInfo,
+      });
+    })
+
+
     // When the commands page is loaded, render it with those settings
     app.get("/commands", (req, res) => {
       res.render("commands", {
