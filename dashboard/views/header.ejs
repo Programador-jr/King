@@ -19,7 +19,7 @@
         <li><a href="/commands" class="<%= isActive('/commands') ? 'active-link' : '' %>">Comandos</a></li>
         <li><a href="/dashboard" class="<%= isActive('/dashboard') ? 'active-link' : '' %>">Dashboard</a></li>
         <li><a href="/queuedashboard" class="<%= isActive('/queuedashboard') || isActive('/queue') ? 'active-link' : '' %>">Fila</a></li>
-        <li><a href="https://discord.com/oauth2/authorize?client_id=<%= botClient.user.id %>&scope=bot%20applications.commands&permissions=2102658175" target="_blank" rel="noopener noreferrer">Convite</a></li>
+        <li><a href="https://king.com/oauth2/authorize?client_id=<%= botClient.user.id %>&scope=bot%20applications.commands&permissions=2102658175" target="_blank" rel="noopener noreferrer">Convite</a></li>
         <li>
           <a
             href="https://github.com/Programador-jr/King"
@@ -49,8 +49,8 @@
         <li class="nav-auth">
           <% if (user && user.id) { %>
             <% const avatarUrl = user.avatar
-              ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=64`
-              : `https://cdn.discordapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`; %>
+              ? `https://cdn.kingapp.com/avatars/${user.id}/${user.avatar}.webp?size=64`
+              : `https://cdn.kingapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`; %>
             <button
               class="auth-btn auth-btn-danger"
               onclick="location.href='/logout'"
@@ -79,38 +79,31 @@
     const THEME_KEY = 'king-dashboard-theme';
 
     function applyTheme(theme) {
-      const finalTheme = theme === 'king' ? 'king' : 'discord';
+      const finalTheme = (theme === 'king' || theme === 'discord') ? theme : 'king';
       document.documentElement.setAttribute('data-theme', finalTheme);
 
       if (document.body) {
         document.body.classList.remove('theme-discord', 'theme-king');
-        document.body.classList.add(finalTheme === 'king' ? 'theme-king' : 'theme-discord');
+        document.body.classList.add('theme-' + finalTheme);
       }
 
       const toggle = document.getElementById('theme-toggle');
       if (toggle) {
-        toggle.setAttribute(
-          'aria-label',
-          finalTheme === 'king' ? 'Mudar para tema Discord' : 'Mudar para tema King'
-        );
-        toggle.setAttribute(
-          'title',
-          finalTheme === 'king' ? 'Mudar para tema Discord' : 'Mudar para tema King'
-        );
+        toggle.setAttribute('title', finalTheme === 'king' ? 'Mudar para Discord' : 'Mudar para King');
       }
     }
 
-    const savedTheme = localStorage.getItem(THEME_KEY) || 'discord';
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'king';
     applyTheme(savedTheme);
 
     window.addEventListener('DOMContentLoaded', () => {
-      applyTheme(localStorage.getItem(THEME_KEY) || 'discord');
+      applyTheme(localStorage.getItem(THEME_KEY) || 'king');
 
       const toggle = document.getElementById('theme-toggle');
       if (!toggle) return;
 
       toggle.addEventListener('click', () => {
-        const current = document.documentElement.getAttribute('data-theme') || 'discord';
+        const current = document.documentElement.getAttribute('data-theme') || 'king';
         const next = current === 'king' ? 'discord' : 'king';
         localStorage.setItem(THEME_KEY, next);
         applyTheme(next);

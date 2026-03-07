@@ -439,7 +439,7 @@ module.exports = client => {
           ? String(req.body.mixDefault[0] || "")
           : String(req.body.mixDefault || "");
         const normalizedMixDefault = rawMixDefault.trim().toLowerCase();
-        const mixDefault = validMixDefaults.includes(normalizedMixDefault) ? normalizedMixDefault : "spotify";
+        const mixDefault = validMixDefaults.includes(normalizedMixDefault) ? normalizedMixDefault : "youtube";
         client.settings.set(guild.id, mixDefault, "mixDefault");
       }
       
