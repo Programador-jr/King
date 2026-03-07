@@ -144,8 +144,8 @@
                 <p class="form-helper">Plataforma padrão para o comando mix. Se a playlist selected falhar, usa a outra como fallback.</p>
                 <% const mixDefault = botClient.settings.get(guild.id, 'mixDefault') || 'youtube'; %>
                 <select class="form-control selectpicker" data-width="100%" data-live-search="false" aria-label="Mix Default" name="mixDefault">
-                  <option value="spotify" <%= mixDefault === 'spotify' ? 'selected' : '' %>>Spotify (padrão)</option>
                   <option value="youtube" <%= mixDefault === 'youtube' ? 'selected' : '' %>>YouTube (padrão)</option>
+                  <option value="spotify" <%= mixDefault === 'spotify' ? 'selected' : '' %>>Spotify</option>
                 </select>
               </div>
 

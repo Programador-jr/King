@@ -85,7 +85,7 @@ module.exports = async (client, interaction) => {
     botchannel: [],
     musicChannels: [],
     confessionChannel: null,
-    mixDefault: "spotify"
+    mixDefault: "youtube"
   });
 
   let prefix = client.settings.get(interaction.guildId, "prefix");

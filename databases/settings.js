@@ -32,7 +32,7 @@ const guildSettingsSchema = new mongoose.Schema({
   mixDefault: {
     type: String,
     enum: ["spotify", "youtube"],
-    default: "spotify"
+    default: "youtube"
   },
   confessionChannel: {
     type: String,
