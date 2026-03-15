@@ -85,6 +85,9 @@ client.setMaxListeners(100); require('events').defaultMaxListeners = 100;
 
 client.settings = new MongoDBEnmap();
 
+const TicketHandler = require("./handlers/tickets");
+client.ticketHandler = new TicketHandler(client);
+
 async function startBot() {
   try {
     await connectMongoDB();

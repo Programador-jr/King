@@ -42,37 +42,63 @@
                 ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.webp?size=512`
                 : `https://cdn.discordapp.com/embed/avatars/0.png`;
               const onServer = botClient.guilds.cache.has(guild.id);
+              const botGuild = onServer ? botClient.guilds.cache.get(guild.id) : null;
+              const memberCount = botGuild ? botGuild.memberCount : (guild.memberCount || guild.members?.cache?.size || 'N/A');
             %>
               <div class="col-12 col-sm-6 col-xl-4">
                 <article class="card text-white bg-dark server-card">
-                  <img src="<%= guildIcon %>" class="card-img-top" alt="<%= guild.name %>">
+                  <div class="server-image-container">
+                    <img src="<%= guildIcon %>" class="card-img-top" alt="<%= guild.name %>">
+                    <% if (onServer) { %>
+                      <div class="server-overlay">
+                        <span class="server-badge">
+                          <i class="fas fa-users"></i>
+                          <%= memberCount %> membros
+                        </span>
+                      </div>
+                    <% } %>
+                  </div>
                   <div class="card-body">
-                    <span class="status-pill <%= onServer ? 'status-pill-ok' : 'status-pill-warn' %>">
-                      <%= onServer ? 'Online no servidor' : 'Bot não adicionado' %>
-                    </span>
+                    <% if (onServer) { %>
+                      <span class="status-pill status-pill-ok">
+                        <i class="fas fa-check-circle"></i>
+                        Online
+                      </span>
+                    <% } else { %>
+                      <span class="status-pill status-pill-warn">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Bot não adicionado
+                      </span>
+                    <% } %>
                     <h5 class="card-title"><%= guild.name %></h5>
 
                     <% if (onServer) { %>
                       <p class="card-text">
-                        Edite as configurações de <b><%= guild.name %></b> pelo painel.
+                        Edite as configurações de <b><%= guild.name %></b> pelo painel moderno.
                       </p>
                       <div class="card-actions">
-                        <a href="/dashboard/<%- guild.id %>" class="btn btn-sm btn-primary px-3">
-                          Editar Configurações
+                        <a href="/dashboard/<%- guild.id %>" class="btn-modern btn-modern-primary">
+                          <i class="fas fa-cogs"></i>
+                          <span>Configurações</span>
+                        </a>
+                        <a href="/dashboard/<%- guild.id %>/tickets" class="btn-modern btn-modern-secondary">
+                          <i class="fas fa-ticket-alt"></i>
+                          <span>Tickets</span>
                         </a>
                       </div>
                     <% } else { %>
                       <p class="card-text">
-                        O bot ainda não está neste servidor. Adicione para liberar o painel.
+                        O bot ainda não está neste servidor. Adicione para liberar o painel completo.
                       </p>
                       <div class="card-actions">
                         <a
                           href="<%= `https://discord.com/oauth2/authorize?client_id=${botClient.user.id}&scope=bot%20applications.commands&guild_id=${guild.id}&response_type=code&redirect_uri=${encodeURIComponent(`${callback}`)}` %>"
-                          class="btn btn-sm btn-outline-info px-3"
+                          class="btn-modern btn-modern-success"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          Adicionar Bot
+                          <i class="fas fa-plus"></i>
+                          <span>Adicionar Bot</span>
                         </a>
                       </div>
                     <% } %>

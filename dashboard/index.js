@@ -6,7 +6,6 @@ const { Permissions } = require("discord.js");
 const ejs = require("ejs");
 const fs = require("fs")
 const passport = require(`passport`);
-const bodyParser = require("body-parser");
 const Strategy = require(`passport-discord`).Strategy;
 const BotConfig = require("../botconfig/config.json");
 const BotFilters = require("../botconfig/filters.json");
@@ -41,6 +40,7 @@ module.exports = client => {
     const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
     const resolvedCallback = getDashboardCallbackUrl(settings) || `${resolvedDomain}/callback`;
     const isLocalCallback = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?(\/|$)/i.test(resolvedCallback);
+    console.log(`[dashboard] OAuth callback URL: ${resolvedCallback}`);
 
     const getRequestProtocol = (req) => {
       const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").split(",")[0].trim();
@@ -68,6 +68,19 @@ module.exports = client => {
       return resolveCallbackForRequest(req);
     };
 
+    const isTransientOAuthProfileError = (err) => {
+      const message = String(err?.message || "");
+      const providerData = String(err?.oauthError?.data || "");
+      const combined = `${message} ${providerData}`.toLowerCase();
+      return combined.includes("failed to fetch the user profile")
+        || combined.includes("upstream connect error")
+        || combined.includes("disconnect/reset before headers")
+        || combined.includes("reset reason: overflow")
+        || combined.includes("econnreset")
+        || combined.includes("etimedout")
+        || combined.includes("socket hang up");
+    };
+
     const hasManageGuildPermission = (permissionsValue) => {
       try {
         const perms = BigInt(permissionsValue || 0);
@@ -83,6 +96,14 @@ module.exports = client => {
       const userGuild = req.user.guilds.find((entry) => String(entry.id) === String(guildId));
       if (!userGuild) return false;
       return hasManageGuildPermission(userGuild.permissions_new);
+    };
+
+    const resolveEmbedReturnTo = (guildId, rawInput) => {
+      const fallback = `/dashboard/${guildId}/tickets`;
+      const raw = String(rawInput || "").trim();
+      if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return fallback;
+      if (!raw.startsWith(`/dashboard/${guildId}/tickets`)) return fallback;
+      return raw;
     };
 
     const DASHBOARD_HIDDEN_FILTERS = new Set(["custombassboost", "customspeed", "clear"]);
@@ -104,6 +125,74 @@ module.exports = client => {
           ? [value]
           : [];
       return [...new Set(values.map((item) => String(item || "").trim()).filter(Boolean))];
+    };
+
+    const normalizePanelLogsInput = (logsInput) => {
+      const source = logsInput && typeof logsInput === "object" ? logsInput : {};
+      const normalizeEntry = (entryInput) => {
+        const entry = entryInput && typeof entryInput === "object" ? entryInput : {};
+        return {
+          enabled: Boolean(entry.enabled),
+          type: entry.type === "webhook" ? "webhook" : "channel",
+          channelId: String(entry.channelId || "").trim(),
+          webhookUrl: String(entry.webhookUrl || "").trim(),
+          message: String(entry.message || "").trim()
+        };
+      };
+      return {
+        open: normalizeEntry(source.open),
+        close: normalizeEntry(source.close)
+      };
+    };
+
+    const resolveValidatedPanelLogEntry = async (guild, entry, label) => {
+      const normalized = {
+        enabled: Boolean(entry.enabled),
+        type: entry.type === "webhook" ? "webhook" : "channel",
+        channelId: null,
+        webhookUrl: null,
+        message: entry.message || null
+      };
+
+      if (!normalized.enabled) {
+        return { ok: true, value: normalized };
+      }
+
+      if (normalized.type === "channel") {
+        if (!entry.channelId) {
+          return { ok: false, message: `Selecione o canal do log de ${label}.` };
+        }
+        let ch = guild.channels.cache.get(entry.channelId);
+        if (!ch) {
+          try { ch = await guild.channels.fetch(entry.channelId); } catch (e) {}
+        }
+        if (!ch || typeof ch.isTextBased !== "function" || !ch.isTextBased()) {
+          return { ok: false, message: `Canal de log de ${label} inválido.` };
+        }
+        normalized.channelId = entry.channelId;
+        return { ok: true, value: normalized };
+      }
+
+      if (!entry.webhookUrl || !entry.webhookUrl.startsWith("https://discord.com/api/webhooks/")) {
+        return { ok: false, message: `Webhook de log de ${label} inválido.` };
+      }
+      normalized.webhookUrl = entry.webhookUrl;
+      return { ok: true, value: normalized };
+    };
+
+    const resolveValidatedPanelLogs = async (guild, logsInput) => {
+      const normalized = normalizePanelLogsInput(logsInput);
+      const openResult = await resolveValidatedPanelLogEntry(guild, normalized.open, "abertura");
+      if (!openResult.ok) return openResult;
+      const closeResult = await resolveValidatedPanelLogEntry(guild, normalized.close, "fechamento");
+      if (!closeResult.ok) return closeResult;
+      return {
+        ok: true,
+        value: {
+          open: openResult.value,
+          close: closeResult.value
+        }
+      };
     };
 
     const checkApiAuth = (req, res, next) => {
@@ -162,10 +251,6 @@ module.exports = client => {
 
 
     //Those for app.use(s) are for the input of the post method (updateing settings)
-    app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({
-      extended: true
-    }));
     app.use(express.json());
     app.use(express.urlencoded({
       extended: true
@@ -219,9 +304,43 @@ module.exports = client => {
     //Callback endpoint for the login data
     app.get(`/callback`, (req, res, next) => {
         const callbackURL = getOAuthCallbackFromSession(req);
-        return passport.authenticate(`discord`, {
-          failureRedirect: "/",
-          callbackURL
+        return passport.authenticate(`discord`, { callbackURL }, (err, user) => {
+          if (err) {
+            const oauthData = err?.oauthError?.data ? String(err.oauthError.data) : "";
+            console.error(`[dashboard][oauth] Token exchange failed: ${err.message}`);
+            if (oauthData) console.error(`[dashboard][oauth] Provider response: ${oauthData}`);
+            console.error(`[dashboard][oauth] callbackURL used: ${callbackURL}`);
+
+            const retryCount = Number(req?.session?.oauthRetryCount || 0);
+            if (isTransientOAuthProfileError(err) && retryCount < 1) {
+              console.warn("[dashboard][oauth] Transient profile fetch error detected, retrying login once.");
+              if (req?.session) {
+                req.session.oauthRetryCount = retryCount + 1;
+                req.session.oauthCallback = callbackURL;
+              }
+              return res.redirect("/login?retry=1");
+            }
+
+            if (req?.session) req.session.oauthRetryCount = null;
+            req.session.oauthCallback = null;
+            return res.redirect("/?error=oauth_token");
+          }
+
+          if (!user) {
+            if (req?.session) req.session.oauthRetryCount = null;
+            req.session.oauthCallback = null;
+            return res.redirect("/?error=oauth_user");
+          }
+
+          req.logIn(user, (loginErr) => {
+            if (loginErr) {
+              console.error("[dashboard][oauth] Session login failed:", loginErr.message);
+              if (req?.session) req.session.oauthRetryCount = null;
+              req.session.oauthCallback = null;
+              return res.redirect("/?error=oauth_login");
+            }
+            return next();
+          });
         })(req, res, next);
     }, async (req, res) => {
         let banned = false // req.user.id
@@ -236,6 +355,7 @@ module.exports = client => {
               : "/dashboard";
             req.session.backURL = null;
             req.session.oauthCallback = null;
+            req.session.oauthRetryCount = null;
             res.redirect(backURL);
         }
     });
@@ -364,7 +484,7 @@ module.exports = client => {
         botchannel: [],
         musicChannels: [],
         confessionChannel: null,
-        mixDefault: "spotify"
+        mixDefault: "youtube"
       })
 
       const storedDefaultFilters = client.settings.get(guild.id, "defaultfilters");
@@ -410,6 +530,11 @@ module.exports = client => {
 
     // Settings endpoint.
     app.post("/dashboard/:guildID", checkAuth, async (req, res) => {
+      // Logs para depuração
+      console.log('[DEBUG] POST /dashboard/:guildID - req.body:', req.body);
+      console.log('[DEBUG] Headers:', req.headers);
+      console.log('[DEBUG] Content-Type:', req.headers['content-type']);
+      
       // We validate the request, check if guild exists, member is in guild and if member has minimum permissions, if not, we redirect it back.
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Can't get Guild Information Data!"));
@@ -425,12 +550,21 @@ module.exports = client => {
       if (!member.permissions.has("MANAGE_GUILD")) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("You are not allowed to do that!"));
       }
+      
+      // Verificação de segurança para req.body
+      if (!req.body) {
+        console.error('[ERROR] req.body is undefined - Headers:', req.headers);
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Erro ao processar formulário"));
+      }
+      
       if(req.body.prefix) client.settings.set(guild.id, String(req.body.prefix).split(" ")[0], "prefix")
       if(req.body.defaultvolume) client.settings.set(guild.id, Number(req.body.defaultvolume), "defaultvolume")
-      //if autoplay is enabled set it to true
-      if(req.body.defaultautoplay) client.settings.set(guild.id, true, "defaultautoplay")
-//otherwise not
-      else client.settings.set(guild.id, false, "defaultautoplay")
+      // Corrigir lógica do autoplay - só salvar se vier no formulário
+      if(req.body.defaultautoplay !== undefined) {
+        const autoplayValue = req.body.defaultautoplay === 'on' || req.body.defaultautoplay === 'true';
+        client.settings.set(guild.id, autoplayValue, "defaultautoplay");
+        console.log(`[SETTINGS] Autoplay salvo para guild ${guild.id}: ${autoplayValue}`);
+      }
       
       //mix default (spotify or youtube)
       if (req.body.mixDefault) {
@@ -504,6 +638,57 @@ module.exports = client => {
           BotEmojis: BotEmojis,
         }
       );
+    });
+
+    // Endpoint AJAX para atualização do autoplay
+    app.post("/dashboard/:guildID/settings/autoplay", checkAuth, async (req, res) => {
+      try {
+        const guild = client.guilds.cache.get(req.params.guildID);
+        if (!guild) {
+          return res.json({ success: false, message: "Servidor não encontrado" });
+        }
+
+        const member = guild.members.cache.get(req.user.id);
+        if (!member || !member.permissions.has("MANAGE_GUILD")) {
+          return res.json({ success: false, message: "Você não tem permissão para isso" });
+        }
+
+        const { defaultautoplay } = req.body;
+        
+        // Validar o valor
+        if (typeof defaultautoplay !== 'boolean') {
+          return res.json({ success: false, message: "Valor inválido" });
+        }
+
+        // Salvar no banco de dados
+        client.settings.set(guild.id, defaultautoplay, "defaultautoplay");
+        console.log(`[AJAX] Autoplay atualizado via toggle para guild ${guild.id}: ${defaultautoplay}`);
+
+        // Aplicar à fila ativa se existir
+        const activeQueue = client.distube.getQueue(guild.id);
+        if (activeQueue && typeof activeQueue.toggleAutoplay === 'function') {
+          try {
+            // Se o autoplay na fila for diferente da configuração, atualiza
+            if (activeQueue.autoplay !== defaultautoplay) {
+              await activeQueue.toggleAutoplay();
+              console.log(`[AJAX] Autoplay aplicado à fila ativa: ${defaultautoplay}`);
+            }
+          } catch (error) {
+            console.error('Erro ao atualizar autoplay na fila:', error);
+          }
+        }
+
+        res.json({ 
+          success: true, 
+          message: `Reprodução automática ${defaultautoplay ? 'ativada' : 'desativada'} com sucesso.`
+        });
+      } catch (error) {
+        console.error('Erro no endpoint de autoplay:', error);
+        res.json({ 
+          success: false, 
+          message: 'Erro ao salvar configuração.' 
+        });
+      }
     });
 
 
@@ -721,6 +906,941 @@ module.exports = client => {
         BotEmojis: BotEmojis,
       });
     })
+
+    // ===============================
+    // TICKETS DASHBOARD
+    // ===============================
+    app.get("/dashboard/:guildID/tickets", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      client.settings.ensure(guild.id, {
+        ticketCategory: null,
+        ticketRoles: [],
+        ticketWebhook: null,
+        ticketPanels: []
+      });
+
+      const TicketHandler = require("../handlers/tickets");
+      if (!client.ticketHandler) {
+        client.ticketHandler = new TicketHandler(client);
+      }
+
+      const tickets = client.ticketHandler.getGuildTickets(guild.id);
+      const panels = client.ticketHandler.getGuildPanels(guild.id);
+      const history = client.ticketHandler.getHistory(guild.id, 100);
+
+      const ticketLogOpenEnabled = client.settings.get(guild.id, "ticketLogOpenEnabled");
+      const ticketLogCloseEnabled = client.settings.get(guild.id, "ticketLogCloseEnabled");
+      const ticketLogOpenType = client.settings.get(guild.id, "ticketLogOpenType") || "channel";
+      const ticketLogCloseType = client.settings.get(guild.id, "ticketLogCloseType") || "channel";
+      const ticketLogOpenChannel = client.settings.get(guild.id, "ticketLogOpenChannel");
+      const ticketLogCloseChannel = client.settings.get(guild.id, "ticketLogCloseChannel");
+      const ticketLogOpenWebhook = client.settings.get(guild.id, "ticketLogOpenWebhook");
+      const ticketLogCloseWebhook = client.settings.get(guild.id, "ticketLogCloseWebhook");
+      const settingsSaved = req.query.success === "settings";
+
+      res.render("tickets", {
+        req: req,
+        user: req.isAuthenticated() ? req.user : null,
+        guild: guild,
+        botClient: client,
+        Permissions: Permissions,
+        bot: websiteInfo,
+        callback: resolveCallbackForRequest(req),
+        categories: client.categories,
+        commands: client.commands,
+        BotConfig: BotConfig,
+        BotFilters: BotFilters,
+        SPOTIFY_MIXES: SPOTIFY_MIXES,
+        YT_MIXES: YT_MIXES,
+        BotEmojis: BotEmojis,
+        openTickets: tickets.open || [],
+        closedTickets: tickets.closed || [],
+        totalTickets: tickets.total || 0,
+        panels: panels || [],
+        ticketHistory: history || [],
+        ticketRoles: client.settings.get(guild.id, "ticketRoles") || [],
+        guildRoles: guild.roles.cache.filter(r => !r.managed).sort((a, b) => b.rawPosition - a.rawPosition).map(r => ({ id: r.id, name: r.name, color: r.color })),
+        ticketLogOpenEnabled: ticketLogOpenEnabled || false,
+        ticketLogCloseEnabled: ticketLogCloseEnabled || false,
+        ticketLogOpenType: ticketLogOpenType,
+        ticketLogCloseType: ticketLogCloseType,
+        ticketLogOpenChannel: ticketLogOpenChannel || "",
+        ticketLogCloseChannel: ticketLogCloseChannel || "",
+        ticketLogOpenWebhook: ticketLogOpenWebhook || "",
+        ticketLogCloseWebhook: ticketLogCloseWebhook || "",
+        settingsSaved: settingsSaved
+      });
+    });
+
+    app.post("/dashboard/:guildID/tickets/settings", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      const supportRoles = req.body.ticketRoles;
+      if (Array.isArray(supportRoles)) {
+        client.settings.set(guild.id, supportRoles, "ticketRoles");
+      } else if (supportRoles) {
+        client.settings.set(guild.id, [supportRoles], "ticketRoles");
+      } else {
+        client.settings.set(guild.id, [], "ticketRoles");
+      }
+
+      client.settings.set(guild.id, !!req.body.ticketLogOpenEnabled, "ticketLogOpenEnabled");
+      client.settings.set(guild.id, !!req.body.ticketLogCloseEnabled, "ticketLogCloseEnabled");
+      client.settings.set(guild.id, (req.body.ticketLogOpenType === "webhook") ? "webhook" : "channel", "ticketLogOpenType");
+      client.settings.set(guild.id, (req.body.ticketLogCloseType === "webhook") ? "webhook" : "channel", "ticketLogCloseType");
+      
+      const openChannel = String(req.body.ticketLogOpenChannel || "").trim();
+      const closeChannel = String(req.body.ticketLogCloseChannel || "").trim();
+      const openWebhook = String(req.body.ticketLogOpenWebhook || "").trim();
+      const closeWebhook = String(req.body.ticketLogCloseWebhook || "").trim();
+
+      if (openChannel) {
+        let ch = guild.channels.cache.get(openChannel);
+        if (!ch) {
+          try { ch = await guild.channels.fetch(openChannel); } catch (e) {}
+        }
+        if (ch && typeof ch.isTextBased === "function" && ch.isTextBased()) {
+          client.settings.set(guild.id, openChannel, "ticketLogOpenChannel");
+        }
+      } else {
+        client.settings.set(guild.id, null, "ticketLogOpenChannel");
+      }
+      if (closeChannel) {
+        let ch = guild.channels.cache.get(closeChannel);
+        if (!ch) {
+          try { ch = await guild.channels.fetch(closeChannel); } catch (e) {}
+        }
+        if (ch && typeof ch.isTextBased === "function" && ch.isTextBased()) {
+          client.settings.set(guild.id, closeChannel, "ticketLogCloseChannel");
+        }
+      } else {
+        client.settings.set(guild.id, null, "ticketLogCloseChannel");
+      }
+      if (openWebhook && openWebhook.startsWith("https://discord.com/api/webhooks/")) {
+        client.settings.set(guild.id, openWebhook, "ticketLogOpenWebhook");
+      } else if (!openWebhook) {
+        client.settings.set(guild.id, null, "ticketLogOpenWebhook");
+      }
+      if (closeWebhook && closeWebhook.startsWith("https://discord.com/api/webhooks/")) {
+        client.settings.set(guild.id, closeWebhook, "ticketLogCloseWebhook");
+      } else if (!closeWebhook) {
+        client.settings.set(guild.id, null, "ticketLogCloseWebhook");
+      }
+
+      return res.redirect("/dashboard/" + guild.id + "/tickets?success=settings");
+    });
+
+    // Embed Editor Page
+    app.get("/dashboard/:guildID/tickets/embed", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      const welcomeEmbed = client.settings.get(guild.id, "ticketWelcomeEmbed") || null;
+      const closeEmbed = client.settings.get(guild.id, "ticketCloseEmbed") || null;
+      const returnTo = resolveEmbedReturnTo(guild.id, req.query.returnTo || req?.session?.ticketEmbedReturnTo);
+      if (req?.session) req.session.ticketEmbedReturnTo = returnTo;
+
+      res.render("tickets-embed", {
+        req: req,
+        user: req.isAuthenticated() ? req.user : null,
+        guild: guild,
+        botClient: client,
+        Permissions: Permissions,
+        bot: websiteInfo,
+        callback: resolveCallbackForRequest(req),
+        categories: client.categories,
+        commands: client.commands,
+        BotConfig: BotConfig,
+        BotFilters: BotFilters,
+        SPOTIFY_MIXES: SPOTIFY_MIXES,
+        YT_MIXES: YT_MIXES,
+        BotEmojis: BotEmojis,
+        returnTo: returnTo,
+        welcomeEmbed: welcomeEmbed,
+        closeEmbed: closeEmbed
+      });
+    });
+
+    app.post("/dashboard/:guildID/tickets/embed", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      const returnTo = resolveEmbedReturnTo(guild.id, req.body.returnTo || req.query.returnTo || req?.session?.ticketEmbedReturnTo);
+      if (req?.session) req.session.ticketEmbedReturnTo = returnTo;
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      try {
+        if (req.body.welcomeEmbed) {
+          const welcomeData = JSON.parse(req.body.welcomeEmbed);
+          client.settings.set(guild.id, welcomeData, "ticketWelcomeEmbed");
+        }
+
+        if (req.body.closeEmbed) {
+          const closeData = JSON.parse(req.body.closeEmbed);
+          client.settings.set(guild.id, closeData, "ticketCloseEmbed");
+        }
+
+        res.redirect(`/dashboard/${guild.id}/tickets/embed?success=true&returnTo=${encodeURIComponent(returnTo)}`);
+      } catch (err) {
+        console.error("[Embed] Erro ao salvar embed:", err);
+        res.redirect(`/dashboard/${guild.id}/tickets/embed?error=` + encodeURIComponent("Erro ao salvar embed") + `&returnTo=${encodeURIComponent(returnTo)}`);
+      }
+    });
+
+    app.get("/tickets/:guildID/:ticketNumber", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      const ticketNumber = parseInt(req.params.ticketNumber);
+      if (!ticketNumber) return res.redirect("/dashboard?error=" + encodeURIComponent("Ticket inválido"));
+
+      const TicketHandler = require("../handlers/tickets");
+      if (!client.ticketHandler) {
+        client.ticketHandler = new TicketHandler(client);
+      }
+
+      const ticket = client.ticketHandler.getTicket(guild.id, ticketNumber);
+      if (!ticket) return res.redirect(`/dashboard/${guild.id}/tickets?error=` + encodeURIComponent("Ticket não encontrado"));
+
+      res.render("ticket-view", {
+        req: req,
+        user: req.isAuthenticated() ? req.user : null,
+        guild: guild,
+        botClient: client,
+        Permissions: Permissions,
+        bot: websiteInfo,
+        ticket: ticket
+      });
+    });
+
+    // API para gerenciar tickets
+    app.post("/api/tickets/:guildID/:ticketNumber/close", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const ticketNumber = parseInt(req.params.ticketNumber);
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        const closedTicket = await client.ticketHandler.closeTicket(guildId, ticketNumber, req.user.id, req.user.tag);
+
+        await client.ticketHandler.sendCloseLog(guildId, closedTicket, guild, req.user);
+
+        return res.json({ ok: true, message: "Ticket fechado com sucesso" });
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ ok: false, message: "Erro ao fechar ticket" });
+      }
+    });
+
+    app.post("/api/tickets/:guildID/:ticketNumber/reopen", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const ticketNumber = parseInt(req.params.ticketNumber);
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        await client.ticketHandler.reopenTicket(guildId, ticketNumber);
+
+        return res.json({ ok: true, message: "Ticket reaberto com sucesso" });
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ ok: false, message: "Erro ao reopen ticket" });
+      }
+    });
+
+    // API para criar painel de tickets
+    app.post("/api/tickets/:guildID/create-panel", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const { channelId, title, description, buttonLabel } = req.body;
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const channel = guild.channels.cache.get(channelId);
+        const isTextChannel = channel && (
+          channel.type === 0 ||
+          channel.type === "GUILD_TEXT" ||
+          channel.type === "text" ||
+          (typeof channel.isTextBased === "function" && channel.isTextBased())
+        );
+        if (!isTextChannel) {
+          return res.status(400).json({ ok: false, message: "Canal de texto inválido" });
+        }
+
+        const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
+
+        const embed = new MessageEmbed()
+          .setColor("#00BFFF")
+          .setTitle(title || "🎫 Central de Tickets")
+          .setDescription(description || "Precisa de ajuda? Clique no botão abaixo para criar um ticket.")
+          .setFooter({ text: "Sistema de Tickets" });
+
+        const row = new MessageActionRow()
+          .addComponents(
+            new MessageButton()
+              .setCustomId("create_ticket")
+              .setLabel(buttonLabel || "🎫 Criar Ticket")
+              .setStyle("PRIMARY")
+          );
+
+        const panelMessage = await channel.send({
+          embeds: [embed],
+          components: [row]
+        });
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        await client.ticketHandler.createPanel(guildId, {
+          channelId: channelId,
+          messageId: panelMessage.id,
+          title: title,
+          description: description,
+          buttonLabel: buttonLabel
+        });
+
+        return res.json({ ok: true, message: "Painel criado com sucesso" });
+      } catch (err) {
+        console.error("[Create Panel] Erro:", err);
+        return res.status(500).json({ ok: false, message: "Erro ao criar painel" });
+      }
+    });
+
+    // API para excluir painel de tickets
+    app.post("/api/tickets/:guildID/delete-panel", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const { panelId } = req.body;
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        const panels = client.ticketHandler.getGuildPanels(guildId);
+        const panel = panels.find(p => p.id === panelId);
+        
+        if (panel) {
+          try {
+            const channel = guild.channels.cache.get(panel.channelId);
+            if (channel) {
+              const message = await channel.messages.fetch(panel.messageId).catch(() => null);
+              if (message) {
+                await message.delete();
+              }
+            }
+          } catch (e) {
+            console.log("[Delete Panel] Não foi possível deletar a mensagem:", e.message);
+          }
+
+          await client.ticketHandler.deletePanel(guildId, panel.messageId);
+        }
+
+        return res.json({ ok: true, message: "Painel excluído com sucesso" });
+      } catch (err) {
+        console.error("[Delete Panel] Erro:", err);
+        return res.status(500).json({ ok: false, message: "Erro ao excluir painel" });
+      }
+    });
+
+    // API para reenviar painel
+    app.post("/api/tickets/:guildID/resend-panel", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const { panelId } = req.body;
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        const panels = client.ticketHandler.getGuildPanels(guildId);
+        const panel = panels.find(p => p.id === panelId);
+        
+        if (!panel) {
+          return res.status(404).json({ ok: false, message: "Painel não encontrado" });
+        }
+
+        const channel = guild.channels.cache.get(panel.channelId);
+        if (!channel) {
+          return res.status(400).json({ ok: false, message: "Canal do painel não encontrado" });
+        }
+
+        const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
+
+        const discordEmbeds = (panel.embeds || []).map(embed => {
+          const e = new MessageEmbed();
+          if (embed.color) e.setColor(embed.color);
+          if (embed.title) e.setTitle(embed.title);
+          if (embed.description) e.setDescription(embed.description);
+          if (embed.url) e.setURL(embed.url);
+          if (embed.image) e.setImage(embed.image);
+          if (embed.thumbnail) e.setThumbnail(embed.thumbnail);
+          if (embed.author?.name) {
+            e.setAuthor({
+              name: embed.author.name,
+              url: embed.author.url || null,
+              iconURL: embed.author.icon_url || null
+            });
+          }
+          if (embed.footer?.text) {
+            e.setFooter({
+              text: embed.footer.text,
+              iconURL: embed.footer.icon_url || null
+            });
+          }
+          return e;
+        });
+
+        const rows = [];
+        const buttonRow = new MessageActionRow();
+        
+        (panel.buttons || []).forEach(btn => {
+          const button = new MessageButton()
+            .setCustomId(btn.customId || 'create_ticket')
+            .setLabel(btn.label || 'Criar Ticket')
+            .setStyle(btn.style || 'PRIMARY');
+          if (btn.emoji) button.setEmoji(btn.emoji);
+          buttonRow.addComponents(button);
+        });
+
+        if (buttonRow.components.length > 0) {
+          rows.push(buttonRow);
+        }
+
+        await channel.send({
+          embeds: discordEmbeds,
+          components: rows
+        });
+
+        return res.json({ ok: true, message: "Painel reenviado com sucesso" });
+      } catch (err) {
+        console.error("[Resend Panel] Erro:", err);
+        return res.status(500).json({ ok: false, message: "Erro ao reenviar painel: " + err.message });
+      }
+    });
+
+    // API para fechar ticket
+    app.post("/api/tickets/:guildID/close", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const { ticketNumber } = req.body;
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        const ticket = client.ticketHandler.getTicket(guildId, ticketNumber);
+        if (!ticket) {
+          return res.status(404).json({ ok: false, message: "Ticket não encontrado" });
+        }
+
+        if (ticket.status === "closed") {
+          return res.status(400).json({ ok: false, message: "Ticket já está fechado" });
+        }
+
+        const closedTicket = await client.ticketHandler.closeTicket(
+          guildId,
+          ticketNumber,
+          req.user.id,
+          req.user.tag
+        );
+
+        await client.ticketHandler.sendCloseLog(guildId, closedTicket, guild, req.user);
+
+        const channel = guild.channels.cache.get(ticket.channelId);
+        if (channel) {
+          await channel.setName(`closed-${ticketNumber}`);
+
+          const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
+
+          const customCloseEmbed = client.settings.get(guild.id, "ticketCloseEmbed");
+          let embed;
+
+          if (customCloseEmbed) {
+            embed = new MessageEmbed();
+            if (customCloseEmbed.color) embed.setColor(customCloseEmbed.color);
+            if (customCloseEmbed.title) embed.setTitle(customCloseEmbed.title);
+            if (customCloseEmbed.description) embed.setDescription(
+              customCloseEmbed.description
+                .replace(/{user}/g, `<@${ticket.userId}>`)
+                .replace(/{username}/g, ticket.userTag || "Unknown")
+                .replace(/{ticket}/g, `#${ticketNumber}`)
+                .replace(/{usertag}/g, ticket.userTag || "Unknown")
+                .replace(/{closer}/g, req.user.tag)
+            );
+            if (customCloseEmbed.footer?.text) embed.setFooter({ text: customCloseEmbed.footer.text, iconURL: customCloseEmbed.footer.icon_url || null });
+            if (customCloseEmbed.image) embed.setImage(customCloseEmbed.image);
+            if (customCloseEmbed.thumbnail) embed.setThumbnail(customCloseEmbed.thumbnail);
+            if (customCloseEmbed.author?.name) embed.setAuthor({ name: customCloseEmbed.author.name, url: customCloseEmbed.author.url || null, iconURL: customCloseEmbed.author.icon_url || null });
+            if (customCloseEmbed.fields?.length) customCloseEmbed.fields.forEach(f => { if (f.name) embed.addField(f.name, f.value || '\u200b', f.inline || false); });
+            embed.addField("🎫 Ticket", `#${ticketNumber}`, true);
+            embed.addField("👤 Fechado por", req.user.tag, true);
+            embed.setTimestamp();
+          } else {
+            embed = new MessageEmbed()
+              .setColor("#ed4245")
+              .setTitle("🎫 Ticket Fechado")
+              .setDescription(`Ticket fechado por ${req.user.tag}.`)
+              .addField("Ticket", `#${ticketNumber}`, true)
+              .setTimestamp();
+          }
+
+          await channel.send({ embeds: [embed] });
+
+          const row = new MessageActionRow()
+            .addComponents(
+              new MessageButton()
+                .setCustomId("reopen_ticket")
+                .setLabel("🔓 Reabrir")
+                .setStyle("SECONDARY"),
+              new MessageButton()
+                .setCustomId("delete_ticket")
+                .setLabel("🗑️ Deletar")
+                .setStyle("DANGER")
+            );
+
+          await channel.send({
+            content: "Ticket fechado. Escolha uma opção:",
+            components: [row]
+          });
+        }
+
+        return res.json({ ok: true, message: "Ticket fechado com sucesso" });
+      } catch (err) {
+        console.error("[Close Ticket API] Erro:", err);
+        return res.status(500).json({ ok: false, message: "Erro ao fechar ticket: " + err.message });
+      }
+    });
+
+    // Page para criar painel avançado
+    app.get("/dashboard/:guildID/tickets/create", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      res.render("create-panel", {
+        req: req,
+        user: req.isAuthenticated() ? req.user : null,
+        guild: guild,
+        botClient: client,
+        Permissions: Permissions,
+        bot: websiteInfo,
+        callback: resolveCallbackForRequest(req),
+        categories: client.categories,
+        commands: client.commands,
+        BotConfig: BotConfig,
+        BotFilters: BotFilters,
+        SPOTIFY_MIXES: SPOTIFY_MIXES,
+        YT_MIXES: YT_MIXES,
+        BotEmojis: BotEmojis,
+        editPanel: null
+      });
+    });
+
+    // Page para editar painel
+    app.get("/dashboard/:guildID/tickets/edit/:panelId", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      const TicketHandler = require("../handlers/tickets");
+      if (!client.ticketHandler) {
+        client.ticketHandler = new TicketHandler(client);
+      }
+
+      const panels = client.ticketHandler.getGuildPanels(guild.id);
+      const panel = panels.find(p => p.id === req.params.panelId);
+      
+      if (!panel) {
+        return res.redirect("/dashboard/" + guild.id + "/tickets?error=" + encodeURIComponent("Painel não encontrado"));
+      }
+
+      res.render("create-panel", {
+        req: req,
+        user: req.isAuthenticated() ? req.user : null,
+        guild: guild,
+        botClient: client,
+        Permissions: Permissions,
+        bot: websiteInfo,
+        callback: resolveCallbackForRequest(req),
+        categories: client.categories,
+        commands: client.commands,
+        BotConfig: BotConfig,
+        BotFilters: BotFilters,
+        SPOTIFY_MIXES: SPOTIFY_MIXES,
+        YT_MIXES: YT_MIXES,
+        BotEmojis: BotEmojis,
+        editPanel: panel
+      });
+    });
+
+    // API para criar painel avançado
+    app.post("/api/tickets/:guildID/create-panel-advanced", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const { channelId, categoryId, categoryEnabled, embeds, buttons, logs, questions } = req.body;
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const channel = guild.channels.cache.get(channelId);
+        const isTextChannel = channel && (
+          channel.type === 0 ||
+          channel.type === "GUILD_TEXT" ||
+          channel.type === "text" ||
+          (typeof channel.isTextBased === "function" && channel.isTextBased())
+        );
+        if (!isTextChannel) {
+          return res.status(400).json({ ok: false, message: "Canal de texto inválido" });
+        }
+
+        const useCategory = Boolean(categoryEnabled);
+        let finalCategoryId = useCategory ? categoryId : null;
+        if (finalCategoryId === "" || finalCategoryId === undefined) {
+          finalCategoryId = null;
+        }
+        if (finalCategoryId) {
+          const category = guild.channels.cache.get(finalCategoryId);
+          const isCategory = category && (
+            category.type === 4 ||
+            category.type === "GUILD_CATEGORY" ||
+            category.type === "category"
+          );
+          if (!isCategory) {
+            finalCategoryId = null;
+          }
+        }
+
+        const { MessageEmbed, MessageActionRow, MessageButton, ComponentType } = require("discord.js");
+        const resolvedPanelLogs = await resolveValidatedPanelLogs(guild, logs);
+        if (!resolvedPanelLogs.ok) {
+          return res.status(400).json({ ok: false, message: resolvedPanelLogs.message });
+        }
+
+        const discordEmbeds = embeds.map(embed => {
+          const e = new MessageEmbed();
+          if (embed.color) e.setColor(embed.color);
+          if (embed.title) e.setTitle(embed.title);
+          if (embed.description) e.setDescription(embed.description);
+          if (embed.url) e.setURL(embed.url);
+          if (embed.image) e.setImage(embed.image);
+          if (embed.thumbnail) e.setThumbnail(embed.thumbnail);
+          if (embed.author?.name) {
+            e.setAuthor({
+              name: embed.author.name,
+              url: embed.author.url || null,
+              iconURL: embed.author.icon_url || null
+            });
+          }
+          if (embed.footer?.text) {
+            e.setFooter({
+              text: embed.footer.text,
+              iconURL: embed.footer.icon_url || null
+            });
+          }
+          return e;
+        });
+
+        const panelId = `panel-${Date.now()}`;
+
+        const rows = [];
+        const buttonRow = new MessageActionRow();
+        
+        buttons.forEach(btn => {
+          const customId = btn.customId && btn.customId !== 'create_ticket' 
+            ? btn.customId 
+            : `create_ticket_${panelId}`;
+          const button = new MessageButton()
+            .setCustomId(customId)
+            .setLabel(btn.label || 'Criar Ticket')
+            .setStyle(btn.style || 'PRIMARY');
+          if (btn.emoji) button.setEmoji(btn.emoji);
+          buttonRow.addComponents(button);
+        });
+
+        if (buttonRow.components.length > 0) {
+          rows.push(buttonRow);
+        }
+
+        const panelMessage = await channel.send({
+          embeds: discordEmbeds,
+          components: rows
+        });
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        const updatedButtons = buttons.map(btn => ({
+          ...btn,
+          customId: btn.customId && btn.customId !== 'create_ticket' 
+            ? btn.customId 
+            : `create_ticket_${panelId}`
+        }));
+
+        await client.ticketHandler.createPanel(guildId, {
+          channelId: channelId,
+          useCategory,
+          categoryId: finalCategoryId,
+          logs: resolvedPanelLogs.value,
+          messageId: panelMessage.id,
+          panelId: panelId,
+          embeds: embeds,
+          buttons: updatedButtons,
+          questions: questions || []
+        });
+
+        client.settings.ensure(guildId, {
+          ticketCategory: null,
+          ticketRoles: [],
+          ticketWebhook: null
+        });
+        
+        return res.json({ ok: true, message: "Painel criado com sucesso" });
+      } catch (err) {
+        console.error("[Create Panel Advanced] Erro:", err);
+        return res.status(500).json({ ok: false, message: "Erro ao criar painel: " + err.message });
+      }
+    });
+
+    // API para atualizar painel
+    app.post("/api/tickets/:guildID/update-panel", checkApiAuth, async (req, res) => {
+      try {
+        const guildId = req.params.guildID;
+        const { panelId, channelId, categoryId, categoryEnabled, embeds, buttons, logs, questions } = req.body;
+        
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+        }
+
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+        }
+
+        const TicketHandler = require("../handlers/tickets");
+        if (!client.ticketHandler) {
+          client.ticketHandler = new TicketHandler(client);
+        }
+
+        const panels = client.ticketHandler.getGuildPanels(guildId);
+        const panelIndex = panels.findIndex(p => p.id === panelId);
+        
+        if (panelIndex === -1) {
+          return res.status(404).json({ ok: false, message: "Painel não encontrado" });
+        }
+
+        if (channelId) {
+          const targetChannel = guild.channels.cache.get(channelId);
+          const isTextChannel = targetChannel && (
+            targetChannel.type === 0 ||
+            targetChannel.type === "GUILD_TEXT" ||
+            targetChannel.type === "text" ||
+            (typeof targetChannel.isTextBased === "function" && targetChannel.isTextBased())
+          );
+          if (!isTextChannel) {
+            return res.status(400).json({ ok: false, message: "Canal de texto inválido" });
+          }
+        }
+
+        const hasCategoryToggle = categoryEnabled !== undefined;
+        const nextUseCategory = hasCategoryToggle ? Boolean(categoryEnabled) : Boolean(panels[panelIndex].useCategory);
+
+        let updatedCategoryId = panels[panelIndex].categoryId;
+        if (!nextUseCategory) {
+          updatedCategoryId = null;
+        } else if (categoryId !== undefined) {
+          if (categoryId === null || categoryId === "") {
+            updatedCategoryId = null;
+          } else {
+            const category = guild.channels.cache.get(categoryId);
+            const isCategory = category && (
+              category.type === 4 ||
+              category.type === "GUILD_CATEGORY" ||
+              category.type === "category"
+            );
+            if (!isCategory) {
+              return res.status(400).json({ ok: false, message: "Categoria inválida" });
+            }
+            updatedCategoryId = categoryId;
+          }
+        }
+
+        let updatedLogs = panels[panelIndex].logs;
+        if (logs !== undefined) {
+          const resolvedPanelLogs = await resolveValidatedPanelLogs(guild, logs);
+          if (!resolvedPanelLogs.ok) {
+            return res.status(400).json({ ok: false, message: resolvedPanelLogs.message });
+          }
+          updatedLogs = resolvedPanelLogs.value;
+        }
+
+        panels[panelIndex] = {
+          ...panels[panelIndex],
+          channelId: channelId || panels[panelIndex].channelId,
+          useCategory: nextUseCategory,
+          categoryId: updatedCategoryId,
+          logs: updatedLogs,
+          embeds: embeds || panels[panelIndex].embeds,
+          buttons: buttons || panels[panelIndex].buttons,
+          questions: questions || panels[panelIndex].questions,
+          updatedAt: Date.now()
+        };
+
+        // Usar a função updatePanel do handler para consistência
+        await client.ticketHandler.updatePanel(guildId, panelId, {
+          channelId: channelId || panels[panelIndex].channelId,
+          useCategory: nextUseCategory,
+          categoryId: updatedCategoryId,
+          logs: updatedLogs,
+          embeds: embeds || panels[panelIndex].embeds,
+          buttons: buttons || panels[panelIndex].buttons,
+          questions: questions || panels[panelIndex].questions
+        });
+
+        return res.json({ ok: true, message: "Painel atualizado com sucesso" });
+      } catch (err) {
+        console.error("[Update Panel] Erro:", err);
+        return res.status(500).json({ ok: false, message: "Erro ao atualizar painel: " + err.message });
+      }
+    });
 
     /**
      * @START THE WEBSITE

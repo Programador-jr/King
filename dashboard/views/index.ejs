@@ -15,39 +15,43 @@
 
     <section class="hero">
       <div class="hero-card">
-        <span class="hero-badge">PAINEL OFICIAL</span>
+        <span class="hero-badge"><i class="fas fa-crown"></i>PAINEL OFICIAL</span>
         <h1><%= botClient.user.username %> | Bot Completo para Comunidades</h1>
         <p class="subtext hero-lead">
           Gerencie comandos, configurações, utilidades, jogos e música em uma interface moderna, rápida e responsiva.
         </p>
         <div class="hero-actions">
-          <a class="btn-modern btn-modern-primary" href="/dashboard">Abrir Dashboard</a>
-          <a class="btn-modern btn-modern-secondary" href="/commands">Ver Comandos</a>
+          <a class="btn-modern btn-modern-primary" href="/dashboard"><i class="fas fa-tachometer-alt"></i> Abrir Dashboard</a>
+          <a class="btn-modern btn-modern-secondary" href="/commands"><i class="fas fa-terminal"></i> Ver Comandos</a>
         </div>
       </div>
 
       <div class="hero-card">
-        <h5 class="hero-summary-title">Resumo rápido</h5>
+        <h5 class="hero-summary-title"><i class="fas fa-chart-bar"></i> Resumo rápido</h5>
         <div class="feature-grid feature-grid-summary">
-          <div class="feature-card">
+          <div class="feature-card feature-stat">
+            <div class="feature-icon"><i class="fas fa-terminal"></i></div>
             <div class="feature-body">
               <h5><%= typeof commands.size === 'number' ? commands.size : commands.length %> Comandos</h5>
               <p>Todos organizados por categoria, com uso e aliases.</p>
             </div>
           </div>
-          <div class="feature-card">
+          <div class="feature-card feature-stat">
+            <div class="feature-icon"><i class="fas fa-sliders-h"></i></div>
             <div class="feature-body">
               <h5><%= Object.keys(BotFilters).length %> Filtros</h5>
               <p>Recursos avancados para personalizar a experiencia do seu servidor.</p>
             </div>
           </div>
-          <div class="feature-card">
+          <div class="feature-card feature-stat">
+            <div class="feature-icon"><i class="fas fa-robot"></i></div>
             <div class="feature-body">
               <h5>Automações e controle</h5>
               <p>Configure comportamento padrão, permissão por cargo e canais dedicados.</p>
             </div>
           </div>
-          <div class="feature-card">
+          <div class="feature-card feature-stat">
+            <div class="feature-icon"><i class="fas fa-server"></i></div>
             <div class="feature-body">
               <h5>Gestão por servidor</h5>
               <p>Cada guild com configuração independente.</p>
@@ -59,7 +63,7 @@
 
     <section class="legacy-floating">
       <div class="custom-1 pt-10">
-        <div class="legacy-icon legacy-icon-command" aria-hidden="true"><i class="fas fa-layer-group"></i></div>
+        <div class="legacy-icon legacy-icon-command" aria-hidden="true"><i class="fas fa-code"></i></div>
         <h3>Todos os comandos necessários para o seu servidor</h3>
 <p>
           Você está cansado de ter um Bot de Música com milhares de comandos? King tem todos os comandos necessários em apenas um único bot!
@@ -69,21 +73,27 @@
       </div>
 
       <div class="custom-2 pt-16">
-        <div class="legacy-icon legacy-icon-filter" aria-hidden="true"><i class="fas fa-sliders-h"></i></div>
+        <div class="legacy-icon legacy-icon-filter" aria-hidden="true"><i class="fas fa-play"></i></div>
         <h3>Experiência de Música definitiva significa <%= Object.keys(BotFilters).length %> Filtros para ajustar o seu áudio!</h3>
         <p>Estamos usando o FFMPEG para dar a você a mais alta qualidade de áudio possível. Na verdade, nós os geramos instantaneamente e quase não temos lag!</p>
       </div>
 
       <div class="custom-1 pt-16">
-        <div class="legacy-icon legacy-icon-music" aria-hidden="true"><i class="fas fa-compact-disc"></i></div>
+        <div class="legacy-icon legacy-icon-music" aria-hidden="true"><i class="fas fa-music"></i></div>
 <h3>Spotify, Soundcloud, Youtube e 1100+ outros links suportados!</h3>
         <p>Apoiamos tudo o que você ouve! INCLUINDO PLAYLISTS E <b><%= SPOTIFY_MIXES ? SPOTIFY_MIXES.length : ytMixesTotal %> PLAYLISTS PREDEFINIDAS, otimizadas! (mix)</b></p>
       </div>
 
       <div class="custom-2 pt-16">
-        <div class="legacy-icon legacy-icon-dashboard" aria-hidden="true"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="legacy-icon legacy-icon-dashboard" aria-hidden="true"><i class="fas fa-cog"></i></div>
         <h3>Interface clara, com logs e botões instantâneos!</h3>
         <p>Para que voce possa obter tudo o que deseja instantaneamente do Bot e ver tudo o que / quem aconteceu!</p>
+      </div>
+
+      <div class="custom-1 pt-16">
+        <div class="legacy-icon legacy-icon-ticket" aria-hidden="true"><i class="fas fa-ticket-alt"></i></div>
+        <h3>Sistema de Tickets Completo</h3>
+        <p>Suporte profissional com painel de gerenciamento, automações e logs detalhados para organizar o atendimento do seu servidor.</p>
       </div>
     </section>
 

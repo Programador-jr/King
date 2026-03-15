@@ -127,7 +127,7 @@ a:active {
 #audiofilters > p a {
   color: var(--accent, #5865f2);
   border-bottom: 1px solid transparent;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease !important;
   font-weight: 600;
 }
 
@@ -181,7 +181,7 @@ a:active {
   font-size: 0.92rem;
   line-height: 1.35;
   letter-spacing: 0.01em;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease !important;
 }
 
 #category .list-group-item:hover,
@@ -209,7 +209,7 @@ a:active {
   overflow: hidden;
   margin-bottom: 14px;
   box-shadow: none !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
 .accordion-item:hover {

@@ -5,64 +5,191 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
     <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="/public/alerts.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/index.css">
     <title>Configurações | <%= guild.name %></title>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
+    
+    <style>
+      /* Estilo para o toggle de autoplay com feedback visual */
+      #autoplay-label {
+        transition: all 0.3s ease;
+        display: inline-block;
+        min-width: 70px;
+        outline: none !important;
+      }
+      
+      #autoplay-label.saving {
+        opacity: 0.7;
+        color: var(--accent-soft);
+      }
+      
+      #defaultautoplay:focus + #autoplay-label {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      
+      /* Animação suave para o toggle */
+      .form-check-input:checked {
+        background-color: var(--accent);
+        border-color: var(--accent);
+        transition: all 0.2s ease;
+      }
+      
+      .form-check-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.2rem rgba(var(--accent-rgb), 0.25);
+      }
+      
+      /* Estilo para informações da fila */
+      .queue-info {
+        background: var(--panel-bg);
+        border: 1px solid var(--theme-border);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 12px 0;
+        font-size: 14px;
+      }
+      
+      .queue-info p {
+        margin: 0;
+        color: var(--text-main);
+      }
+      
+      .queue-info strong {
+        color: var(--accent);
+      }
+      
+      .queue-info #queueCount {
+        font-weight: 600;
+        color: var(--accent);
+        font-size: 16px;
+      }
+      
+      /* CSS específico para garantir funcionamento do botão salvar */
+      .settings-actions button[type="submit"] {
+        pointer-events: auto !important;
+        opacity: 1 !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+      }
+      
+      .settings-actions button[type="submit"]:disabled {
+        pointer-events: none !important;
+        opacity: 0.7 !important;
+        cursor: not-allowed !important;
+      }
+      
+      .settings-actions button[type="submit"]:not(:disabled):hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3) !important;
+      }
+      
+      /* Forçar visibilidade do texto do botão */
+      .settings-actions button[type="submit"] span {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+      
+      .settings-actions button[type="submit"] i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        margin-right: 8px !important;
+      }
+    </style>
   </head>
-  <body>
+  <body class="theme-discord modern-settings">
     <%- include('header'); -%>
 
-    <section class="dashboard-page settings-page">
-      <div class="form-holder">
-        <div class="form-content">
-          <div class="form-items">
-            <div class="settings-header">
-              <h3>Configurações do servidor</h3>
-              <p>Edite as configurações do <%= botClient.user.username %> em <b><%= guild.name %></b>.</p>
-            </div>
+    <section class="dashboard-page settings-page modern-section">
+      <div class="section-header">
+        <h1><i class="fas fa-cogs"></i> Configurações do Servidor</h1>
+        <p class="section-description">
+          Edite as configurações do <%= botClient.user.username %> em <b><%= guild.name %></b>.
+        </p>
+      </div>
 
-            <form method="POST" class="settings-form">
+      <div class="settings-container">
+
+        <form method="POST" action="/dashboard/<%= guild.id %>" class="settings-form" id="settingsForm">
+          <!-- Card de Configurações Gerais -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon">
+                <i class="fas fa-sliders-h"></i>
+              </div>
+              <div class="settings-card-title">
+                <h3>Configurações Gerais</h3>
+                <p>Prefixo, canais e permissões básicas</p>
+              </div>
+            </div>
+            <div class="settings-card-body">
+              <%
+                const selectableDjRoles = guild.roles.cache
+                  .filter(role => !role.managed)
+                  .sort((a, b) => b.rawPosition - a.rawPosition);
+
+                const selectableTextChannels = guild.channels.cache
+                  .filter((channel) => {
+                    const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
+                    const isThread = typeof channel.isThread === 'function' && channel.isThread();
+                    if (!isTextBased || isThread) return false;
+                    const perms = channel.permissionsFor(botClient.user);
+                    return Boolean(perms && perms.has(['ViewChannel', 'SendMessages', 'EmbedLinks']));
+                  })
+                  .sort((a, b) => a.rawPosition - b.rawPosition);
+              %>
               <div class="settings-group">
-                <h5>Prefixo</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-hashtag"></i>
+                  <h5>Prefixo</h5>
+                </div>
                 <p class="form-helper">Prefixo usado para comandos de texto.</p>
-                <input type="text" class="form-control" name="prefix" value="<%= botClient.settings.get(guild.id, 'prefix') %>" placeholder="Ex.: k!">
+                <input type="text" class="form-control modern-input" name="prefix" value="<%= botClient.settings.get(guild.id, 'prefix') %>" placeholder="Ex.: k!">
               </div>
 
               <div class="settings-group">
-                <h5>Reprodução automática padrão</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-play-circle"></i>
+                  <h5>Reprodução automática padrão</h5>
+                </div>
                 <p class="form-helper">Ativa autoplay por padrão quando a fila iniciar.</p>
-                <div class="form-check form-switch">
+                <div class="form-check form-switch modern-switch">
                   <input
                     class="form-check-input"
                     type="checkbox"
+                    role="switch"
                     name="defaultautoplay"
                     id="defaultautoplay"
-                    style="zoom: 1.4; margin-left: 0; margin-right: 10px;"
                     <%= botClient.settings.get(guild.id, 'defaultautoplay') ? 'checked' : '' %>
                   >
-                  <label class="form-check-label" for="defaultautoplay">
-                    <%= botClient.settings.get(guild.id, 'defaultautoplay') ? 'Ativado' : 'Desativado' %> (atualiza ao salvar)
+                  <label class="form-check-label" for="defaultautoplay" id="autoplay-label">
+                    <%= botClient.settings.get(guild.id, 'defaultautoplay') ? 'Ativado' : 'Desativado' %>
                   </label>
                 </div>
               </div>
 
               <div class="settings-group">
-                <h5>Volume padrao</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-volume-up"></i>
+                  <h5>Volume padrão</h5>
+                </div>
                 <p class="form-helper">Volume aplicado quando uma nova fila é criada.</p>
-                <input oninput="this.closest('.settings-group').querySelector('output').value = this.value" type="range" class="form-range" min="1" max="150" step="1" value="<%= botClient.settings.get(guild.id, 'defaultvolume') %>" name="defaultvolume" id="defaultvolume">
+                <input oninput="this.closest('.settings-group').querySelector('output').value = this.value" type="range" class="form-range modern-range" min="1" max="150" step="1" value="<%= botClient.settings.get(guild.id, 'defaultvolume') %>" name="defaultvolume" id="defaultvolume">
                 <p class="slider-value">Volume atual: <output><%= botClient.settings.get(guild.id, 'defaultvolume') %></output>%</p>
               </div>
 
               <div class="settings-group">
-                <h5>Cargos DJ</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-user-tag"></i>
+                  <h5>Cargos DJ</h5>
+                </div>
                 <p class="form-helper">Usuários com estes cargos podem usar comandos de controle de música/fila.</p>
-                <select class="form-control selectpicker" multiple data-width="100%" data-live-search="true" aria-label="DJ Roles" name="djroles">
+                <select class="form-select modern-select" multiple aria-label="DJ Roles" name="djroles">
                   <% const djroles = botClient.settings.get(guild.id, 'djroles') || []; %>
                   <% guild.roles.cache.filter(role => !role.managed).sort((a, b) => b.rawPosition - a.rawPosition).forEach((role) => { %>
                     <option value="<%= role.id %>" <%= djroles.includes(role.id) ? 'selected' : '' %>>
@@ -73,10 +200,13 @@
               </div>
 
               <div class="settings-group">
-                <h5>Canais liberados para comandos</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-hashtag"></i>
+                  <h5>Canais liberados para comandos</h5>
+                </div>
                 <p class="form-helper">Se definido, o bot responde comandos apenas nestes canais.</p>
                 <% const botchannels = botClient.settings.get(guild.id, 'botchannel') || []; %>
-                <select class="form-control selectpicker" multiple data-width="100%" data-height="100%" data-live-search="true" aria-label="Bot Channels" name="botchannel">
+                <select class="form-select modern-select" multiple aria-label="Bot Channels" name="botchannel">
                   <% guild.channels.cache
                       .filter((channel) => {
                         const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
@@ -93,11 +223,15 @@
                   <% }) %>
                 </select>
               </div>
+
               <div class="settings-group">
-                <h5>Canal de Confissões</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-comment-dots"></i>
+                  <h5>Canal de Confissões</h5>
+                </div>
                 <p class="form-helper">Canal usado para enviar confissões anônimas. Se vazio, o comando de confissões fica desativado.</p>
                 <% const confessionChannel = botClient.settings.get(guild.id, 'confessionChannel') || ''; %>
-                <select class="form-control selectpicker" data-width="100%" data-live-search="true" aria-label="Confession Channel" name="confessionChannel">
+                <select class="form-select modern-select" aria-label="Confession Channel" name="confessionChannel">
                   <option value="" <%= !confessionChannel ? 'selected' : '' %>>Nenhum canal (desativa comando)</option>
                   <% guild.channels.cache
                       .filter((channel) => {
@@ -117,10 +251,13 @@
               </div>
 
               <div class="settings-group">
-                <h5>Canais de Música</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-music"></i>
+                  <h5>Canais de Música</h5>
+                </div>
                 <p class="form-helper">Se definido, apenas nestes canais será possível usar comandos de música. Se vazio, qualquer canal pode usar.</p>
                 <% const musicchannels = botClient.settings.get(guild.id, 'musicChannels') || []; %>
-                <select class="form-control selectpicker" multiple data-width="100%" data-height="100%" data-live-search="true" aria-label="Music Channels" name="musicChannels">
+                <select class="form-select modern-select" multiple aria-label="Music Channels" name="musicChannels">
                   <% guild.channels.cache
                       .filter((channel) => {
                         const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
@@ -137,24 +274,43 @@
                   <% }) %>
                 </select>
               </div>
+            </div>
+          </div>
 
-
+          <!-- Card de Configurações de Música -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon">
+                <i class="fas fa-music"></i>
+              </div>
+              <div class="settings-card-title">
+                <h3>Configurações de Música</h3>
+                <p>Volume, autoplay, canais e filtros de áudio</p>
+              </div>
+            </div>
+            <div class="settings-card-body">
               <div class="settings-group">
-                <h5>Mix padrão</h5>
+                <div class="settings-group-header">
+                  <i class="fas fa-random"></i>
+                  <h5>Mix padrão</h5>
+                </div>
                 <p class="form-helper">Plataforma padrão para o comando mix. Se a playlist selected falhar, usa a outra como fallback.</p>
                 <% const mixDefault = botClient.settings.get(guild.id, 'mixDefault') || 'youtube'; %>
-                <select class="form-control selectpicker" data-width="100%" data-live-search="false" aria-label="Mix Default" name="mixDefault">
+                <select class="form-select modern-select" aria-label="Mix Default" name="mixDefault">
                   <option value="youtube" <%= mixDefault === 'youtube' ? 'selected' : '' %>>YouTube (padrão)</option>
                   <option value="spotify" <%= mixDefault === 'spotify' ? 'selected' : '' %>>Spotify</option>
                 </select>
               </div>
 
               <div class="settings-group">
-                <h5>Filtros padrão</h5>
-                <p class="form-helper">Filtros que o bot aplica antes de iniciar a reproducao.</p>
+                <div class="settings-group-header">
+                  <i class="fas fa-filter"></i>
+                  <h5>Filtros padrão</h5>
+                </div>
+                <p class="form-helper">Filtros que o bot aplica antes de iniciar a reprodução.</p>
                 <% const defaultfilters = botClient.settings.get(guild.id, 'defaultfilters') || []; %>
                 <% const blockedDashboardFilters = new Set(['custombassboost', 'customspeed', 'clear']); %>
-                <select class="form-control selectpicker" multiple data-width="100%" data-height="100%" data-live-search="true" aria-label="Default Filters" name="defaultfilters">
+                <select class="form-select modern-select" multiple aria-label="Default Filters" name="defaultfilters">
                   <% Object.keys(BotFilters).filter((filter) => !blockedDashboardFilters.has(filter)).forEach((filter) => { %>
                     <option value="<%= filter %>" <%= defaultfilters.includes(filter) ? 'selected' : '' %>>
                       <%= filter %>
@@ -162,29 +318,229 @@
                   <% }) %>
                 </select>
               </div>
-
-              <div class="settings-actions">
-                <a href="/dashboard" class="btn-modern btn-modern-secondary">Voltar</a>
-                <button type="submit" class="btn-modern btn-modern-primary">
-                  Salvar Configurações
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div class="hero-card settings-queue-card">
-        <h5 style="margin-top:0;">Fila ao vivo</h5>
-        <p class="subtext" style="text-align:left; margin: 8px 0 14px;">
-          Musicas na fila: <b><%= botClient.distube.getQueue(guild.id) && botClient.distube.getQueue(guild.id).songs ? botClient.distube.getQueue(guild.id).songs.length : 0 %></b>
-        </p>
-        <a href="/queue/<%= guild.id %>" class="btn-modern btn-modern-secondary">Abrir player/fila</a>
+          <!-- Card de Sistema de Tickets -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon">
+                <i class="fas fa-ticket-alt"></i>
+              </div>
+              <div class="settings-card-title">
+                <h3>Sistema de Tickets</h3>
+                <p>Painéis, configurações e gerenciamento</p>
+              </div>
+            </div>
+            <div class="settings-card-body">
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-cogs"></i>
+                  <h5>Gerenciar Painéis</h5>
+                </div>
+                <p class="form-helper">Crie e gerencie painéis de tickets para seu servidor.</p>
+                <div class="queue-actions">
+                  <a href="/dashboard/<%= guild.id %>/tickets" class="btn-modern btn-modern-primary">
+                    <i class="fas fa-ticket-alt"></i>
+                    <span>Painel de Tickets</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card de Player/Fila -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon">
+                <i class="fas fa-music"></i>
+              </div>
+              <div class="settings-card-title">
+                <h3>Player e Fila</h3>
+                <p>Músicas tocando e fila de reprodução</p>
+              </div>
+            </div>
+            <div class="settings-card-body">
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-play"></i>
+                  <h5>Fila Atual</h5>
+                </div>
+                <p class="form-helper">Veja e gerencie a fila de músicas atual.</p>
+                <div class="queue-info">
+                  <p><strong>Músicas na fila:</strong> <span id="queueCount"><%= botClient.distube.getQueue(guild.id) && botClient.distube.getQueue(guild.id).songs ? botClient.distube.getQueue(guild.id).songs.length : 0 %></span></p>
+                </div>
+                <div class="queue-actions">
+                  <a href="/queue/<%= guild.id %>" class="btn-modern btn-modern-secondary">
+                    <i class="fas fa-play"></i>
+                    <span>Abrir Player/Fila</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-actions">
+            <a href="/dashboard" class="btn-modern btn-modern-secondary">
+              <i class="fas fa-arrow-left"></i>
+              <span>Voltar</span>
+            </a>
+            <button type="submit" class="btn-modern btn-success">
+              <i class="fas fa-save"></i>
+              <span>Salvar Configurações</span>
+            </button>
+          </div>
+        </form>
       </div>
     </section>
 
     <%- include('footer'); -%>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <script src="/public/settings-multiselect.js"></script>
+    <script src="/public/alerts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Feedback visual ao enviar formulário
+        document.addEventListener('DOMContentLoaded', function() {
+          const form = document.getElementById('settingsForm');
+          const submitBtn = form.querySelector('button[type="submit"]');
+          
+          // Função para salvar via AJAX
+          async function saveSettingsViaAjax(form, submitBtn, originalContent) {
+            // Mostrar estado de salvamento
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Salvando...</span>';
+            
+            try {
+              // Criar FormData e enviar via AJAX
+              const formData = new FormData(form);
+              const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData
+              });
+              
+              if (response.ok) {
+                // Sucesso - mostrar mensagem de sucesso
+                showSuccess('Configurações Salvas!', 'Todas as configurações foram atualizadas com sucesso.');
+                
+                // Adicionar indicador visual de salvo
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> <span>Salvo!</span>';
+                
+                // Restaurar botão após 3 segundos
+                setTimeout(() => {
+                  submitBtn.disabled = false;
+                  submitBtn.innerHTML = '<i class="fas fa-save"></i> <span>Salvar Configurações</span>';
+                  submitBtn.style.opacity = '1';
+                }, 3000);
+                
+              } else {
+                // Erro - mostrar mensagem de erro
+                showError('Erro ao Salvar', 'Não foi possível salvar as configurações. Tente novamente.');
+                
+                // Restaurar botão imediatamente
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> <span>Salvar Configurações</span>';
+                submitBtn.style.opacity = '1';
+              }
+            } catch (error) {
+              console.error('Erro ao salvar configurações:', error);
+              showError('Erro de Conexão', 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+              
+              // Restaurar botão imediatamente
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<i class="fas fa-save"></i> <span>Salvar Configurações</span>';
+              submitBtn.style.opacity = '1';
+            }
+          }
+          
+          
+        // Atualização automática do toggle de autoplay
+        const autoplayToggle = document.getElementById('defaultautoplay');
+        const autoplayLabel = document.getElementById('autoplay-label');
+        
+        if (autoplayToggle && autoplayLabel) {
+          autoplayToggle.addEventListener('change', async function(event) {
+            event.stopPropagation(); // Evitar conflito com o formulário
+            
+            const isChecked = this.checked;
+            const guildId = '<%= guild.id %>';
+            
+            // Adicionar classe de salvamento
+            autoplayLabel.classList.add('saving');
+            
+            // Salvar o texto original
+            const originalText = isChecked ? 'Ativado' : 'Desativado';
+            
+            // Mostrar indicador de carregamento
+            autoplayLabel.textContent = originalText + ' ';
+            
+            try {
+              // Enviar requisição para salvar no servidor
+              const response = await fetch('/dashboard/<%= guild.id %>/settings/autoplay', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                  defaultautoplay: isChecked
+                })
+              });
+              
+              const result = await response.json();
+              
+              if (result.success) {
+                // Sucesso - mostrar feedback positivo
+                autoplayLabel.classList.remove('saving');
+                autoplayLabel.textContent = originalText;
+                
+                // Adicionar animação de sucesso
+                autoplayLabel.style.color = 'var(--ok)';
+                setTimeout(() => {
+                  autoplayLabel.style.color = '';
+                }, 1500);
+                
+                // Mostrar toast de sucesso (se estiver disponível)
+                if (typeof showSuccess === 'function') {
+                  showSuccess('Configuração Salva', result.message);
+                }
+              } else {
+                // Erro - reverter o toggle
+                this.checked = !isChecked;
+                autoplayLabel.classList.remove('saving');
+                autoplayLabel.textContent = !isChecked ? 'Ativado' : 'Desativado';
+                
+                // Adicionar animação de erro
+                autoplayLabel.style.color = 'var(--danger)';
+                setTimeout(() => {
+                  autoplayLabel.style.color = '';
+                }, 1500);
+                
+                if (typeof showError === 'function') {
+                  showError('Erro ao Salvar', result.message || 'Não foi possível salvar a configuração.');
+                }
+              }
+            } catch (error) {
+              // Erro de conexão - reverter o toggle
+              this.checked = !isChecked;
+              autoplayLabel.classList.remove('saving');
+              autoplayLabel.textContent = !isChecked ? 'Ativado' : 'Desativado';
+              
+              // Adicionar animação de erro
+              autoplayLabel.style.color = 'var(--danger)';
+              setTimeout(() => {
+                autoplayLabel.style.color = '';
+              }, 1500);
+              
+              if (typeof showError === 'function') {
+                showError('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+              }
+              
+              console.error('Erro ao salvar autoplay:', error);
+            }
+          });
+        }
+      });
+    </script>
   </body>
 </html>
