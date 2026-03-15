@@ -1,0 +1,2183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="/public/alerts.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/index.css">
+    <title><%- editPanel ? 'Editar' : 'Criar' %> Painel | <%= guild.name %></title>
+    <style>
+
+      .panel-builder {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .panel-editor {
+        flex: 1 1 340px;
+        max-height: 85vh;
+        overflow-y: auto;
+        min-width: 0;
+      }
+      .panel-preview {
+        flex: 0 1 360px;
+        max-width: 420px;
+        background: var(--discord-bg);
+        border-radius: 8px;
+        padding: 15px;
+        max-height: 85vh;
+        overflow-y: auto;
+        min-width: 0;
+      }
+      .preview-header { color: var(--discord-muted); font-size: 12px; margin-bottom: 10px; }
+      .discord-embed { background: var(--discord-secondary); border-radius: 4px; padding: 16px; border-left: 4px solid var(--embed-color, #5865F2); margin-bottom: 10px; }
+      .discord-embed-title { color: #fff; font-weight: 600; font-size: 16px; margin-bottom: 8px; }
+      .discord-embed-description { color: var(--discord-text); font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
+      .discord-embed-field { margin-top: 10px; }
+      .discord-embed-field-name { color: #fff; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+      .discord-embed-field-value { color: var(--discord-text); font-size: 14px; }
+      .discord-embed-footer { color: var(--discord-muted); font-size: 12px; margin-top: 12px; }
+      .discord-embed-image { max-width: 100%; border-radius: 4px; margin-top: 12px; }
+      .discord-embed-thumbnail { max-width: 80px; max-height: 80px; border-radius: 4px; margin-left: 16px; }
+
+      /* Embed editor (mesmo padrão do editor de abertura/fechamento) */
+      .embed-builder { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+      .embed-editor { max-height: 100vh; overflow-y: auto; min-width: 0; }
+      .embed-preview-container { flex: 0 1 380px; max-width: 460px; background: var(--discord-bg); border-radius: 8px; padding: 20px; max-height: 80vh; overflow-y: auto; min-width: 0; }
+
+      /* Estilos para painel de configurações */
+      .panel-config-card {
+        background: var(--card-bg);
+        border: 1px solid var(--theme-border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-md);
+      }
+
+      .panel-config-card h5 {
+        color: var(--text-main);
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
+
+      .panel-config-card h5 i {
+        color: var(--accent);
+        margin-right: 8px;
+      }
+
+      .section-box { background: var(--card-bg-soft); border: 1px solid var(--border-500); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+      .item-list { display: flex; flex-direction: column; gap: 8px; }
+      .item-card { background: rgba(0, 0, 0, 0.2); border: 1px solid var(--theme-border-soft); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease; }
+      .item-card:hover { background: rgba(0, 0, 0, 0.3); border-color: var(--theme-border); }
+      .template-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; align-items: center; }
+      .template-btn { background: var(--panel-bg); border: 1px solid var(--theme-border); color: var(--text-soft); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px; position: relative; overflow: hidden; }
+      .template-btn:hover { background: rgba(var(--accent-rgb), 0.15); border-color: var(--accent); color: var(--text-main); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.25); }
+      .template-btn:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(var(--accent-rgb), 0.2); }
+      .template-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent); transition: left 0.5s ease; }
+      .template-btn:hover::before { left: 100%; }
+      .template-btn i { font-size: 11px; }
+      
+      /* Botão de sucesso */
+      .btn-modern-success {
+        background: linear-gradient(135deg, #28a745, #20c997) !important;
+        border-color: #28a745 !important;
+        color: white !important;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
+        transition: all 0.3s ease !important;
+      }
+      
+      .btn-modern-success:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4) !important;
+      }
+      .json-editor {
+        font-family: 'Consolas', monospace;
+        font-size: 12px;
+        background: var(--panel-bg);
+        color: var(--text-main);
+        border: 1px solid var(--theme-border);
+        border-radius: 8px;
+        width: 100%;
+        height: 300px;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .color-picker-wrapper { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .modal.show { display: block !important; }
+      .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1040; }
+      .modal-dialog { z-index: 1050; }
+
+      /* Carousel Bootstrap para Embeds */
+      .embed-carousel-container {
+        position: relative;
+        max-height: 60vh;
+        overflow: hidden;
+      }
+
+      #embedCarousel {
+        position: relative;
+      }
+
+      #embedCarousel .carousel-indicators {
+        position: relative;
+        margin-bottom: 15px;
+        bottom: auto;
+        left: auto;
+        right: auto;
+      }
+
+      #embedCarousel .carousel-indicators button {
+        background-color: var(--text-muted);
+        border: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin: 0 4px;
+        opacity: 0.5;
+        transition: all 0.3s ease;
+      }
+
+      #embedCarousel .carousel-indicators button.active {
+        background-color: var(--accent);
+        opacity: 1;
+        width: 12px;
+        height: 12px;
+      }
+
+      #embedCarousel .carousel-indicators button:hover {
+        opacity: 0.8;
+      }
+
+      #embedCarousel .carousel-inner {
+        padding: 0 40px;
+      }
+
+      #embedCarousel .carousel-item {
+        padding: 0;
+      }
+
+      .embed-minimal-card {
+        background: var(--card-bg);
+        border: 2px solid var(--theme-border);
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        min-height: 100px;
+      }
+
+      .embed-minimal-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(var(--accent-rgb), 0.15);
+      }
+
+      .embed-minimal-left {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+
+      .embed-minimal-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .embed-minimal-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      }
+
+      .embed-minimal-title {
+        font-weight: 700;
+        color: var(--text-main);
+        font-size: 16px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        letter-spacing: 0.2px;
+      }
+
+      .embed-minimal-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 4px;
+      }
+
+      .embed-minimal-desc {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-height: 2.8em; /* fallback para browsers sem suporte a line-clamp */
+      }
+
+      .embed-minimal-empty {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-style: italic;
+        opacity: 0.7;
+      }
+
+      .embed-close-btn {
+        background: rgba(220, 53, 69, 0.08);
+        border: 1px solid rgba(220, 53, 69, 0.15);
+        color: #dc3545;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 8px 10px;
+        line-height: 1;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+
+      .embed-close-btn:hover {
+        background: rgba(220, 53, 69, 0.15);
+        border-color: rgba(220, 53, 69, 0.3);
+        opacity: 1;
+        transform: scale(1.05);
+      }
+
+      /* Setas do carousel */
+      #embedCarousel .carousel-control-prev,
+      #embedCarousel .carousel-control-next {
+        width: 40px;
+        height: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        bottom: auto;
+        background: var(--card-bg);
+        border: 1px solid var(--theme-border);
+        border-radius: 50%;
+        opacity: 1;
+        transition: all 0.3s ease;
+      }
+
+      #embedCarousel .carousel-control-prev {
+        left: 0;
+      }
+
+      #embedCarousel .carousel-control-next {
+        right: 0;
+      }
+
+      #embedCarousel .carousel-control-prev:hover,
+      #embedCarousel .carousel-control-next:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      #embedCarousel .carousel-control-prev-icon,
+      #embedCarousel .carousel-control-next-icon {
+        background-image: none;
+        content: '';
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #embedCarousel .carousel-control-prev-icon::before {
+        content: '\f104';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: var(--text-main);
+        font-size: 16px;
+      }
+
+      #embedCarousel .carousel-control-next-icon::before {
+        content: '\f105';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: var(--text-main);
+        font-size: 16px;
+      }
+
+      #embedCarousel .carousel-control-prev:hover .carousel-control-prev-icon::before,
+      #embedCarousel .carousel-control-next:hover .carousel-control-next-icon::before {
+        color: #fff;
+      }
+
+      /* Responsividade Mobile */
+      @media (max-width: 768px) {
+        .embed-carousel-container {
+          max-height: 50vh;
+        }
+
+        #embedCarousel .carousel-inner {
+          padding: 0 35px;
+        }
+
+        .embed-minimal-card {
+          padding: 16px;
+          min-height: 90px;
+        }
+
+        .embed-minimal-left {
+          gap: 10px;
+        }
+
+        .embed-minimal-header {
+          gap: 10px;
+        }
+
+        .embed-minimal-color {
+          width: 10px;
+          height: 10px;
+        }
+
+        .embed-minimal-title {
+          font-size: 15px;
+        }
+
+        .embed-minimal-desc {
+          font-size: 12px;
+        }
+
+        .embed-minimal-empty {
+          font-size: 11px;
+        }
+
+        .embed-close-btn {
+          padding: 6px 8px;
+          font-size: 14px;
+        }
+
+        #embedCarousel .carousel-control-prev,
+        #embedCarousel .carousel-control-next {
+          width: 32px;
+          height: 32px;
+        }
+
+        #embedCarousel .carousel-control-prev-icon::before,
+        #embedCarousel .carousel-control-next-icon::before {
+          font-size: 14px;
+        }
+
+        #embedCarousel .carousel-indicators button {
+          width: 8px;
+          height: 8px;
+        }
+
+        #embedCarousel .carousel-indicators button.active {
+          width: 10px;
+          height: 10px;
+        }
+      }
+
+      /* Estilos antigos do seletor de embeds (mantidos para compatibilidade) */
+      .embed-selector-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .embed-selector-item {
+        background: var(--card-bg);
+        border: 2px solid var(--theme-border);
+        border-radius: 12px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .embed-selector-item:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.15);
+      }
+
+      .embed-selector-item.active {
+        border-color: var(--accent);
+        background: rgba(var(--accent-rgb), 0.1);
+        box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
+      }
+
+      .embed-selector-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .embed-selector-title {
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 14px;
+      }
+
+      .embed-delete-btn {
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        color: #dc3545;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        opacity: 0.7;
+      }
+
+      .embed-delete-btn:hover {
+        background: rgba(220, 53, 69, 0.2);
+        border-color: #dc3545;
+        opacity: 1;
+        transform: scale(1.05);
+      }
+
+      .embed-selector-preview {
+        min-height: 40px;
+      }
+
+      .embed-preview-title {
+        font-weight: 500;
+        color: var(--text-main);
+        font-size: 12px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .embed-preview-desc {
+        color: var(--text-muted);
+        font-size: 11px;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-height: 2.6em; /* fallback para browsers sem suporte a line-clamp */
+      }
+
+      .embed-preview-empty {
+        color: var(--text-muted);
+        font-size: 11px;
+        font-style: italic;
+      }
+
+      /* Responsividade para dispositivos móveis */
+      @media (max-width: 768px) {
+        .embed-selector-grid {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+
+        .embed-selector-item {
+          padding: 12px;
+        }
+
+        .embed-selector-header {
+          margin-bottom: 8px;
+        }
+
+        .embed-delete-btn {
+          padding: 3px 6px;
+          font-size: 10px;
+        }
+
+        .embed-preview-title {
+          font-size: 11px;
+        }
+
+        .embed-preview-desc {
+          font-size: 10px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .embed-navigation .d-flex {
+          flex-direction: column;
+          align-items: flex-start !important;
+          gap: 5px;
+        }
+
+        .embed-navigation h6 {
+          font-size: 13px;
+        }
+
+        .embed-navigation small {
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body class="theme-discord modern-panel-editor">
+    <%- include('header'); -%>
+
+    <section class="dashboard-page settings-page modern-section">
+      <div class="section-header">
+        <h1><i class="fas fa-ticket-alt"></i> <%- editPanel ? 'Editar' : 'Criar' %> Painel de Tickets</h1>
+        <p class="section-description">
+          Configure embeds, botões e perguntas do painel de tickets.
+        </p>
+      </div>
+
+      <div class="panel-editor-container">
+
+        <form id="panelForm" class="settings-form">
+              <input type="hidden" name="panelData" id="panelData">
+              
+          <!-- Canal -->
+          <div class="panel-config-card">
+                <h5><i class="fas fa-hashtag"></i> Canal do Painel</h5>
+                <div class="row">
+                  <div class="col-md-12">
+                    <label class="form-label">Selecione o canal</label>
+                    <select class="form-select modern-select" id="panelChannel" required>
+                      <option value="">Selecione um canal...</option>
+                      <% guild.channels.cache.filter(c => {
+                          const isTextBased = typeof c.isTextBased === 'function' && c.isTextBased();
+                          const isThread = typeof c.isThread === 'function' && c.isThread();
+                          return isTextBased && !isThread;
+                        }).forEach(channel => { %>
+                        <option value="<%= channel.id %>">#<%= channel.name %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                </div>
+                <div class="row mt-3">
+                  <div class="col-md-12">
+                    <label class="form-label">Categoria (opcional)</label>
+                    <div class="form-check form-switch modern-switch mb-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="panelCategoryEnabled">
+                      <label class="form-check-label" for="panelCategoryEnabled">Ativar categoria</label>
+                    </div>
+                    <select class="form-select modern-select" id="panelCategory">
+                      <option value="">Nenhuma (cria na raiz)</option>
+                      <% 
+                      const categories = guild.channels.cache.filter(c => {
+                        return c.type === 4 || c.type === 'GUILD_CATEGORY' || c.type === 'category';
+                      });
+                      categories.forEach(category => { %>
+                      <option value="<%= category.id %>"><%= category.name %></option>
+                      <% }); %>
+                    </select>
+                    <small class="text-muted d-block mt-2">Desative para criar tickets fora de categoria.</small>
+                  </div>
+                </div>
+          </div>
+
+          <!-- Logs por painel -->
+          <div class="panel-config-card">
+                <h5><i class="fas fa-bell"></i> Logs deste painel</h5>
+                <small class="text-muted d-block mb-3">Configurações aplicadas apenas aos tickets criados por este painel.</small>
+
+                <div class="mb-4">
+                  <div class="form-check form-switch modern-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="panelLogOpenEnabled">
+                    <label class="form-check-label" for="panelLogOpenEnabled">Ativar log de abertura</label>
+                  </div>
+                  <div class="row ms-2">
+                    <div class="col-md-4 mb-2">
+                      <label class="form-label small">Destino</label>
+                      <select class="form-select modern-select" id="panelLogOpenType">
+                        <option value="channel">Canal</option>
+                        <option value="webhook">Webhook</option>
+                      </select>
+                    </div>
+                    <div class="col-md-8 mb-2" id="panelLogOpenChannelWrap">
+                      <label class="form-label small">Canal</label>
+                      <select class="form-select modern-select" id="panelLogOpenChannel">
+                        <option value="">Nenhum</option>
+                        <% guild.channels.cache.filter(c => {
+                            const isTextBased = typeof c.isTextBased === 'function' && c.isTextBased();
+                            const isThread = typeof c.isThread === 'function' && c.isThread();
+                            return isTextBased && !isThread;
+                          }).forEach(channel => { %>
+                          <option value="<%= channel.id %>">#<%= channel.name %></option>
+                        <% }); %>
+                      </select>
+                    </div>
+                    <div class="col-md-8 mb-2 d-none" id="panelLogOpenWebhookWrap">
+                      <label class="form-label small">Webhook</label>
+                      <input type="text" class="form-control modern-input" id="panelLogOpenWebhook" placeholder="https://discord.com/api/webhooks/...">
+                    </div>
+                    <div class="col-md-12 mb-2">
+                      <label class="form-label small mb-1">Mensagem do log de abertura</label>
+                      <div>
+                        <a href="/dashboard/<%= guild.id %>/tickets/embed?returnTo=<%= encodeURIComponent(req.originalUrl || ('/dashboard/' + guild.id + '/tickets')) %>" class="btn btn-sm btn-outline-primary btn-bedge-editor">
+                          <i class="fas fa-envelope-open-text"></i> Editar mensagem
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-1">
+                  <div class="form-check form-switch modern-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="panelLogCloseEnabled">
+                    <label class="form-check-label" for="panelLogCloseEnabled">Ativar log de fechamento</label>
+                  </div>
+                  <div class="row ms-2">
+                    <div class="col-md-4 mb-2">
+                      <label class="form-label small">Destino</label>
+                      <select class="form-select modern-select" id="panelLogCloseType">
+                        <option value="channel">Canal</option>
+                        <option value="webhook">Webhook</option>
+                      </select>
+                    </div>
+                    <div class="col-md-8 mb-2" id="panelLogCloseChannelWrap">
+                      <label class="form-label small">Canal</label>
+                      <select class="form-select modern-select" id="panelLogCloseChannel">
+                        <option value="">Nenhum</option>
+                        <% guild.channels.cache.filter(c => {
+                            const isTextBased = typeof c.isTextBased === 'function' && c.isTextBased();
+                            const isThread = typeof c.isThread === 'function' && c.isThread();
+                            return isTextBased && !isThread;
+                          }).forEach(channel => { %>
+                          <option value="<%= channel.id %>">#<%= channel.name %></option>
+                        <% }); %>
+                      </select>
+                    </div>
+                    <div class="col-md-8 mb-2 d-none" id="panelLogCloseWebhookWrap">
+                      <label class="form-label small">Webhook</label>
+                      <input type="text" class="form-control modern-input" id="panelLogCloseWebhook" placeholder="https://discord.com/api/webhooks/...">
+                    </div>
+                    <div class="col-md-12 mb-2">
+                      <label class="form-label small mb-1">Mensagem do log de fechamento</label>
+                      <div>
+                        <a href="/dashboard/<%= guild.id %>/tickets/embed?returnTo=<%= encodeURIComponent(req.originalUrl || ('/dashboard/' + guild.id + '/tickets')) %>#close" class="btn btn-sm btn-outline-primary btn-bedge-editor">
+                          <i class="fas fa-envelope"></i> Editar mensagem
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+          </div>
+
+          <!-- Embeds -->
+          <div class="panel-config-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0"><i class="fas fa-envelope"></i> Embeds</h5>
+                  <button type="button" class="btn btn-sm btn-primary" onclick="addEmbed()">
+                    <i class="fas fa-plus"></i> Nova Embed
+                  </button>
+                </div>
+                
+                <ul class="nav nav-pills modern-embed-tabs mb-4" id="embedTabs" role="tablist">
+                  <!-- Abas dinâmicas serão inseridas aqui -->
+                </ul>
+
+                <div class="tab-content" id="embedTabsContent">
+                  <!-- Conteúdo das abas será inserido aqui -->
+                </div>
+          </div>
+
+          <!-- Botões -->
+          <div class="panel-config-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0"><i class="fas fa-mouse-pointer"></i> Botões</h5>
+                  <button type="button" class="btn btn-sm btn-primary" onclick="addButton()">
+                    <i class="fas fa-plus"></i> Botão
+                  </button>
+                </div>
+                <div id="buttonsList"></div>
+          </div>
+
+          <!-- Perguntas -->
+          <div class="panel-config-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0"><i class="fas fa-question-circle"></i> Perguntas</h5>
+                  <button type="button" class="btn btn-sm btn-primary" onclick="addQuestion()">
+                    <i class="fas fa-plus"></i> Pergunta
+                  </button>
+                </div>
+                <div class="form-text mb-3">
+                  Configure perguntas que serão feitas aos usuários ao criar um ticket. 
+                  Se não houver perguntas, o ticket será criado diretamente.
+                </div>
+                <div id="questionsList"></div>
+          </div>
+
+          <!-- Preview -->
+          <div class="panel-config-card">
+                <h5><i class="fas fa-eye"></i> Preview</h5>
+                <div id="fullPreview"></div>
+          </div>
+
+          <div class="panel-actions-bar">
+            <a href="/dashboard/<%= guild.id %>/tickets" class="btn-modern btn-modern-secondary">
+              <i class="fas fa-arrow-left"></i>
+              <span>Voltar</span>
+            </a>
+            <div class="panel-actions-group">
+              <button type="button" class="btn-modern btn-modern-success" onclick="sendPanel()">
+                <i class="fas fa-paper-plane"></i>
+                <span>Enviar Painel</span>
+              </button>
+              <button type="button" class="btn-modern btn-modern-primary" onclick="savePanel()">
+                <i class="fas fa-save"></i>
+                <span>Salvar Config</span>
+              </button>
+              <button type="button" class="btn-modern btn-modern-secondary" onclick="resetPanel()">
+                <i class="fas fa-undo"></i>
+                <span>Resetar</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Modal Editar Botão -->
+            <div class="mb-3">
+    <!-- Modal Editar Botão -->
+    <div id="buttonModal" class="modal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header">
+            <h5 class="modal-title">Configurar Botão</h5>
+            <button type="button" class="btn-close btn-close-white" onclick="closeButtonModal()"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editButtonIndex">
+            <div class="mb-3">
+              <label class="form-label">Label (texto)</label>
+              <input type="text" class="form-control modern-input" id="buttonLabel" maxlength="80">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Estilo</label>
+              <select class="form-select modern-select" id="buttonStyle">
+                <option value="PRIMARY">Primário (Azul)</option>
+                <option value="SECONDARY">Secundário (Cinza)</option>
+                <option value="SUCCESS">Sucesso (Verde)</option>
+                <option value="DANGER">Perigo (Vermelho)</option>
+                <option value="LINK">Link</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Emoji</label>
+              <input type="text" class="form-control modern-input" id="buttonEmoji" placeholder="🎫">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">ID Personalizado</label>
+              <input type="text" class="form-control modern-input" id="buttonCustomId" placeholder="create_ticket">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeButtonModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveButtonConfig()">Salvar Botão</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Editar Pergunta -->
+    <div id="questionModal" class="modal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header">
+            <h5 class="modal-title">Configurar Pergunta</h5>
+            <button type="button" class="btn-close btn-close-white" onclick="closeQuestionModal()"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editQuestionIndex">
+            <div class="mb-3">
+              <label class="form-label">ID da Pergunta</label>
+              <input type="text" class="form-control modern-input" id="questionId" placeholder="reason">
+              <small class="text-muted">Identificador único (sem espaços)</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Label (pergunta)</label>
+              <input type="text" class="form-control modern-input" id="questionLabel" placeholder="Qual é o motivo do ticket?">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Placeholder</label>
+              <input type="text" class="form-control modern-input" id="questionPlaceholder" placeholder="Descreva seu problema...">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Tipo</label>
+              <select class="form-select modern-select" id="questionType">
+                <option value="text">Texto</option>
+                <option value="textarea">Texto longo</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Obrigatório</label>
+              <select class="form-select modern-select" id="questionRequired">
+                <option value="true">Sim</option>
+                <option value="false">Não</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeQuestionModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveQuestionConfig()">Salvar Pergunta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('footer'); -%>
+    <script src="/public/settings-multiselect.js"></script>
+    <script src="/public/alerts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      let panelData = {
+        channelId: '',
+        categoryId: '',
+        useCategory: false,
+        logs: {
+          open: { enabled: false, type: 'channel', channelId: '', webhookUrl: '', message: '' },
+          close: { enabled: false, type: 'channel', channelId: '', webhookUrl: '', message: '' }
+        },
+        embeds: [],
+        buttons: [],
+        questions: []
+      };
+
+      function getDefaultPanelLogs() {
+        return {
+          open: { enabled: false, type: 'channel', channelId: '', webhookUrl: '', message: '' },
+          close: { enabled: false, type: 'channel', channelId: '', webhookUrl: '', message: '' }
+        };
+      }
+
+      function normalizePanelLogs(logs) {
+        const source = isRecord(logs) ? logs : {};
+        const normalizeEntry = (entry) => {
+          const data = isRecord(entry) ? entry : {};
+          return {
+            enabled: Boolean(data.enabled),
+            type: data.type === 'webhook' ? 'webhook' : 'channel',
+            channelId: typeof data.channelId === 'string' ? data.channelId : '',
+            webhookUrl: typeof data.webhookUrl === 'string' ? data.webhookUrl : '',
+            message: typeof data.message === 'string' ? data.message : ''
+          };
+        };
+        return {
+          open: normalizeEntry(source.open),
+          close: normalizeEntry(source.close)
+        };
+      }
+
+      const embedTemplates = {
+        default: {
+          color: '#00BFFF',
+          title: '🎫 Central de Tickets',
+          description: 'Precisa de ajuda? Clique no botão abaixo para criar um ticket.',
+          url: '',
+          image: '',
+          thumbnail: '',
+          fields: [],
+          author: { name: '', url: '', icon_url: '' },
+          footer: { text: 'Sistema de Tickets', icon_url: '' }
+        },
+        modern: {
+          color: '#5865F2',
+          title: '🎫 Central de Atendimento',
+          description: 'Selecione uma opção abaixo para criar seu ticket.\n\n🕒 Nossa equipe responderá em breve.',
+          url: '',
+          image: '',
+          thumbnail: '',
+          fields: [
+            { name: '✅ Como funciona?', value: 'Clique no botão e preencha as perguntas.', inline: false }
+          ],
+          author: { name: '', url: '', icon_url: '' },
+          footer: { text: 'Atendimento • Suporte', icon_url: '' }
+        },
+        minimal: {
+          color: '#2ECC71',
+          title: 'Central de Tickets',
+          description: 'Clique no botão para abrir um ticket.',
+          url: '',
+          image: '',
+          thumbnail: '',
+          fields: [],
+          author: { name: '', url: '', icon_url: '' },
+          footer: { text: '', icon_url: '' }
+        }
+      };
+
+      const defaultEmbed = embedTemplates.default;
+
+      const defaultButton = {
+        label: '🎫 Criar Ticket',
+        style: 'PRIMARY',
+        emoji: '',
+        customId: 'create_ticket'
+      };
+
+      const defaultQuestion = {
+        id: 'reason',
+        label: 'Qual é o motivo do ticket?',
+        placeholder: 'Descreva seu problema...',
+        type: 'text',
+        required: true
+      };
+
+      function syncColor(inputId, hexId, onChange) {
+        const input = document.getElementById(inputId);
+        const hex = document.getElementById(hexId);
+        if (!input || !hex) return;
+
+        input.addEventListener('input', function() {
+          hex.value = this.value;
+          if (typeof onChange === 'function') onChange();
+        });
+        hex.addEventListener('input', function() {
+          input.value = this.value;
+          if (typeof onChange === 'function') onChange();
+        });
+      }
+
+      function isRecord(value) {
+        return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function cloneEmbedData(embed) {
+        return JSON.parse(JSON.stringify(embed || {}));
+      }
+
+      function normalizeEmbedData(embed) {
+        const data = isRecord(embed) ? embed : {};
+        const fields = Array.isArray(data.fields) ? data.fields : [];
+
+        return {
+          color: typeof data.color === 'string' ? data.color : '#00BFFF',
+          title: typeof data.title === 'string' ? data.title : '',
+          description: typeof data.description === 'string' ? data.description : '',
+          url: typeof data.url === 'string' ? data.url : '',
+          image: typeof data.image === 'string' ? data.image : '',
+          thumbnail: typeof data.thumbnail === 'string' ? data.thumbnail : '',
+          fields: fields.map((field) => ({
+            name: typeof field?.name === 'string' ? field.name : '',
+            value: typeof field?.value === 'string' ? field.value : '',
+            inline: Boolean(field?.inline)
+          })),
+          author: {
+            name: typeof data.author?.name === 'string' ? data.author.name : '',
+            url: typeof data.author?.url === 'string' ? data.author.url : '',
+            icon_url: typeof data.author?.icon_url === 'string' ? data.author.icon_url : ''
+          },
+          footer: {
+            text: typeof data.footer?.text === 'string' ? data.footer.text : '',
+            icon_url: typeof data.footer?.icon_url === 'string' ? data.footer.icon_url : ''
+          }
+        };
+      }
+
+      function formatJson(textareaId) {
+        const textarea = document.getElementById(textareaId);
+        if (!textarea) return;
+        try {
+          const data = JSON.parse(textarea.value);
+          textarea.value = JSON.stringify(data, null, 2);
+        } catch (e) {
+          showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
+        }
+      }
+
+      function copyJson(textareaId) {
+        const textarea = document.getElementById(textareaId);
+        if (!textarea) return;
+        navigator.clipboard.writeText(textarea.value).then(() => {
+          showSuccess('Copiado!', 'JSON copiado para a área de transferência.');
+        });
+      }
+
+      function importEmbedJson(embedIndex) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        input.addEventListener('change', async () => {
+          const file = input.files && input.files[0];
+          input.remove();
+          if (!file) return;
+
+          try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+
+            if (!isRecord(parsed)) {
+              showError('JSON Inválido', 'O arquivo deve conter um objeto de embed válido.');
+              return;
+            }
+
+            document.getElementById(`embedJson-${embedIndex}`).value = JSON.stringify(parsed, null, 2);
+            panelData.embeds[embedIndex] = cloneEmbedData(parsed);
+            renderEmbeds();
+            renderPreview();
+          } catch (error) {
+            console.error('Erro ao importar JSON:', error);
+            showError('Erro na Importação', 'Não foi possível ler o arquivo JSON. Verifique o formato.');
+          }
+        }, { once: true });
+
+        input.click();
+      }
+
+      function updateEmbedJsonPreview(index) {
+        const textarea = document.getElementById(`embedJson-${index}`);
+        if (!textarea) return;
+        const embed = normalizeEmbedData(panelData.embeds[index] || {});
+        textarea.value = JSON.stringify(embed, null, 2);
+      }
+
+      function updatePanelJsonPreview() {
+        const textarea = document.getElementById('panelJson');
+        if (!textarea) return;
+        const normalizedEmbeds = panelData.embeds.map(embed => normalizeEmbedData(embed));
+        textarea.value = JSON.stringify(normalizedEmbeds, null, 2);
+      }
+
+      let previewRenderScheduled = false;
+      function scheduleRenderPreview() {
+        if (previewRenderScheduled) return;
+        previewRenderScheduled = true;
+        requestAnimationFrame(() => {
+          previewRenderScheduled = false;
+          renderPreview();
+        });
+      }
+
+      function updatePanelLogDestination(prefix) {
+        const enabledInput = document.getElementById(`panelLog${prefix}Enabled`);
+        const typeInput = document.getElementById(`panelLog${prefix}Type`);
+        const channelWrap = document.getElementById(`panelLog${prefix}ChannelWrap`);
+        const webhookWrap = document.getElementById(`panelLog${prefix}WebhookWrap`);
+
+        if (!enabledInput || !typeInput || !channelWrap || !webhookWrap) return;
+        if (!enabledInput.checked) {
+          channelWrap.classList.add('d-none');
+          webhookWrap.classList.add('d-none');
+          return;
+        }
+
+        const useWebhook = typeInput.value === 'webhook';
+        channelWrap.classList.toggle('d-none', useWebhook);
+        webhookWrap.classList.toggle('d-none', !useWebhook);
+      }
+
+      function applyPanelLogsToForm() {
+        const logs = normalizePanelLogs(panelData.logs);
+        panelData.logs = logs;
+
+        const mappings = [
+          { prefix: 'Open', data: logs.open },
+          { prefix: 'Close', data: logs.close }
+        ];
+
+        mappings.forEach(({ prefix, data }) => {
+          const enabledInput = document.getElementById(`panelLog${prefix}Enabled`);
+          const typeInput = document.getElementById(`panelLog${prefix}Type`);
+          const channelInput = document.getElementById(`panelLog${prefix}Channel`);
+          const webhookInput = document.getElementById(`panelLog${prefix}Webhook`);
+          const messageInput = document.getElementById(`panelLog${prefix}Message`);
+          if (enabledInput) enabledInput.checked = Boolean(data.enabled);
+          if (typeInput) typeInput.value = data.type === 'webhook' ? 'webhook' : 'channel';
+          if (channelInput) channelInput.value = data.channelId || '';
+          if (webhookInput) webhookInput.value = data.webhookUrl || '';
+          if (messageInput) messageInput.value = data.message || '';
+          updatePanelLogDestination(prefix);
+        });
+      }
+
+      function collectPanelLogsFromForm() {
+        const currentLogs = normalizePanelLogs(panelData.logs);
+        const parseLog = (prefix) => {
+          const current = prefix === 'Open' ? currentLogs.open : currentLogs.close;
+          const enabled = Boolean(document.getElementById(`panelLog${prefix}Enabled`)?.checked);
+          const type = document.getElementById(`panelLog${prefix}Type`)?.value === 'webhook' ? 'webhook' : 'channel';
+          const channelId = String(document.getElementById(`panelLog${prefix}Channel`)?.value || '').trim();
+          const webhookUrl = String(document.getElementById(`panelLog${prefix}Webhook`)?.value || '').trim();
+          const messageInput = document.getElementById(`panelLog${prefix}Message`);
+          const message = messageInput ? String(messageInput.value || '').trim() : String(current.message || '');
+          return {
+            enabled,
+            type,
+            channelId: type === 'channel' ? channelId : '',
+            webhookUrl: type === 'webhook' ? webhookUrl : '',
+            message
+          };
+        };
+
+        const logs = {
+          open: parseLog('Open'),
+          close: parseLog('Close')
+        };
+        panelData.logs = logs;
+        return logs;
+      }
+
+      function renderEmbeds() {
+        const tabsContainer = document.getElementById('embedTabs');
+        const contentContainer = document.getElementById('embedTabsContent');
+        
+        if (panelData.embeds.length === 0) {
+          tabsContainer.innerHTML = '';
+          contentContainer.innerHTML = '<div class="alert alert-info">Nenhuma embed adicionada. Clique em "Nova Embed" para adicionar.</div>';
+          return;
+        }
+        
+        // Criar carousel Bootstrap para navegar entre embeds
+        tabsContainer.innerHTML = `
+          <div class="embed-carousel-container mb-4">
+            <div id="embedCarousel" class="carousel slide" data-bs-ride="false" data-bs-wrap="false">
+              <!-- Indicadores (bolinhas) -->
+              <div class="carousel-indicators">
+                ${panelData.embeds.map((_, index) => `
+                  <button type="button" 
+                          data-bs-target="#embedCarousel" 
+                          data-bs-slide-to="${index}" 
+                          class="${index === 0 ? 'active' : ''}"
+                          ${index === 0 ? 'aria-current="true"' : ''}
+                          aria-label="Slide ${index + 1}"></button>
+                `).join('')}
+              </div>
+              
+              <!-- Slides -->
+              <div class="carousel-inner">
+                ${panelData.embeds.map((embed, index) => `
+                  <div class="carousel-item ${index === 0 ? 'active' : ''}" data-index="${index}">
+                    <div class="embed-minimal-card">
+                      <div class="embed-minimal-left">
+                        <div class="embed-minimal-header">
+                          <span class="embed-minimal-color" style="background-color: ${embed.color || '#5865F2'}"></span>
+                          <span class="embed-minimal-title">${embed.title && index > 0 ? escapeHtml(embed.title) : `Embed ${index + 1}`}</span>
+                        </div>
+                        <div class="embed-minimal-preview">
+                          ${embed.description ? `
+                            <div class="embed-minimal-desc">${escapeHtml(embed.description)}</div>
+                          ` : embed.title ? `
+                            <div class="embed-minimal-empty">Sem descrição</div>
+                          ` : `
+                            <div class="embed-minimal-empty">Embed vazia - clique para editar</div>
+                          `}
+                        </div>
+                      </div>
+                      ${panelData.embeds.length > 1 ? `
+                        <button type="button" 
+                                class="embed-close-btn" 
+                                onclick="deleteEmbed(${index})" 
+                                title="Excluir Embed ${index + 1}">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      ` : ''}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              
+              <!-- Setas de navegação (só aparece quando há mais de 1 embed) -->
+              ${panelData.embeds.length > 1 ? `
+                <button class="carousel-control-prev" type="button" data-bs-target="#embedCarousel" data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#embedCarousel" data-bs-slide="next">
+                  <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Próximo</span>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+          
+          <!-- Abas da embed selecionada -->
+          <div class="mt-4">
+            <ul class="nav nav-pills modern-embed-tabs" id="embedSubTabs" role="tablist">
+              <li class="nav-item">
+                <button class="nav-link active" id="sub-embed-tab" data-bs-toggle="pill" data-bs-target="#sub-embed-content" type="button" role="tab">
+                  <i class="fas fa-edit"></i> Editor
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" id="sub-json-tab" data-bs-toggle="pill" data-bs-target="#sub-json-content" type="button" role="tab">
+                  <i class="fas fa-code"></i> JSON
+                </button>
+              </li>
+            </ul>
+          </div>
+        `;
+        
+        // Criar conteúdo dinâmico baseado na embed selecionada
+        updateEmbedContent(0);
+        
+        // Sincronizar carousel com conteúdo
+        setTimeout(() => {
+          const carousel = document.getElementById('embedCarousel');
+          if (carousel) {
+            carousel.addEventListener('slid.bs.carousel', function(e) {
+              const activeIndex = e.to;
+              updateEmbedContent(activeIndex);
+            });
+          }
+        }, 100);
+      }
+      
+      function updateEmbedContent(index) {
+        const contentContainer = document.getElementById('embedTabsContent');
+        const embed = panelData.embeds[index];
+        
+        contentContainer.innerHTML = `
+          <div class="tab-pane fade show active" id="sub-embed-content" role="tabpanel">
+            <div class="embed-builder">
+              <div class="embed-editor modern-embed-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0">Embed ${index + 1}</h5>
+                  <div class="template-buttons">
+                    <span style="color: var(--text-muted); font-size: 12px; font-weight: 600;">Templates:</span>
+                    <button type="button" class="template-btn" onclick="loadEmbedTemplate(${index}, 'default')">
+                      <i class="fas fa-file-alt"></i> Padrão
+                    </button>
+                    <button type="button" class="template-btn" onclick="loadEmbedTemplate(${index}, 'modern')">
+                      <i class="fas fa-palette"></i> Moderno
+                    </button>
+                    <button type="button" class="template-btn" onclick="loadEmbedTemplate(${index}, 'minimal')">
+                      <i class="fas fa-minus"></i> Minimalista
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Cor do Embed</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="embedColor-${index}" class="form-control" style="width: 60px; height: 40px; padding: 2px;" value="${embed.color || '#00BFFF'}" oninput="updateEmbedField(${index}, 'color', this.value); syncEmbedColor(${index});">
+                    <input type="text" class="form-control modern-input" id="embedColorHex-${index}" value="${embed.color || '#00BFFF'}" style="width: 100px;" oninput="updateEmbedField(${index}, 'color', this.value); syncEmbedColorHex(${index});">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="randomEmbedColor(${index})">
+                      <i class="fas fa-random"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Título</label>
+                  <input type="text" class="form-control modern-input" id="embedTitle-${index}" value="${escapeHtml(embed.title || '')}" placeholder="Título do embed" maxlength="256" oninput="updateEmbedField(${index}, 'title', this.value);">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">URL do Título (cliqueável)</label>
+                  <input type="text" class="form-control modern-input" id="embedUrl-${index}" value="${escapeHtml(embed.url || '')}" placeholder="https://..." oninput="updateEmbedField(${index}, 'url', this.value);">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Descrição</label>
+                  <textarea class="form-control modern-input" id="embedDescription-${index}" rows="4" placeholder="Descrição do embed..." maxlength="4096" oninput="updateEmbedField(${index}, 'description', this.value);">${escapeHtml(embed.description || '')}</textarea>
+                </div>
+
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Imagem Principal (URL)</label>
+                    <input type="text" class="form-control modern-input" id="embedImage-${index}" value="${escapeHtml(embed.image || '')}" placeholder="https://..." oninput="updateEmbedField(${index}, 'image', this.value);">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Thumbnail (URL)</label>
+                    <input type="text" class="form-control modern-input" id="embedThumbnail-${index}" value="${escapeHtml(embed.thumbnail || '')}" placeholder="https://..." oninput="updateEmbedField(${index}, 'thumbnail', this.value);">
+                  </div>
+                </div>
+
+                <div class="section-title">
+                  <i class="fas fa-user"></i> Autor
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Nome</label>
+                    <input type="text" class="form-control modern-input" id="embedAuthorName-${index}" value="${escapeHtml(embed.author?.name || '')}" placeholder="Nome" oninput="updateEmbedAuthor(${index}, 'name', this.value);">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">URL</label>
+                    <input type="text" class="form-control modern-input" id="embedAuthorUrl-${index}" value="${escapeHtml(embed.author?.url || '')}" placeholder="https://..." oninput="updateEmbedAuthor(${index}, 'url', this.value);">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Ícone (URL)</label>
+                    <input type="text" class="form-control modern-input" id="embedAuthorIcon-${index}" value="${escapeHtml(embed.author?.icon_url || '')}" placeholder="https://..." oninput="updateEmbedAuthor(${index}, 'icon_url', this.value);">
+                  </div>
+                </div>
+
+                <div class="section-title">
+                  <i class="fas fa-footer"></i> Footer
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Texto</label>
+                    <input type="text" class="form-control modern-input" id="embedFooter-${index}" value="${escapeHtml(embed.footer?.text || '')}" placeholder="Texto do footer" oninput="updateEmbedFooter(${index}, 'text', this.value);">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Ícone (URL)</label>
+                    <input type="text" class="form-control modern-input" id="embedFooterIcon-${index}" value="${escapeHtml(embed.footer?.icon_url || '')}" placeholder="https://..." oninput="updateEmbedFooter(${index}, 'icon_url', this.value);">
+                  </div>
+                </div>
+
+                <div class="section-title d-flex justify-content-between align-items-center">
+                  <span><i class="fas fa-th-list"></i> Campos Personalizados</span>
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addEmbedField(${index})">
+                    <i class="fas fa-plus"></i> Adicionar Campo
+                  </button>
+                </div>
+                <div id="embedFields-${index}"></div>
+              </div>
+
+              <div class="embed-preview-container">
+                <div class="preview-header">
+                  <%= botClient.user.username %> • hoje às 00:00
+                </div>
+                <div class="discord-embed" id="embedPreview-${index}">
+                  <div class="discord-embed-title" id="embedPreviewTitle-${index}">Título do Embed</div>
+                  <div class="discord-embed-description" id="embedPreviewDescription-${index}">Descrição do embed...</div>
+                  <div id="embedPreviewFields-${index}"></div>
+                  <div class="discord-embed-footer" id="embedPreviewFooter-${index}" style="display: ${embed.footer?.text ? 'block' : 'none'};">
+                    <img id="embedPreviewFooterIcon-${index}" style="width: 20px; height: 20px; border-radius: 50%; display: ${embed.footer?.icon_url ? 'inline' : 'none'}; margin-right: 8px;">
+                    <span id="embedPreviewFooterText-${index}">${escapeHtml(embed.footer?.text || '')}</span>
+                  </div>
+                  <img id="embedPreviewImage-${index}" class="discord-embed-image" style="display: ${embed.image ? 'block' : 'none'};">
+                  <img id="embedPreviewThumbnail-${index}" class="discord-embed-thumbnail" style="display: ${embed.thumbnail ? 'block' : 'none'}; float: right;">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="sub-json-content" role="tabpanel">
+            <div class="modern-embed-card">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">JSON - Embed ${index + 1}</h5>
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="copyJson('embedJson-${index}')">
+                  <i class="fas fa-copy"></i> Copiar
+                </button>
+              </div>
+              <textarea class="json-editor" id="embedJson-${index}"></textarea>
+              <div class="mt-2 d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-primary" onclick="importEmbedJson(${index})">
+                  <i class="fas fa-upload"></i> Aplicar
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatJson('embedJson-${index}')">
+                  <i class="fas fa-align-left"></i> Formatar
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Renderizar campos e atualizar previews
+        renderEmbedFields(index);
+        updateEmbedPreview(index);
+        updateEmbedJsonPreview(index);
+      }
+
+      function syncEmbedColor(index) {
+        const colorInput = document.getElementById(`embedColor-${index}`);
+        const hexInput = document.getElementById(`embedColorHex-${index}`);
+        if (colorInput && hexInput) {
+          hexInput.value = colorInput.value;
+          updateEmbedPreview(index);
+        }
+      }
+
+      function syncEmbedColorHex(index) {
+        const colorInput = document.getElementById(`embedColor-${index}`);
+        const hexInput = document.getElementById(`embedColorHex-${index}`);
+        if (colorInput && hexInput) {
+          colorInput.value = hexInput.value;
+          updateEmbedPreview(index);
+        }
+      }
+
+      function randomEmbedColor(index) {
+        const colors = ['#00BFFF', '#5865F2', '#2ECC71', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E91E63'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        document.getElementById(`embedColor-${index}`).value = randomColor;
+        document.getElementById(`embedColorHex-${index}`).value = randomColor;
+        updateEmbedField(index, 'color', randomColor);
+        updateEmbedPreview(index);
+      }
+
+      function loadEmbedTemplate(index, templateName) {
+        const template = embedTemplates[templateName];
+        if (!template) return;
+        panelData.embeds[index] = cloneEmbedData(template);
+        renderEmbeds();
+        renderPreview();
+      }
+
+      function updateEmbedField(index, field, value) {
+        panelData.embeds[index][field] = value;
+        
+        // Atualizar título no carousel se for o campo title (exceto Embed 1)
+        if (field === 'title' && index > 0) {
+          const carouselItems = document.querySelectorAll('#embedCarousel .carousel-item');
+          carouselItems.forEach((item, i) => {
+            if (i === index) {
+              const titleEl = item.querySelector('.embed-minimal-title');
+              if (titleEl) {
+                titleEl.textContent = value || `Embed ${index + 1}`;
+              }
+            }
+          });
+        }
+        
+        updateEmbedPreview(index);
+        updateEmbedJsonPreview(index);
+        scheduleRenderPreview();
+      }
+
+      function updateEmbedAuthor(index, field, value) {
+        if (!panelData.embeds[index].author) {
+          panelData.embeds[index].author = { name: '', url: '', icon_url: '' };
+        }
+        panelData.embeds[index].author[field] = value;
+        updateEmbedJsonPreview(index);
+        scheduleRenderPreview();
+      }
+
+      function updateEmbedFooter(index, field, value) {
+        if (!panelData.embeds[index].footer) {
+          panelData.embeds[index].footer = { text: '', icon_url: '' };
+        }
+        panelData.embeds[index].footer[field] = value;
+        updateEmbedPreview(index);
+        updateEmbedJsonPreview(index);
+        scheduleRenderPreview();
+      }
+
+      function renderEmbedFields(index) {
+        const container = document.getElementById(`embedFields-${index}`);
+        if (!container) return;
+        
+        const embed = panelData.embeds[index];
+        const fields = embed.fields || [];
+        
+        container.innerHTML = '';
+        fields.forEach((field, fieldIndex) => {
+          const fieldHtml = `
+            <div class="field-item" id="embedField${index}_${fieldIndex}">
+              <button type="button" class="btn btn-sm btn-danger remove-field" onclick="removeEmbedField(${index}, ${fieldIndex})">
+                <i class="fas fa-times"></i>
+              </button>
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label">Nome</label>
+                  <input type="text" class="form-control form-control-sm" placeholder="Nome do campo" value="${field.name || ''}" onchange="updateEmbedFieldValue(${index}, ${fieldIndex}, 'name', this.value)">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Valor</label>
+                  <input type="text" class="form-control form-control-sm" placeholder="Valor do campo" value="${field.value || ''}" onchange="updateEmbedFieldValue(${index}, ${fieldIndex}, 'value', this.value)">
+                </div>
+                <div class="col-md-12 mt-2">
+                  <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="embedFieldInline${index}_${fieldIndex}" ${field.inline ? 'checked' : ''} onchange="updateEmbedFieldValue(${index}, ${fieldIndex}, 'inline', this.checked)">
+                    <label class="form-check-label" for="embedFieldInline${index}_${fieldIndex}">Exibir inline</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          container.insertAdjacentHTML('beforeend', fieldHtml);
+        });
+      }
+
+      function addEmbedField(index) {
+        if (!panelData.embeds[index].fields) {
+          panelData.embeds[index].fields = [];
+        }
+        panelData.embeds[index].fields.push({ name: '', value: '', inline: false });
+        renderEmbedFields(index);
+        updateEmbedPreview(index);
+        updateEmbedJsonPreview(index);
+        renderPreview();
+      }
+
+      function updateEmbedFieldValue(index, fieldIndex, field, value) {
+        panelData.embeds[index].fields[fieldIndex][field] = value;
+        updateEmbedPreview(index);
+        updateEmbedJsonPreview(index);
+        scheduleRenderPreview();
+      }
+
+      function removeEmbedField(index, fieldIndex) {
+        panelData.embeds[index].fields.splice(fieldIndex, 1);
+        renderEmbedFields(index);
+        updateEmbedPreview(index);
+        updateEmbedJsonPreview(index);
+        renderPreview();
+      }
+
+      function updateEmbedPreview(index) {
+        const embed = panelData.embeds[index];
+        
+        const titleEl = document.getElementById(`embedPreviewTitle-${index}`);
+        const descEl = document.getElementById(`embedPreviewDescription-${index}`);
+        const footerEl = document.getElementById(`embedPreviewFooter-${index}`);
+        const footerTextEl = document.getElementById(`embedPreviewFooterText-${index}`);
+        const footerIconEl = document.getElementById(`embedPreviewFooterIcon-${index}`);
+        const imageEl = document.getElementById(`embedPreviewImage-${index}`);
+        const thumbnailEl = document.getElementById(`embedPreviewThumbnail-${index}`);
+        const embedEl = document.getElementById(`embedPreview-${index}`);
+        
+        if (titleEl) titleEl.textContent = embed.title || 'Título do Embed';
+        if (descEl) descEl.textContent = embed.description || 'Descrição do embed...';
+        
+        if (footerEl && footerTextEl && footerIconEl) {
+          footerEl.style.display = embed.footer?.text ? 'block' : 'none';
+          footerTextEl.textContent = embed.footer?.text || '';
+          footerIconEl.style.display = embed.footer?.icon_url ? 'inline' : 'none';
+          footerIconEl.src = embed.footer?.icon_url || '';
+        }
+        
+        if (imageEl) {
+          imageEl.style.display = embed.image ? 'block' : 'none';
+          imageEl.src = embed.image || '';
+        }
+        
+        if (thumbnailEl) {
+          thumbnailEl.style.display = embed.thumbnail ? 'block' : 'none';
+          thumbnailEl.src = embed.thumbnail || '';
+        }
+        
+        if (embedEl) {
+          embedEl.style.borderLeftColor = embed.color || '#00BFFF';
+        }
+        
+        const previewFieldsEl = document.getElementById(`embedPreviewFields-${index}`);
+        if (previewFieldsEl) {
+          const fields = embed.fields || [];
+          previewFieldsEl.innerHTML = fields.map((field, index) => {
+            if (!field.name && !field.value) return '';
+            return `
+              <div class="discord-embed-field" style="${field.inline ? 'display: inline-block; width: calc(50% - 5px); margin-right: 10px;' : ''}">
+                <div class="discord-embed-field-name">${field.name || '...'}</div>
+                <div class="discord-embed-field-value">${field.value || '...'}</div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        updateEmbedJsonPreview(index);
+      }
+
+      function addEmbed() {
+        const newEmbed = cloneEmbedData(defaultEmbed);
+        newEmbed.title = `Embed ${panelData.embeds.length + 1}`;
+        panelData.embeds.push(newEmbed);
+        renderEmbeds();
+        
+        // Ativar a nova embed no carousel
+        setTimeout(() => {
+          const carousel = document.getElementById('embedCarousel');
+          if (carousel) {
+            const newIndex = panelData.embeds.length - 1;
+            const bsCarousel = bootstrap.Carousel.getOrCreateInstance(carousel);
+            bsCarousel.to(newIndex);
+            updateEmbedContent(newIndex);
+          }
+        }, 100);
+        
+        renderPreview();
+      }
+
+      function deleteEmbed(index) {
+        if (panelData.embeds.length <= 1) {
+          showError('Não é possível excluir', 'É necessário ter pelo menos uma embed.');
+          return;
+        }
+        
+        const embedNumber = index + 1;
+        const embedTitle = panelData.embeds[index].title || `Embed ${embedNumber}`;
+        
+        showConfirm(
+          'Excluir Embed',
+          `Tem certeza que deseja excluir "${embedTitle}"?\n\nEsta ação não pode ser desfeita.`,
+          () => {
+            panelData.embeds.splice(index, 1);
+            renderEmbeds();
+            renderPreview();
+            showSuccess('Embed excluída', `"${embedTitle}" foi removida com sucesso.`);
+          },
+          null,
+          'danger'
+        );
+      }
+
+      function renderButtons() {
+        const container = document.getElementById('buttonsList');
+        if (panelData.buttons.length === 0) {
+          container.innerHTML = '<div class="alert alert-info">Nenhum botão adicionado.</div>';
+          return;
+        }
+        
+        const styleColors = { PRIMARY: 'btn-primary', SECONDARY: 'btn-secondary', SUCCESS: 'btn-success', DANGER: 'btn-danger' };
+        
+        container.innerHTML = panelData.buttons.map((btn, index) => `
+          <div class="item-card">
+            <div>
+              <span class="btn btn-sm ${styleColors[btn.style] || 'btn-primary'}">${btn.emoji || ''} ${btn.label}</span>
+            </div>
+            <div>
+              <button type="button" class="btn btn-sm btn-primary" onclick="editButton(${index})">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="deleteButton(${index})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function addButton() {
+        const newButton = { ...defaultButton };
+        panelData.buttons.push(newButton);
+        renderButtons();
+        renderPreview();
+      }
+
+      function editButton(index) {
+        const btn = panelData.buttons[index];
+        document.getElementById('editButtonIndex').value = index;
+        document.getElementById('buttonLabel').value = btn.label || '';
+        const buttonStyle = document.getElementById('buttonStyle');
+        buttonStyle.value = btn.style || 'PRIMARY';
+        buttonStyle.dispatchEvent(new Event('change', { bubbles: true }));
+        document.getElementById('buttonEmoji').value = btn.emoji || '';
+        document.getElementById('buttonCustomId').value = btn.customId || '';
+        document.getElementById('buttonModal').classList.add('show');
+      }
+
+      function saveButtonConfig() {
+        const index = parseInt(document.getElementById('editButtonIndex').value);
+        panelData.buttons[index] = {
+          label: document.getElementById('buttonLabel').value,
+          style: document.getElementById('buttonStyle').value,
+          emoji: document.getElementById('buttonEmoji').value,
+          customId: document.getElementById('buttonCustomId').value
+        };
+        closeButtonModal();
+        renderButtons();
+        renderPreview();
+      }
+
+      function closeButtonModal() {
+        document.getElementById('buttonModal').classList.remove('show');
+      }
+
+      function deleteButton(index) {
+        showConfirm(
+          'Excluir Botão',
+          'Tem certeza que deseja excluir este botão?',
+          () => {
+            panelData.buttons.splice(index, 1);
+            renderButtons();
+            renderPreview();
+            showSuccess('Botão Excluído', 'O botão foi removido com sucesso.');
+          },
+          null,
+          'danger'
+        );
+      }
+
+      // Funções de perguntas
+      function addQuestion() {
+        const newQuestion = { ...defaultQuestion };
+        // Garantir ID único
+        newQuestion.id = `question_${Date.now()}`;
+        panelData.questions = panelData.questions || [];
+        panelData.questions.push(newQuestion);
+        renderQuestions();
+        renderPreview();
+      }
+
+      function editQuestion(index) {
+        const question = panelData.questions[index];
+        document.getElementById('editQuestionIndex').value = index;
+        document.getElementById('questionId').value = question.id || '';
+        document.getElementById('questionLabel').value = question.label || '';
+        document.getElementById('questionPlaceholder').value = question.placeholder || '';
+        document.getElementById('questionType').value = question.type || 'text';
+        document.getElementById('questionRequired').value = question.required ? 'true' : 'false';
+        document.getElementById('questionModal').classList.add('show');
+      }
+
+      function saveQuestionConfig() {
+        const index = parseInt(document.getElementById('editQuestionIndex').value);
+        const question = {
+          id: document.getElementById('questionId').value || `question_${Date.now()}`,
+          label: document.getElementById('questionLabel').value,
+          placeholder: document.getElementById('questionPlaceholder').value,
+          type: document.getElementById('questionType').value,
+          required: document.getElementById('questionRequired').value === 'true'
+        };
+
+        if (index >= 0) {
+          panelData.questions[index] = question;
+        } else {
+          panelData.questions = panelData.questions || [];
+          panelData.questions.push(question);
+        }
+
+        renderQuestions();
+        renderPreview();
+        closeQuestionModal();
+        showSuccess('Pergunta Salva', 'A pergunta foi salva com sucesso.');
+      }
+
+      function deleteQuestion(index) {
+        showConfirm(
+          'Excluir Pergunta',
+          'Tem certeza que deseja excluir esta pergunta?',
+          () => {
+            panelData.questions.splice(index, 1);
+            renderQuestions();
+            renderPreview();
+            showSuccess('Pergunta Excluída', 'A pergunta foi removida com sucesso.');
+          },
+          null,
+          'danger'
+        );
+      }
+
+      function closeQuestionModal() {
+        document.getElementById('questionModal').classList.remove('show');
+      }
+
+      function renderQuestions() {
+        const container = document.getElementById('questionsList');
+        const questions = panelData.questions || [];
+        
+        if (questions.length === 0) {
+          container.innerHTML = '<div class="alert alert-secondary">Nenhuma pergunta configurada. O ticket será criado diretamente.</div>';
+          return;
+        }
+
+        container.innerHTML = questions.map((question, index) => `
+          <div class="item-card">
+            <div>
+              <div class="fw-bold">${escapeHtml(question.label || 'Sem label')}</div>
+              <div class="text-muted small">
+                ID: ${escapeHtml(question.id)} | Tipo: ${question.type} | ${question.required ? 'Obrigatório' : 'Opcional'}
+              </div>
+            </div>
+            <div>
+              <button type="button" class="btn btn-sm btn-primary" onclick="editQuestion(${index})">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="deleteQuestion(${index})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function renderPreview() {
+        const container = document.getElementById('fullPreview');
+        
+        if (panelData.embeds.length === 0 && panelData.buttons.length === 0) {
+          container.innerHTML = '<div class="alert alert-secondary">Adicione embeds e botões para ver o preview.</div>';
+          return;
+        }
+
+        let html = '';
+        
+        panelData.embeds.forEach((embedRaw) => {
+          const embed = normalizeEmbedData(embedRaw);
+          const color = escapeHtml(embed.color || '#5865F2');
+
+          const titleHtml = embed.title ? `<div class="discord-embed-title">${escapeHtml(embed.title)}</div>` : '';
+          const descHtml = embed.description ? `<div class="discord-embed-description">${escapeHtml(embed.description)}</div>` : '';
+
+          const thumbnailHtml = embed.thumbnail
+            ? `<img class="discord-embed-thumbnail" src="${escapeHtml(embed.thumbnail)}" style="float: right;">`
+            : '';
+
+          const fields = (embed.fields || []).filter((field) => field && (field.name || field.value));
+          const fieldsHtml = fields.map((field) => {
+            const inlineStyle = field.inline ? 'display: inline-block; width: calc(50% - 5px); margin-right: 10px;' : '';
+            return `
+              <div class="discord-embed-field" style="${inlineStyle}">
+                <div class="discord-embed-field-name">${escapeHtml(field.name || '...')}</div>
+                <div class="discord-embed-field-value">${escapeHtml(field.value || '...')}</div>
+              </div>
+            `;
+          }).join('');
+
+          const footerText = embed.footer?.text || '';
+          const footerIcon = embed.footer?.icon_url || '';
+          const footerHtml = (footerText || footerIcon) ? `
+            <div class="discord-embed-footer" style="display:flex; align-items:center; gap: 8px;">
+              ${footerIcon ? `<img src="${escapeHtml(footerIcon)}" style="width: 20px; height: 20px; border-radius: 50%;">` : ''}
+              ${footerText ? `<span>${escapeHtml(footerText)}</span>` : ''}
+            </div>
+          ` : '';
+
+          const imageHtml = embed.image
+            ? `<img class="discord-embed-image" src="${escapeHtml(embed.image)}">`
+            : '';
+
+          html += `
+            <div class="discord-embed" style="--embed-color: ${color}">
+              ${thumbnailHtml}
+              ${titleHtml}
+              ${descHtml}
+              ${fieldsHtml}
+              ${footerHtml}
+              ${imageHtml}
+            </div>
+          `;
+        });
+
+        const styleMap = { PRIMARY: 'btn-primary', SECONDARY: 'btn-secondary', SUCCESS: 'btn-success', DANGER: 'btn-danger' };
+        
+        if (panelData.buttons.length > 0) {
+          html += '<div class="d-flex gap-2 flex-wrap mt-2">';
+          panelData.buttons.forEach((btn) => {
+            const emoji = escapeHtml(btn.emoji || '');
+            const label = escapeHtml(btn.label || '');
+            html += `<button class="btn ${styleMap[btn.style] || 'btn-primary'} btn-sm">${emoji} ${label}</button>`;
+          });
+          html += '</div>';
+        }
+
+        container.innerHTML = html;
+      }
+
+      async function sendPanel() {
+        const channelId = document.getElementById('panelChannel').value;
+        const categoryEnabled = document.getElementById('panelCategoryEnabled').checked;
+        const categorySelect = document.getElementById('panelCategory');
+        let categoryId = categorySelect.value;
+        
+        if (!categoryEnabled) {
+          categoryId = null;
+        } else if (categoryId === '' || categoryId === undefined || categoryId === null) {
+          categoryId = null;
+        }
+
+        if (categoryEnabled && !categoryId) {
+          showError('Categoria Inválida', 'Selecione uma categoria válida ou desative o uso de categoria.');
+          return;
+        }
+        
+        if (!channelId) {
+          showError('Canal Obrigatório', 'Por favor, selecione um canal para o painel.');
+          return;
+        }
+
+        if (panelData.embeds.length === 0) {
+          showError('Embed Obrigatória', 'Adicione pelo menos uma embed ao painel.');
+          return;
+        }
+
+        if (panelData.buttons.length === 0) {
+          showError('Botão Obrigatório', 'Adicione pelo menos um botão ao painel.');
+          return;
+        }
+
+        const panelPayload = {
+          channelId,
+          categoryEnabled,
+          categoryId,
+          logs: collectPanelLogsFromForm(),
+          embeds: panelData.embeds,
+          buttons: panelData.buttons,
+          questions: panelData.questions
+        };
+
+        const isEditing = editPanelData && editPanelData.id;
+        const url = isEditing 
+          ? '/api/tickets/<%= guild.id %>/update-panel'
+          : '/api/tickets/<%= guild.id %>/create-panel-advanced';
+        
+        if (isEditing) {
+          panelPayload.panelId = editPanelData.id;
+        }
+
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(panelPayload),
+            credentials: 'same-origin'
+          });
+
+          const data = await response.json();
+
+          if (data.ok) {
+            showSuccess('Painel Enviado!', `Seu painel foi ${isEditing ? 'atualizado' : 'enviado'} com sucesso.`);
+            setTimeout(() => {
+              window.location.href = '/dashboard/<%= guild.id %>/tickets';
+            }, 1500);
+          } else {
+            showError('Erro no Envio', data.message || 'Ocorreu um erro ao enviar o painel.');
+          }
+        } catch (err) {
+          showError('Erro de Conexão', 'Não foi possível conectar ao servidor. Tente novamente.');
+          console.error(err);
+        }
+      }
+
+      async function savePanel() {
+        const channelId = document.getElementById('panelChannel').value;
+        const categoryEnabled = document.getElementById('panelCategoryEnabled').checked;
+        const categorySelect = document.getElementById('panelCategory');
+        let categoryId = categorySelect.value;
+
+        if (!categoryEnabled) {
+          categoryId = null;
+        } else if (categoryId === '' || categoryId === undefined || categoryId === null) {
+          categoryId = null;
+        }
+
+        if (categoryEnabled && !categoryId) {
+          showError('Categoria Inválida', 'Selecione uma categoria válida ou desative o uso de categoria.');
+          return;
+        }
+        
+        if (!channelId) {
+          showError('Canal Obrigatório', 'Por favor, selecione um canal para o painel.');
+          return;
+        }
+
+        if (panelData.embeds.length === 0) {
+          showError('Embed Obrigatória', 'Adicione pelo menos uma embed ao painel.');
+          return;
+        }
+
+        if (panelData.buttons.length === 0) {
+          showError('Botão Obrigatório', 'Adicione pelo menos um botão ao painel.');
+          return;
+        }
+
+        const panelPayload = {
+          channelId,
+          categoryEnabled,
+          categoryId,
+          logs: collectPanelLogsFromForm(),
+          embeds: panelData.embeds,
+          buttons: panelData.buttons,
+          questions: panelData.questions
+        };
+
+        const isEditing = editPanelData && editPanelData.id;
+        
+        if (isEditing) {
+          panelPayload.panelId = editPanelData.id;
+        }
+
+        const panelDataJson = JSON.stringify(panelPayload);
+        document.getElementById('panelData').value = panelDataJson;
+
+        const url = isEditing 
+          ? '/api/tickets/<%= guild.id %>/update-panel'
+          : '/api/tickets/<%= guild.id %>/create-panel-advanced';
+
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: panelDataJson,
+            credentials: 'same-origin'
+          });
+
+          const data = await response.json();
+
+          if (data.ok) {
+            showSuccess('Painel Salvo!', 'Suas configurações foram salvas. Você pode continuar editando ou enviar o painel quando desejar.');
+            
+            // Adicionar indicador visual de salvo
+            const saveBtn = document.querySelector('button[onclick="savePanel()"]');
+            if (saveBtn) {
+              const originalContent = saveBtn.innerHTML;
+              saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Salvo!</span>';
+              saveBtn.classList.add('btn-modern-success');
+              saveBtn.disabled = true;
+              
+              setTimeout(() => {
+                saveBtn.innerHTML = originalContent;
+                saveBtn.classList.remove('btn-modern-success');
+                saveBtn.disabled = false;
+              }, 3000);
+            }
+          } else {
+            showError('Erro ao Salvar', data.message || 'Ocorreu um erro ao salvar o painel.');
+          }
+        } catch (err) {
+          showError('Erro de Conexão', 'Não foi possível conectar ao servidor. Tente novamente.');
+          console.error(err);
+        }
+      }
+
+      function resetPanel() {
+        showConfirm(
+          'Resetar Painel',
+          'Tem certeza que deseja resetar todas as configurações? Esta ação não pode ser desfeita.',
+          () => {
+            panelData = { embeds: [], buttons: [], questions: [], useCategory: false, logs: getDefaultPanelLogs() };
+            const panelCategoryEnabled = document.getElementById('panelCategoryEnabled');
+            const panelCategory = document.getElementById('panelCategory');
+            if (panelCategoryEnabled) panelCategoryEnabled.checked = false;
+            if (panelCategory) {
+              panelCategory.value = '';
+              panelCategory.disabled = true;
+            }
+            renderEmbeds();
+            renderButtons();
+            renderQuestions();
+            renderPreview();
+            showSuccess('Painel Resetado', 'Todas as configurações foram limpas.');
+          },
+          null,
+          'warning'
+        );
+      }
+
+      function applyCategoryToggleState() {
+        const panelCategoryEnabled = document.getElementById('panelCategoryEnabled');
+        const panelCategory = document.getElementById('panelCategory');
+        if (!panelCategoryEnabled || !panelCategory) return;
+        panelCategory.disabled = !panelCategoryEnabled.checked;
+      }
+
+      // Initialize
+      let editPanelData = null;
+      <% if (typeof editPanel !== 'undefined') { %>
+        try {
+          editPanelData = <%- JSON.stringify(editPanel) %>;
+        } catch(e) {
+          console.error('Error parsing editPanelData:', e);
+        }
+      <% } %>
+      
+      if (editPanelData) {
+        // Se tem embeds (painel avançado), usa eles
+        // Se não (painel simples), cria a partir de title/description
+        if (editPanelData.embeds && editPanelData.embeds.length > 0) {
+          panelData = {
+            embeds: editPanelData.embeds || [],
+            buttons: editPanelData.buttons || [],
+            questions: editPanelData.questions || [],
+            useCategory: Boolean(editPanelData.useCategory || editPanelData.categoryId),
+            logs: normalizePanelLogs(editPanelData.logs)
+          };
+        } else {
+          // Converte painel simples para formato avançado
+          panelData = {
+            embeds: [{
+              title: editPanelData.title || "Central de Tickets",
+              description: editPanelData.description || "Clique no botão abaixo para criar um ticket.",
+              color: "#5865F2"
+            }],
+            buttons: [{
+              label: editPanelData.buttonLabel || "Criar Ticket",
+              style: "PRIMARY",
+              emoji: "🎫"
+            }],
+            questions: editPanelData.questions || [],
+            useCategory: Boolean(editPanelData.useCategory || editPanelData.categoryId),
+            logs: normalizePanelLogs(editPanelData.logs)
+          };
+        }
+        
+        if (editPanelData.channelId) {
+          const panelChannel = document.getElementById('panelChannel');
+          panelChannel.value = editPanelData.channelId;
+          panelChannel.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          if (editPanelData.categoryId) {
+            const panelCategory = document.getElementById('panelCategory');
+            panelCategory.value = editPanelData.categoryId;
+          }
+        }
+      } else {
+        // Se não há dados de edição, cria painel padrão
+        panelData = {
+          embeds: [{
+            title: "Central de Tickets",
+            description: "Clique no botão abaixo para criar um ticket.",
+            color: "#5865F2"
+          }],
+          buttons: [{
+            label: "Criar Ticket",
+            style: "PRIMARY",
+            emoji: "🎫"
+          }],
+          useCategory: false,
+          logs: {
+            Open: { enabled: false, type: 'channel', channelId: '', message: '' },
+            Close: { enabled: false, type: 'channel', channelId: '', message: '' }
+          }
+        };
+      }
+
+      const panelCategoryEnabled = document.getElementById('panelCategoryEnabled');
+      if (panelCategoryEnabled) {
+        panelCategoryEnabled.checked = Boolean(panelData.useCategory);
+        panelCategoryEnabled.addEventListener('change', applyCategoryToggleState);
+      }
+      applyCategoryToggleState();
+      applyPanelLogsToForm();
+      ['Open', 'Close'].forEach((prefix) => {
+        const enabledInput = document.getElementById(`panelLog${prefix}Enabled`);
+        const typeInput = document.getElementById(`panelLog${prefix}Type`);
+        if (enabledInput) enabledInput.addEventListener('change', () => updatePanelLogDestination(prefix));
+        if (typeInput) typeInput.addEventListener('change', () => updatePanelLogDestination(prefix));
+      });
+      
+      renderEmbeds();
+      renderButtons();
+      renderQuestions();
+      renderPreview();
+
+      // Inicializar as abas do Bootstrap para as sub-abas (Editor/JSON)
+      setTimeout(() => {
+        const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="pill"]'));
+        triggerTabList.forEach(function (triggerEl) {
+          new bootstrap.Tab(triggerEl);
+        });
+      }, 100);
+    </script>
+    
+    <!-- Exemplos de uso dos alertas (pode ser removido) -->
+    <script>
+      // Exemplos de como usar o sistema de alertas:
+      // showSuccess('Sucesso!', 'Operação concluída com sucesso.');
+      // showError('Erro', 'Ocorreu um erro ao processar sua solicitação.');
+      // showWarning('Atenção', 'Verifique os campos antes de continuar.');
+      // showInfo('Informação', 'O sistema foi atualizado.');
+      
+      // Exemplo de confirmação:
+      // showConfirm('Confirmar ação', 'Tem certeza?', () => {
+      //   showSuccess('Confirmado', 'Ação foi executada.');
+      // });
+    </script>
+  </body>
+</html>

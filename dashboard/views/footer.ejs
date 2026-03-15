@@ -1,30 +1,77 @@
-<section class="site-footer-section">
-  <div class="card-footer">
-    <hr>
-    <div class="footer-content">
-      <div class="footer-brand">
-        <img src="<%= botClient.user.displayAvatarURL({ size: 256 }) %>" alt="<%= botClient.user.username %>" style="width: 38px; border-radius: 50%; margin-right: 8px; vertical-align: middle;">
-        <span><%= botClient.user.username %> | Experiência Completa para Servidores</span>
+<footer class="modern-footer">
+  <div class="footer-container">
+    <div class="footer-top">
+      <!-- Bot Logo -->
+      <div class="footer-logo-section">
+        <div class="footer-logo-wrapper">
+          <img src="<%= botClient.user.displayAvatarURL({ size: 256 }) %>" alt="<%= botClient.user.username %>" class="footer-logo">
+          <div class="footer-status-indicator status-online"></div>
+        </div>
       </div>
-      
+
+      <!-- Quick Links -->
       <div class="footer-links">
-        <a href="/termos">Termos de Serviço</a>
-        <span class="footer-divider">|</span>
-        <a href="/privacidade">Política de Privacidade</a>
+        <h4><i class="fas fa-link"></i> Links Rápidos</h4>
+        <nav class="footer-nav">
+          <a href="/" class="footer-link">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+          </a>
+          <a href="/commands" class="footer-link">
+            <i class="fas fa-terminal"></i>
+            <span>Comandos</span>
+          </a>
+          <a href="/dashboard" class="footer-link">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="/queuedashboard" class="footer-link">
+            <i class="fas fa-music"></i>
+            <span>Fila</span>
+          </a>
+        </nav>
       </div>
-      
+
+      <!-- Legal -->
+      <div class="footer-legal">
+        <h4><i class="fas fa-gavel"></i> Legal</h4>
+        <nav class="footer-nav">
+          <a href="/termos" class="footer-link">
+            <i class="fas fa-file-contract"></i>
+            <span>Termos de Serviço</span>
+          </a>
+          <a href="/privacidade" class="footer-link">
+            <i class="fas fa-shield-alt"></i>
+            <span>Política de Privacidade</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Community -->
       <div class="footer-social">
-        <a href="https://discord.gg/" target="_blank" rel="noopener noreferrer" aria-label="Discord Support">
-          <i class="fab fa-discord"></i>
-        </a>
-        <a href="https://github.com/Programador-jr/King" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-          <i class="fab fa-github"></i>
-        </a>
+        <h4><i class="fas fa-share-alt"></i> Comunidade</h4>
+        <nav class="footer-nav">
+          <a href="https://discord.gg/" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <i class="fab fa-discord"></i>
+            <span>Support</span>
+          </a>
+          <a href="https://github.com/Programador-jr/King" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <i class="fab fa-github"></i>
+            <span>GitHub</span>
+          </a>
+        </nav>
       </div>
     </div>
-    
-    <h5>
-      <small style="color:#7ea7c0;">&copy; <%= new Date().getFullYear() %> KING. Todos os direitos reservados.</small>
-    </h5>
+
+    <!-- Copyright -->
+    <div class="footer-bottom">
+      <div class="footer-copyright">
+        <p>
+          <i class="far fa-copyright"></i>
+          <strong><%= new Date().getFullYear() %> <%= botClient.user.username %></strong>
+          <span>• Todos os direitos reservados</span>
+        </p>
+      </div>
+    </div>
   </div>
-</section>
+</footer>

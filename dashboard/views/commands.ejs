@@ -11,6 +11,190 @@
     <link rel="stylesheet" href="/commands.css">
     <style>
       .accordion-collapse { transition: all 0.3s ease !important; }
+      
+      /* Ícones simples nos accordions */
+      .accordion-button {
+        position: relative;
+        padding-left: 48px;
+        font-weight: 600;
+      }
+      
+      .accordion-button::before {
+        content: '';
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 24px;
+        height: 24px;
+        background: var(--accent, #5865f2);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+      }
+      
+      /* Ícones por categoria */
+      #acc_Música .accordion-button::before { content: '\f001'; }
+      #acc_Administração .accordion-button::before { content: '\f085'; }
+      #acc_Utilidades .accordion-button::before { content: '\f013'; }
+      #acc_Diversão .accordion-button::before { content: '\f0c3'; }
+      #acc_Informações .accordion-button::before { content: '\f05a'; }
+      #acc_filters .accordion-button::before { content: '\f1de'; background: var(--ok, #28a745); }
+      #acc_mixes .accordion-button::before { content: '\f001'; background: var(--ok, #28a745); }
+      
+      /* Ícone padrão */
+      .accordion-button::before { content: '\f121'; }
+      
+      /* Cards de informação */
+      .info-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: var(--card-bg, #2f3136);
+        border: 1px solid var(--accent-border-soft, #40444b);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
+      }
+      
+      .info-card:hover {
+        border-color: var(--accent, #5865f2);
+        background: var(--card-bg-hover, #34373c);
+      }
+      
+      .info-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--accent, #5865f2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      
+      .info-content {
+        flex: 1;
+      }
+      
+      .info-title {
+        font-weight: 600;
+        color: var(--accent, #5865f2);
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+      }
+      
+      .info-text {
+        color: var(--text-soft, #dcddde);
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+      
+      .info-text kbd {
+        background: var(--code-bg, rgba(88, 101, 242, 0.14));
+        border: 1px solid var(--code-border, rgba(88, 101, 242, 0.24));
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        color: var(--code-text, #e0e3ff);
+      }
+      
+      /* Botões de ação */
+      .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: transparent;
+        color: var(--accent, #5865f2);
+        text-decoration: none;
+        border: 1px solid var(--accent, #5865f2);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      
+      .action-btn:hover {
+        background: var(--accent, #5865f2);
+        color: white;
+        text-decoration: none;
+      }
+      
+      .action-btn i {
+        font-size: 0.75rem;
+      }
+      
+      /* Botões centralizados simples */
+      .btn, .btn-primary, .btn-secondary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-light, .btn-dark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 38px;
+        padding: 8px 16px;
+        font-weight: 500;
+      }
+      
+      .btn i {
+        margin-right: 4px;
+      }
+      
+      /* List-group com ícones */
+      .list-group-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      /* Responsividade simples */
+      @media (max-width: 768px) {
+        .accordion-button {
+          padding-left: 40px;
+          font-size: 0.9rem;
+        }
+        
+        .accordion-button::before {
+          width: 20px;
+          height: 20px;
+          font-size: 10px;
+          left: 8px;
+        }
+        
+        .info-card {
+          padding: 10px;
+          gap: 10px;
+        }
+        
+        .info-icon {
+          width: 28px;
+          height: 28px;
+          font-size: 12px;
+        }
+        
+        .info-title {
+          font-size: 0.85rem;
+        }
+        
+        .info-text {
+          font-size: 0.85rem;
+        }
+        
+        .btn, .btn-primary, .btn-secondary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-light, .btn-dark {
+          min-height: 36px;
+          padding: 6px 12px;
+          font-size: 0.9rem;
+        }
+      }
     </style>
     <title>Comandos | <%= bot.name %></title>
   </head>
@@ -30,12 +214,9 @@
     %>
 
     <section id="botcommands" class="botcommands">
-      <h1>Meus Comandos</h1>
+      <h1><i class="fas fa-terminal"></i> Meus Comandos</h1>
       <p>
         Todos os comandos de texto e slash em um único lugar.
-        <a href="https://discord.com/api/oauth2/authorize?client_id=<%= botClient.user.id %>&permissions=8&scope=bot%20applications.commands" target="_blank" rel="noopener noreferrer">
-          Convite com permissões recomendadas
-        </a>
       </p>
 
       <div class="container px-lg-5" id="commands_menu">
@@ -44,6 +225,7 @@
             <div class="list-group" id="myList" role="tablist">
               <% categories.forEach((category, i) => { %>
                 <a class="list-group-item list-group-item-action <%= i === 0 ? 'active' : '' %>" data-bs-toggle="list" href="#<%= category %>" role="tab" aria-controls="<%= category %>">
+                  <i class="fas fa-folder"></i>
                   <%= category %>
                 </a>
               <% }) %>
@@ -56,7 +238,7 @@
                 <div class="tab-pane fade show <%= k === 0 ? 'active' : '' %>" id="<%= category %>" role="tabpanel">
                   <div class="accordion" id="acc_<%= category %>">
                     <% commands.filter((cmd) => cmd.category === category).forEach((cmd, i) => { %>
-                      <div class="accordion-item slide-up-fade-in">
+                      <div class="accordion-item">
                         <h2 class="accordion-header" id="h_<%= cmd.name %>">
                           <button
                             class="accordion-button <%= i === 0 ? '' : 'collapsed' %>"
@@ -78,19 +260,57 @@
                         >
                           <div class="accordion-body">
                             <% const cmdHelpDetails = resolveHelpDetails(cmd); %>
-                            <code>Descrição:</code> <%= cmd.description || 'Sem descrição.' %><br>
-                            <code>Aliases:</code>
-                            <% if (cmd.aliases && cmd.aliases.length > 0) { %>
-                              <small class="text-muted">[<%= cmd.aliases.join(', ') %>]</small>
-                            <% } else { %>
-                              <small class="text-muted">[nenhum]</small>
-                            <% } %>
-                            <br>
-                            <code>Uso:</code> <small><kbd><%= cmd.usage || cmd.name %></kbd></small>
+                            
+                            <!-- Card de Descrição -->
+                            <div class="info-card">
+                              <div class="info-icon">
+                                <i class="fas fa-info-circle"></i>
+                              </div>
+                              <div class="info-content">
+                                <div class="info-title">Descrição</div>
+                                <div class="info-text"><%= cmd.description || 'Sem descrição.' %></div>
+                              </div>
+                            </div>
+                            
+                            <!-- Card de Aliases -->
+                            <div class="info-card">
+                              <div class="info-icon">
+                                <i class="fas fa-code-branch"></i>
+                              </div>
+                              <div class="info-content">
+                                <div class="info-title">Aliases</div>
+                                <div class="info-text">
+                                  <% if (cmd.aliases && cmd.aliases.length > 0) { %>
+                                    <%= cmd.aliases.join(', ') %>
+                                  <% } else { %>
+                                    nenhum
+                                  <% } %>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <!-- Card de Uso -->
+                            <div class="info-card">
+                              <div class="info-icon">
+                                <i class="fas fa-terminal"></i>
+                              </div>
+                              <div class="info-content">
+                                <div class="info-title">Uso</div>
+                                <div class="info-text"><kbd><%= cmd.usage || cmd.name %></kbd></div>
+                              </div>
+                            </div>
+                            
                             <% if (cmdHelpDetails) { %>
-                              <br>
-                              <code>Detalhes:</code>
-                              <small class="text-muted d-block mt-1" style="white-space: pre-line;"><%= cmdHelpDetails %></small>
+                              <!-- Card de Detalhes -->
+                              <div class="info-card">
+                                <div class="info-icon">
+                                  <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="info-content">
+                                  <div class="info-title">Detalhes</div>
+                                  <div class="info-text" style="white-space: pre-line;"><%= cmdHelpDetails %></div>
+                                </div>
+                              </div>
                             <% } %>
                           </div>
                         </div>
@@ -106,7 +326,7 @@
     </section>
 
     <section id="audiofilters" class="audiofilters">
-      <h1 id="audiofilters-title">Filtros de Áudio</h1>
+      <h1 id="audiofilters-title"><i class="fas fa-sliders-h"></i> Filtros de Áudio</h1>
       <p id="audiofilters-desc">
         Aplique filtros com os comandos <code>addfilter</code>, <code>removefilter</code>, <code>setfilter</code>
         ou via slash commands. Alguns efeitos podem levar até 2 segundos para aplicar.
@@ -117,9 +337,11 @@
           <div class="col-lg-3" id="category">
             <div class="list-group" role="tablist">
               <a class="allfilters list-group-item list-group-item-action active" data-bs-toggle="list" href="#filters" role="tab" aria-controls="filters">
+                <i class="fas fa-sliders-h"></i>
                 Todos os filtros
               </a>
               <a class="allmixes list-group-item list-group-item-action" data-bs-toggle="list" href="#mixes" role="tab" aria-controls="mixes">
+                <i class="fas fa-music"></i>
                 Todos os Mix
               </a>
             </div>
@@ -130,7 +352,7 @@
               <div class="tab-pane fade show active" id="filters" role="tabpanel">
                 <div class="accordion" id="acc_filters">
                   <% Object.keys(BotFilters).forEach((filter, i) => { %>
-                    <div class="accordion-item slide-up-fade-in">
+                    <div class="accordion-item">
                       <h2 class="accordion-header" id="h_filter_<%= filter %>">
                         <button
                           class="accordion-button <%= i === 0 ? '' : 'collapsed' %>"
@@ -152,10 +374,39 @@
                       >
                         <div class="accordion-body">
                           <% if (filter.includes('custom')) { %>
-                            <p><b>Filtro personalizado:</b> possui comandos dedicados para ajuste de ganho/valor.</p>
+                            <!-- Card de Tipo -->
+                            <div class="info-card">
+                              <div class="info-icon">
+                                <i class="fas fa-cogs"></i>
+                              </div>
+                              <div class="info-content">
+                                <div class="info-title">Tipo</div>
+                                <div class="info-text">Filtro personalizado com comandos dedicados para ajuste de ganho/valor</div>
+                              </div>
+                            </div>
                           <% } %>
-                          <code>FFmpeg Arg:</code> <small class="text-muted"><kbd><%= BotFilters[String(filter)] %></kbd></small><br>
-                          <code>Ação:</code> Aplica o efeito <b><%= filter %></b> no áudio.
+                          
+                          <!-- Card de FFmpeg -->
+                          <div class="info-card">
+                            <div class="info-icon">
+                              <i class="fas fa-code"></i>
+                            </div>
+                            <div class="info-content">
+                              <div class="info-title">FFmpeg Arg</div>
+                              <div class="info-text"><kbd><%= BotFilters[String(filter)] %></kbd></div>
+                            </div>
+                          </div>
+                          
+                          <!-- Card de Ação -->
+                          <div class="info-card">
+                            <div class="info-icon">
+                              <i class="fas fa-play-circle"></i>
+                            </div>
+                            <div class="info-content">
+                              <div class="info-title">Ação</div>
+                              <div class="info-text">Aplica o efeito <b><%= filter %></b> no áudio</div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -166,7 +417,7 @@
               <div class="tab-pane fade" id="mixes" role="tabpanel">
                 <div class="accordion" id="acc_mixes">
                   <% SPOTIFY_MIXES.forEach((mix, i) => { %>
-                    <div class="accordion-item slide-up-fade-in">
+                    <div class="accordion-item">
                       <h2 class="accordion-header" id="h_mix_<%= mix.key %>">
                         <button
                           class="accordion-button <%= i === 0 ? '' : 'collapsed' %>"
@@ -186,10 +437,64 @@
                         data-bs-parent="#acc_mixes"
                       >
                         <div class="accordion-body">
-                          <code>Spotify:</code> <small class="text-muted"><%= mix.url %></small><br>
-                          <code>YouTube:</code> <small class="text-muted"><%= YT_MIXES.find(y => y.key === mix.key)?.url || 'N/A' %></small><br>
-                          <code>Comando:</code> <kbd>mix <%= mix.aliases[0] %></kbd><br>
-                          <code>Alias:</code> <small class="text-muted">[<%= mix.aliases.slice(1).join(', ') %>]</small>
+                          <!-- Card de Spotify -->
+                          <div class="info-card">
+                            <div class="info-icon">
+                              <i class="fab fa-spotify"></i>
+                            </div>
+                            <div class="info-content">
+                              <div class="info-title">Spotify</div>
+                              <div class="info-text">
+                                <a href="<%= mix.url %>" target="_blank" class="action-btn">
+                                  <i class="fas fa-external-link-alt"></i>
+                                  Abrir
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <!-- Card de YouTube -->
+                          <div class="info-card">
+                            <div class="info-icon">
+                              <i class="fab fa-youtube"></i>
+                            </div>
+                            <div class="info-content">
+                              <div class="info-title">YouTube</div>
+                              <div class="info-text">
+                                <% const ytUrl = YT_MIXES.find(y => y.key === mix.key)?.url; %>
+                                <% if (ytUrl && ytUrl !== 'N/A') { %>
+                                  <a href="<%= ytUrl %>" target="_blank" class="action-btn">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    Abrir
+                                  </a>
+                                <% } else { %>
+                                  <span class="text-muted">Não disponível</span>
+                                <% } %>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <!-- Card de Comando -->
+                          <div class="info-card">
+                            <div class="info-icon">
+                              <i class="fas fa-terminal"></i>
+                            </div>
+                            <div class="info-content">
+                              <div class="info-title">Comando</div>
+                              <div class="info-text"><kbd>mix <%= mix.aliases[0] %></kbd></div>
+                            </div>
+                          </div>
+                          
+                          <!-- Card de Alias -->
+                          <div class="info-card">
+                            <div class="info-icon">
+                              <i class="fas fa-code-branch"></i>
+                            </div>
+                            <div class="info-content">
+                              <div class="info-title">Alias</div>
+                              <div class="info-text"><%= mix.aliases.slice(1).join(', ') %></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

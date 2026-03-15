@@ -4,9 +4,18 @@
 %>
 
 <div class="wrapper">
-  <nav>
+  <nav aria-label="Navegação principal">
     <input type="checkbox" id="show-menu">
-    <label for="show-menu" class="menu-icon"><i class="fas fa-bars"></i></label>
+    <label
+      for="show-menu"
+      id="menu-toggle"
+      class="menu-icon"
+      role="button"
+      tabindex="0"
+      aria-label="Abrir menu"
+      aria-controls="nav-links"
+      aria-expanded="false"
+    ><i class="fas fa-bars"></i></label>
 
     <div class="content">
       <a class="brand" href="/">
@@ -14,18 +23,43 @@
         <span><%= botClient.user.username %> Dashboard</span>
       </a>
 
-      <ul class="links">
-        <li><a href="/" class="<%= isActive('/') && !isActive('/dashboard') && !isActive('/commands') && !isActive('/queue') && !isActive('/queuedashboard') && !isActive('/termos') && !isActive('/privacidade') ? 'active-link' : '' %>">Início</a></li>
-        <li><a href="/commands" class="<%= isActive('/commands') ? 'active-link' : '' %>">Comandos</a></li>
-        <li><a href="/dashboard" class="<%= isActive('/dashboard') ? 'active-link' : '' %>">Dashboard</a></li>
-        <li><a href="/queuedashboard" class="<%= isActive('/queuedashboard') || isActive('/queue') ? 'active-link' : '' %>">Fila</a></li>
-        <li><a href="https://king.com/oauth2/authorize?client_id=<%= botClient.user.id %>&scope=bot%20applications.commands&permissions=2102658175" target="_blank" rel="noopener noreferrer">Convite</a></li>
+      <ul class="links modern-nav" id="nav-links">
+        <li>
+          <a href="/" class="nav-link <%= isActive('/') && !isActive('/dashboard') && !isActive('/commands') && !isActive('/queue') && !isActive('/queuedashboard') && !isActive('/termos') && !isActive('/privacidade') ? 'active-link' : '' %>">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+          </a>
+        </li>
+        <li>
+          <a href="/commands" class="nav-link <%= isActive('/commands') ? 'active-link' : '' %>">
+            <i class="fas fa-terminal"></i>
+            <span>Comandos</span>
+          </a>
+        </li>
+        <li>
+          <a href="/dashboard" class="nav-link <%= isActive('/dashboard') ? 'active-link' : '' %>">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="/queuedashboard" class="nav-link <%= isActive('/queuedashboard') || isActive('/queue') ? 'active-link' : '' %>">
+            <i class="fas fa-music"></i>
+            <span>Fila</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://discord.com/oauth2/authorize?client_id=<%= botClient.user.id %>&scope=bot%20applications.commands&permissions=2102658175" target="_blank" rel="noopener noreferrer" class="nav-link">
+            <i class="fas fa-plus-circle"></i>
+            <span>Adicionar</span>
+          </a>
+        </li>
         <li>
           <a
             href="https://github.com/Programador-jr/King"
             target="_blank"
             rel="noopener noreferrer"
-            class="icon-link"
+            class="nav-link nav-link-icon"
             aria-label="GitHub"
             title="GitHub"
           >
@@ -33,32 +67,35 @@
           </a>
         </li>
         <li class="nav-theme">
-  <button
-    id="theme-toggle"
-    class="theme-toggle"
-    type="button"
-    aria-label="Alternar tema"
-    title="Alternar tema"
-  >
-    <i class="fas fa-moon theme-icon theme-icon-moon"></i>
-    <i class="fas fa-bolt theme-icon theme-icon-bolt"></i>
-    <span class="theme-toggle-text">Tema</span>
-  </button>
-</li>
+          <input
+            id="theme-toggle"
+            class="theme-switch-input"
+            type="checkbox"
+            role="switch"
+            aria-label="Alternar tema"
+          >
+          <label class="theme-switch-control" for="theme-toggle" title="Alternar tema">
+            <span class="theme-switch-thumb" aria-hidden="true">
+              <i class="fas fa-moon theme-icon theme-icon-moon"></i>
+              <i class="fas fa-bolt theme-icon theme-icon-bolt"></i>
+            </span>
+          </label>
+        </li>
 
-        <li class="nav-auth">
-          <% if (user && user.id) { %>
-            <% const avatarUrl = user.avatar
-              ? `https://cdn.kingapp.com/avatars/${user.id}/${user.avatar}.webp?size=64`
-              : `https://cdn.kingapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`; %>
-            <button
-              class="auth-btn auth-btn-danger"
-              onclick="location.href='/logout'"
-              type="button"
-            >
-              <img src="<%= avatarUrl %>" alt="avatar">
-              Logout
-            </button>
+        </ul>
+      
+      <!-- Avatar do usuário na barra principal -->
+      <div class="nav-auth">
+          <% 
+          let avatarUrl = '';
+          if (user && user.id) { 
+            avatarUrl = user.avatar
+              ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=64`
+              : `https://cdn.discordapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`;
+          %>
+            <div class="user-avatar-container">
+              <img src="<%= avatarUrl %>" alt="avatar" class="user-avatar" title="<%= user.username %>" onclick="openProfileModal()" style="cursor: pointer;">
+            </div>
           <% } else { %>
             <button
               class="auth-btn"
@@ -68,11 +105,65 @@
               Login
             </button>
           <% } %>
-        </li>
-      </ul>
+        </div>
     </div>
   </nav>
 </div>
+
+<!-- Modal de Perfil do Usuário -->
+<% if (user && user.id) { %>
+<div id="profileModal" class="logout-modal">
+  <div class="logout-modal-overlay" onclick="closeProfileModal()"></div>
+  <div class="logout-modal-content">
+    <div class="logout-modal-header">
+      <img src="<%= avatarUrl %>" alt="avatar" class="logout-modal-avatar">
+      <div class="logout-modal-user-info">
+        <h3><%= user.username %></h3>
+        <p>ID: <%= user.id %></p>
+      </div>
+      <button class="logout-modal-close" onclick="closeProfileModal()" aria-label="Fechar">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="logout-modal-body">
+      <p>Bem-vindo ao dashboard!</p>
+    </div>
+    <div class="logout-modal-footer">
+      <button class="btn btn-success" onclick="closeProfileModal()">Fechar</button>
+      <button class="btn btn-danger" onclick="openLogoutModal()">
+        <i class="fas fa-sign-out-alt"></i> Sair
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação de Logout -->
+<div id="logoutModal" class="logout-modal">
+  <div class="logout-modal-overlay" onclick="closeLogoutModal()"></div>
+  <div class="logout-modal-content">
+    <div class="logout-modal-header">
+      <div class="logout-modal-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="logout-modal-user-info">
+        <h3>Confirmar Logout</h3>
+      </div>
+      <button class="logout-modal-close" onclick="closeLogoutModal()" aria-label="Fechar">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="logout-modal-body">
+      <p>Tem certeza que deseja sair do dashboard?</p>
+    </div>
+    <div class="logout-modal-footer">
+      <button class="btn btn-success" onclick="backToProfile()">Cancelar</button>
+      <button class="btn btn-danger" onclick="location.href='/logout'">
+        <i class="fas fa-sign-out-alt"></i> Confirmar Saída
+      </button>
+    </div>
+  </div>
+</div>
+<% } %>
 
 <script>
   (() => {
@@ -88,32 +179,283 @@
       }
 
       const toggle = document.getElementById('theme-toggle');
-      if (toggle) {
-        toggle.setAttribute('title', finalTheme === 'king' ? 'Mudar para Discord' : 'Mudar para King');
+      const toggleLabel = document.querySelector('label[for="theme-toggle"]');
+
+      if (toggle) toggle.checked = finalTheme === 'king';
+
+      if (toggleLabel) {
+        toggleLabel.setAttribute('title', finalTheme === 'king' ? 'Mudar para Discord' : 'Mudar para King');
       }
     }
-
-    const savedTheme = localStorage.getItem(THEME_KEY) || 'king';
-    applyTheme(savedTheme);
 
     window.addEventListener('DOMContentLoaded', () => {
       applyTheme(localStorage.getItem(THEME_KEY) || 'king');
 
       const toggle = document.getElementById('theme-toggle');
-      if (!toggle) return;
+      if (toggle) {
+        toggle.addEventListener('change', () => {
+          const next = toggle.checked ? 'king' : 'discord';
+          localStorage.setItem(THEME_KEY, next);
+          applyTheme(next);
+        });
+      }
 
-      toggle.addEventListener('click', () => {
-        const current = document.documentElement.getAttribute('data-theme') || 'king';
-        const next = current === 'king' ? 'discord' : 'king';
-        localStorage.setItem(THEME_KEY, next);
-        applyTheme(next);
-      });
+      function ensureToastContainer() {
+        let container = document.querySelector('.toast-container');
+        if (container) return container;
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+        return container;
+      }
+
+      function showToast(message, type = 'info', duration = 4000) {
+        if (!message || typeof message !== 'string') return;
+        const toastContainer = ensureToastContainer();
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+
+        const icons = {
+          success: 'fa-check-circle',
+          error: 'fa-times-circle',
+          warning: 'fa-exclamation-circle',
+          info: 'fa-info-circle'
+        };
+        const icon = icons[type] || 'fa-info-circle';
+
+        toast.innerHTML = `
+          <i class="fas ${icon} toast-icon"></i>
+          <span class="toast-message"></span>
+          <button class="toast-close" type="button" aria-label="Fechar"><i class="fas fa-times"></i></button>
+        `;
+
+        const messageEl = toast.querySelector('.toast-message');
+        if (messageEl) messageEl.textContent = message;
+
+        const closeBtn = toast.querySelector('.toast-close');
+        if (closeBtn) closeBtn.addEventListener('click', () => toast.remove());
+
+        toastContainer.appendChild(toast);
+
+        const timeout = Math.max(800, Number(duration) || 4000);
+        setTimeout(() => {
+          toast.style.animation = 'slideOutRight 0.3s ease forwards';
+          setTimeout(() => toast.remove(), 300);
+        }, timeout);
+      }
+
+      window.showToast = showToast;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const errorParam = urlParams.get('error');
+      if (errorParam) showToast(errorParam, 'error');
+      const successParam = urlParams.get('success');
+      if (successParam) showToast(successParam, 'success');
+
+      const backToTopBtn = document.querySelector('.back-to-top') || document.createElement('button');
+      if (!backToTopBtn.parentElement) {
+        backToTopBtn.className = 'back-to-top';
+        backToTopBtn.type = 'button';
+        backToTopBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        backToTopBtn.setAttribute('aria-label', 'Voltar ao topo');
+        document.body.appendChild(backToTopBtn);
+      }
+
+      const syncBackToTop = () => {
+        if (window.scrollY > 300) backToTopBtn.classList.add('visible');
+        else backToTopBtn.classList.remove('visible');
+      };
+
+      syncBackToTop();
+      window.addEventListener('scroll', syncBackToTop, { passive: true });
+      backToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+      const scrollRevealElements = document.querySelectorAll('.scroll-reveal');
+      if (scrollRevealElements.length) {
+        if (!('IntersectionObserver' in window)) {
+          scrollRevealElements.forEach(el => el.classList.add('visible'));
+        } else {
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (!entry.isIntersecting) return;
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            });
+          }, { threshold: 0.1 });
+
+          scrollRevealElements.forEach(el => observer.observe(el));
+        }
+      }
+
+      const menuCheckbox = document.getElementById('show-menu');
+      const menuToggle = document.getElementById('menu-toggle');
+      const nav = document.querySelector('nav');
+      const menuLinks = document.getElementById('nav-links');
+
+      if (menuCheckbox && menuToggle && nav && menuLinks) {
+        const syncMenuState = () => {
+          const isOpen = Boolean(menuCheckbox.checked);
+          menuToggle.setAttribute('aria-expanded', String(isOpen));
+          menuToggle.setAttribute('aria-label', isOpen ? 'Fechar menu' : 'Abrir menu');
+          document.body.classList.toggle('nav-open', isOpen);
+        };
+
+        const closeMenu = () => {
+          menuCheckbox.checked = false;
+          syncMenuState();
+        };
+
+        syncMenuState();
+        menuCheckbox.addEventListener('change', syncMenuState);
+
+        menuToggle.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            menuCheckbox.checked = !menuCheckbox.checked;
+            syncMenuState();
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            closeMenu();
+          }
+        });
+
+        menuLinks.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+
+        document.addEventListener('click', (e) => {
+          const target = e.target;
+          if (!target) return;
+
+          if (menuToggle.contains(target) || menuCheckbox.contains(target)) return;
+
+          if (!menuCheckbox.checked) return;
+          if (!nav.contains(target)) {
+            closeMenu();
+            return;
+          }
+          if (!menuLinks.contains(target)) closeMenu();
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (!menuCheckbox.checked) return;
+          if (e.key === 'Escape') closeMenu();
+        });
+
+        window.addEventListener('resize', () => {
+          if (window.matchMedia('(max-width: 900px)').matches) return;
+          if (menuCheckbox.checked) closeMenu();
+        }, { passive: true });
+      }
+
+      document.addEventListener('submit', (e) => {
+        const form = e.target;
+        if (!form || form.tagName !== 'FORM') return;
+
+        const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (!submitBtn) return;
+
+        submitBtn.classList.add('btn-loading');
+        submitBtn.disabled = true;
+      }, true);
     });
+
+    applyTheme(localStorage.getItem(THEME_KEY) || 'king');
   })();
 
-  const urlParams = new URLSearchParams(window.location.search);
-  let myParam = urlParams.get('error');
-  if (myParam) alert(myParam);
-  myParam = urlParams.get('success');
-  if (myParam) alert(myParam);
+  // Funções dos Modais
+  function openProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) {
+      modal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      
+      const closeBtn = modal.querySelector('.btn-secondary');
+      if (closeBtn) {
+        setTimeout(() => closeBtn.focus(), 100);
+      }
+    }
+  }
+
+  function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) {
+      modal.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+  }
+
+  function openLogoutModal() {
+    const profileModal = document.getElementById('profileModal');
+    const logoutModal = document.getElementById('logoutModal');
+    
+    if (profileModal) {
+      profileModal.classList.remove('show');
+    }
+    
+    if (logoutModal) {
+      logoutModal.classList.add('show');
+      
+      const cancelBtn = logoutModal.querySelector('.btn-secondary');
+      if (cancelBtn) {
+        setTimeout(() => cancelBtn.focus(), 100);
+      }
+    }
+  }
+
+  function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+      modal.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+  }
+
+  function backToProfile() {
+    const logoutModal = document.getElementById('logoutModal');
+    const profileModal = document.getElementById('profileModal');
+    
+    if (logoutModal) {
+      logoutModal.classList.remove('show');
+    }
+    
+    if (profileModal) {
+      profileModal.classList.add('show');
+      
+      const closeBtn = profileModal.querySelector('.btn-secondary');
+      if (closeBtn) {
+        setTimeout(() => closeBtn.focus(), 100);
+      }
+    }
+  }
+
+  // Fechar modal com ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const logoutModal = document.getElementById('logoutModal');
+      const profileModal = document.getElementById('profileModal');
+      
+      if (logoutModal && logoutModal.classList.contains('show')) {
+        closeLogoutModal();
+        setTimeout(openProfileModal, 300);
+      } else if (profileModal && profileModal.classList.contains('show')) {
+        closeProfileModal();
+      }
+    }
+  });
+
+  // Prevenir clique dentro do modal de fechar o modal
+  document.addEventListener('click', (e) => {
+    const logoutModal = document.getElementById('logoutModal');
+    const profileModal = document.getElementById('profileModal');
+    
+    [logoutModal, profileModal].forEach(modal => {
+      if (modal && modal.classList.contains('show')) {
+        const modalContent = modal.querySelector('.logout-modal-content');
+        if (modalContent && modalContent.contains(e.target)) {
+          e.stopPropagation();
+        }
+      }
+    });
+  });
 </script>

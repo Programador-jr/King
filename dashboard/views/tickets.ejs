@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="/public/alerts.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/index.css">
+    <title>Tickets | <%= guild.name %></title>
+  </head>
+  <body class="theme-discord modern-tickets">
+    <%- include('header'); -%>
+
+    <section class="dashboard-page settings-page modern-section">
+      <div class="section-header">
+        <h1><i class="fas fa-ticket-alt"></i> Sistema de Tickets</h1>
+        <p class="section-description">
+          Gerencie painéis, tickets e histórico de <b><%= guild.name %></b>.
+        </p>
+      </div>
+
+      <div class="tickets-container">
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div class="stat-card stat-success">
+            <div class="stat-icon">
+              <i class="fas fa-folder-open"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Tickets Abertos</span>
+              <span class="stat-value"><%= openTickets.length %></span>
+            </div>
+          </div>
+          <div class="stat-card stat-danger">
+            <div class="stat-icon">
+              <i class="fas fa-folder"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Tickets Fechados</span>
+              <span class="stat-value"><%= closedTickets.length %></span>
+            </div>
+          </div>
+          <div class="stat-card stat-primary">
+            <div class="stat-icon">
+              <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Total de Tickets</span>
+              <span class="stat-value"><%= totalTickets %></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painéis de Tickets -->
+        <div class="tickets-section">
+          <div class="section-title">
+            <div class="section-title-content">
+              <h2><i class="fas fa-layer-group"></i> Painéis de Tickets</h2>
+              <p>Gerencie os painéis de tickets do servidor</p>
+            </div>
+            <button class="btn-modern btn-success" onclick="window.location.href = '/dashboard/<%= guild.id %>/tickets/create'">
+              <i class="fas fa-plus"></i>
+              <span>Novo Painel</span>
+            </button>
+          </div>
+
+          <% if (panels && panels.length > 0) { %>
+            <div class="panels-grid">
+              <% panels.forEach(panel => { %>
+                <div class="ticket-panel-card">
+                  <% const openLog = panel?.logs?.open || {}; %>
+                  <% const closeLog = panel?.logs?.close || {}; %>
+                  <div class="panel-header">
+                    <div class="panel-id">
+                      <i class="fas fa-bullhorn"></i>
+                      <span>Painel #<%= panel.messageId ? panel.messageId.slice(-4) : 'N/A' %></span>
+                    </div>
+                  </div>
+                  <div class="panel-info">
+                    <div class="panel-info-item">
+                      <i class="fas fa-hashtag"></i>
+                      <span>Canal: <%= panel.channelId ? `<#${panel.channelId}>` : 'N/A' %></span>
+                    </div>
+                    <div class="panel-info-item">
+                      <i class="fas fa-clock"></i>
+                      <span><%= new Date(panel.createdAt).toLocaleString('pt-BR') %></span>
+                    </div>
+                  </div>
+                  <div class="panel-config">
+                    <h6><i class="fas fa-cog"></i> Configurações</h6>
+                    <div class="config-items">
+                      <div class="config-item">
+                        <i class="fas fa-bell"></i>
+                        <span>Log abertura:</span>
+                        <% if (openLog.enabled) { %>
+                          <span class="badge badge-success">Ativo</span>
+                          <span class="badge-type">(<%= openLog.type === 'webhook' ? 'Webhook' : 'Canal' %>)</span>
+                        <% } else { %>
+                          <span class="badge badge-secondary">Desativado</span>
+                        <% } %>
+                      </div>
+                      <div class="config-item">
+                        <i class="fas fa-bell-slash"></i>
+                        <span>Log fechamento:</span>
+                        <% if (closeLog.enabled) { %>
+                          <span class="badge badge-success">Ativo</span>
+                          <span class="badge-type">(<%= closeLog.type === 'webhook' ? 'Webhook' : 'Canal' %>)</span>
+                        <% } else { %>
+                          <span class="badge badge-secondary">Desativado</span>
+                        <% } %>
+                      </div>
+                      <div class="config-item">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Tickets criados: <%= panel.ticketsCreated || 0 %></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="panel-actions">
+                    <button class="btn-panel btn-panel-primary" onclick="editPanel('<%= panel.id %>')">
+                      <i class="fas fa-edit"></i>
+                      <span>Editar</span>
+                    </button>
+                    <button class="btn-panel btn-panel-success" onclick="resendPanel('<%= panel.id %>')">
+                      <i class="fas fa-paper-plane"></i>
+                      <span>Reenviar</span>
+                    </button>
+                    <button class="btn-panel btn-panel-danger" onclick="deletePanel('<%= panel.id %>')">
+                      <i class="fas fa-trash"></i>
+                      <span>Apagar</span>
+                    </button>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <div class="empty-state-small">
+              <i class="fas fa-info-circle"></i>
+              <p>Nenhum painel de tickets criado ainda. Clique em "Novo Painel" para criar um.</p>
+            </div>
+          <% } %>
+        </div>
+
+        <!-- Lista de Tickets -->
+        <% if (openTickets.length > 0 || closedTickets.length > 0) { %>
+        <div class="tickets-section">
+          <div class="section-title">
+            <h2><i class="fas fa-list"></i> Lista de Tickets</h2>
+          </div>
+          <ul class="nav nav-tabs modern-tabs" id="ticketTabs" role="tablist">
+                <li class="nav-item">
+                  <button class="nav-link active" id="open-tab" data-bs-toggle="tab" data-bs-target="#open" type="button">
+                    <i class="fas fa-folder-open"></i> Abertos (<%= openTickets.length %>)
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link" id="closed-tab" data-bs-toggle="tab" data-bs-target="#closed" type="button">
+                    <i class="fas fa-folder-closed"></i> Fechados (<%= closedTickets.length %>)
+                  </button>
+                </li>
+          </ul>
+          
+          <div class="tab-content modern-tab-content">
+                <div class="tab-pane fade show active" id="open">
+              <% if (openTickets.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-dark table-striped modern-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Usuário</th>
+                          <th>Motivo</th>
+                          <th>Criado em</th>
+                          <th>Canal</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% openTickets.forEach(ticket => { %>
+                          <tr>
+                            <td><%= ticket.ticketNumber %></td>
+                            <td><%= ticket.userId %></td>
+                            <td><%= ticket.reason || '-' %></td>
+                            <td><%= new Date(ticket.createdAt).toLocaleString('pt-BR') %></td>
+                            <td><%= ticket.channelId ? `<#${ticket.channelId}>` : '-' %></td>
+                            <td>
+                              <% if (ticket.channelId) { %>
+                                <div class="ticket-actions">
+                                  <a href="https://discord.com/channels/<%= guild.id %>/<%= ticket.channelId %>" class="btn-ticket btn-ticket-primary" target="_blank">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>Ir</span>
+                                  </a>
+                                  <button class="btn-ticket btn-ticket-danger" onclick="closeTicket('<%= ticket.ticketNumber %>', '<%= guild.id %>')">
+                                    <i class="fas fa-lock"></i>
+                                    <span>Fechar</span>
+                                  </button>
+                                </div>
+                              <% } else { %>
+                                <span class="text-muted">-</span>
+                              <% } %>
+                            </td>
+                          </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+              <% } else { %>
+                <div class="empty-state-small state-success">
+                  <i class="fas fa-check-circle"></i>
+                  <p>Nenhum ticket aberto no momento.</p>
+                </div>
+              <% } %>
+                </div>
+            <div class="tab-pane fade" id="closed">
+              <% if (closedTickets.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-dark table-striped modern-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Usuário</th>
+                          <th>Motivo</th>
+                          <th>Fechado em</th>
+                          <th>Duração</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% closedTickets.forEach(ticket => { %>
+                          <% const duration = ticket.closedAt - ticket.createdAt; %>
+                          <% const minutes = Math.floor(duration / 60000); %>
+                          <tr>
+                            <td><%= ticket.ticketNumber %></td>
+                            <td><%= ticket.userId %></td>
+                            <td><%= ticket.reason || '-' %></td>
+                            <td><%= new Date(ticket.closedAt).toLocaleString('pt-BR') %></td>
+                            <td><%= minutes %> min</td>
+                          </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+              <% } else { %>
+                <div class="empty-state-small">
+                  <i class="fas fa-info-circle"></i>
+                  <p>Nenhum ticket fechado ainda.</p>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+        <% } %>
+
+
+
+        <div class="tickets-actions">
+          <a href="/dashboard/<%= guild.id %>" class="btn-modern btn-modern-secondary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Voltar</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <%- include('footer'); -%>
+    <script src="/public/settings-multiselect.js"></script>
+    <script src="/public/alerts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      async function editPanel(panelId) {
+        window.location.href = '/dashboard/<%= guild.id %>/tickets/edit/' + panelId;
+      }
+
+      async function closeTicket(ticketNumber, guildId) {
+        showConfirm(
+          'Fechar Ticket',
+          'Deseja realmente fechar este ticket?',
+          async () => {
+            try {
+              const response = await fetch('/api/tickets/' + guildId + '/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticketNumber }),
+                credentials: 'same-origin'
+              });
+
+              const data = await response.json();
+
+              if (data.ok) {
+                showSuccess('Ticket Fechado', 'O ticket foi fechado com sucesso.');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              } else {
+                showError('Erro ao Fechar', data.message || 'Não foi possível fechar o ticket.');
+              }
+            } catch (error) {
+              showError('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+              console.error(error);
+            }
+          },
+          null,
+          'warning'
+        );
+      }
+
+      async function resendPanel(panelId) {
+        showConfirm(
+          'Reenviar Painel',
+          'Deseja reenviar este painel para o Discord?',
+          async () => {
+            try {
+              const response = await fetch('/api/tickets/<%= guild.id %>/resend-panel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ panelId }),
+                credentials: 'same-origin'
+              });
+
+              const data = await response.json();
+
+              if (data.ok) {
+                showSuccess('Painel Reenviado', 'O painel foi reenviado com sucesso.');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              } else {
+                showError('Erro ao Reenviar', data.message || 'Não foi possível reenviar o painel.');
+              }
+            } catch (err) {
+              showError('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+              console.error(err);
+            }
+          },
+          null,
+          'info'
+        );
+      }
+
+      async function deletePanel(panelId) {
+        showConfirm(
+          'Excluir Painel',
+          'Tem certeza que deseja excluir este painel? Esta ação não pode ser desfeita.',
+          async () => {
+            try {
+              const response = await fetch('/api/tickets/<%= guild.id %>/delete-panel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ panelId }),
+                credentials: 'same-origin'
+              });
+
+              const data = await response.json();
+
+              if (data.ok) {
+                showSuccess('Painel Excluído', 'O painel foi excluído com sucesso.');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              } else {
+                showError('Erro ao Excluir', data.message || 'Não foi possível excluir o painel.');
+              }
+            } catch (err) {
+              showError('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+              console.error(err);
+            }
+          },
+          null,
+          'danger'
+        );
+      }
+    </script>
+  </body>
+</html>

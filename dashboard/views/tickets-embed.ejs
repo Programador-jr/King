@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+  <link rel="stylesheet" href="/public/style.css">
+  <link rel="stylesheet" href="/public/alerts.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/index.css">
+  <title>Editor de Embed | <%= guild.name %></title>
+  <style>
+    /* Garantir que os alertas funcionem corretamente */
+    .alerts-container {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 9999 !important;
+      pointer-events: none !important;
+    }
+    
+    .alert-global {
+      pointer-events: auto !important;
+      margin-bottom: 12px !important;
+      animation: slideInRight 0.3s ease-out !important;
+    }
+    
+    /* Garantir que os modais funcionem */
+    .confirm-modal-overlay {
+      z-index: 10000 !important;
+    }
+    
+    .embed-builder {
+      display: flex;
+      gap: 20px;
+      min-height: 700px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    
+    .embed-editor {
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+    
+    .embed-preview-container {
+      flex: 0 1 380px;
+      max-width: 460px;
+      background: var(--card-bg-soft);
+      border: 1px solid var(--border-500);
+      border-radius: 12px;
+      padding: 20px;
+      position: sticky;
+      top: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+      min-width: 0;
+    }
+    
+    .preview-header {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    
+    .discord-embed {
+      background: var(--panel-bg);
+      border-radius: 8px;
+      padding: 16px;
+      border-left: 4px solid var(--embed-color, var(--accent));
+    }
+    
+    .discord-embed-title {
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .discord-embed-description {
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    
+    .discord-embed-field {
+      margin-top: 10px;
+    }
+    
+    .discord-embed-field-name {
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    
+    .discord-embed-field-value {
+      color: var(--text-soft);
+      font-size: 14px;
+    }
+    
+    .discord-embed-footer {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 12px;
+    }
+    
+    .discord-embed-image {
+      max-width: 100%;
+      border-radius: 4px;
+      margin-top: 12px;
+    }
+    
+    .discord-embed-thumbnail {
+      max-width: 80px;
+      max-height: 80px;
+      border-radius: 4px;
+      margin-left: 16px;
+    }
+    
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .color-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      border: 2px solid var(--theme-border);
+      cursor: pointer;
+    }
+    
+    .json-editor {
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      background: var(--panel-bg);
+      color: var(--text-main);
+      border: 1px solid var(--theme-border);
+      border-radius: 8px;
+      width: 100%;
+      height: 300px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    
+    .section-title {
+      color: var(--text-main);
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--theme-border);
+    }
+    
+    .template-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    
+    .template-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+    
+    .template-btn {
+      background: var(--panel-bg);
+      border: 1px solid var(--theme-border);
+      color: var(--text-soft);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .template-btn:hover {
+      background: rgba(var(--accent-rgb), 0.15);
+      border-color: var(--accent);
+      color: var(--text-main);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.25);
+    }
+    
+    .template-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(var(--accent-rgb), 0.2);
+    }
+    
+    .template-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .template-btn:hover::before {
+      left: 100%;
+    }
+    
+    .template-btn i {
+      font-size: 11px;
+    }
+    
+    .saved-badge {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: #3ba55c;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="theme-discord modern-embed-editor">
+  <%- include('header'); -%>
+
+  <section class="dashboard-page settings-page modern-section">
+    <div class="section-header">
+      <h1><i class="fas fa-envelope-open-text"></i> Editor de Embed Profissional</h1>
+      <p class="section-description">
+        Personalize as mensagens de abertura e fechamento de tickets com preview em tempo real.
+      </p>
+    </div>
+
+    <div class="embed-editor-container">
+
+      <% if (typeof success !== 'undefined' && success) { %>
+        <div class="saved-badge">
+          <i class="fas fa-check-circle"></i> Embeds salvas com sucesso!
+        </div>
+      <% } %>
+
+      <ul class="nav nav-pills modern-embed-tabs mb-4" id="embedTabs" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active" id="welcome-tab" data-bs-toggle="pill" data-bs-target="#welcome" type="button">
+                Boas-vindas
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="close-tab" data-bs-toggle="pill" data-bs-target="#close" type="button">
+                Fechamento
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="json-tab" data-bs-toggle="pill" data-bs-target="#json" type="button">
+                JSON
+              </button>
+            </li>
+      </ul>
+
+      <form id="embedForm" method="POST" action="/dashboard/<%= guild.id %>/tickets/embed">
+        <input type="hidden" name="welcomeEmbed" id="welcomeEmbedData">
+        <input type="hidden" name="closeEmbed" id="closeEmbedData">
+        <input type="hidden" name="returnTo" value="<%= returnTo || ('/dashboard/' + guild.id + '/tickets') %>">
+        
+        <div class="tab-content" id="embedTabsContent">
+          <!-- Welcome Embed Editor -->
+          <div class="tab-pane fade show active" id="welcome">
+                <div class="embed-builder">
+                  <div class="embed-editor modern-embed-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="mb-0">Mensagem de Boas-vindas</h5>
+                      <div class="template-buttons">
+                        <span style="color: var(--text-muted); font-size: 12px; font-weight: 600;">Templates:</span>
+                        <button type="button" class="template-btn" onclick="loadTemplate('welcome', 'default')">
+                          <i class="fas fa-file-alt"></i> Padrão
+                        </button>
+                        <button type="button" class="template-btn" onclick="loadTemplate('welcome', 'modern')">
+                          <i class="fas fa-palette"></i> Moderno
+                        </button>
+                        <button type="button" class="template-btn" onclick="loadTemplate('welcome', 'minimal')">
+                          <i class="fas fa-minus"></i> Minimalista
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label class="form-label">Cor do Embed</label>
+                      <div class="color-picker-wrapper">
+                        <input type="color" id="welcomeColor" class="form-control" style="width: 60px; height: 40px; padding: 2px;" value="#00BFFF">
+                        <input type="text" class="form-control" id="welcomeColorHex" value="#00BFFF" style="width: 100px;">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="randomColor('welcome')">
+                          <i class="fas fa-random"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Título</label>
+                      <input type="text" class="form-control" id="welcomeTitle" placeholder="Bem-vindo ao seu ticket!" maxlength="256">
+                      <small class="text-muted">Variáveis: {user}, {username}, {ticket}, {usertag}</small>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">URL do Título (cliqueável)</label>
+                      <input type="text" class="form-control" id="welcomeUrl" placeholder="https://...">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Descrição</label>
+                      <textarea class="form-control" id="welcomeDescription" rows="4" placeholder="Descreva seu problema..." maxlength="4096"></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Imagem Principal (URL)</label>
+                        <input type="text" class="form-control" id="welcomeImage" placeholder="https://...">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Thumbnail (URL)</label>
+                        <input type="text" class="form-control" id="welcomeThumbnail" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="section-title">
+                      <i class="fas fa-user"></i> Autor
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-4">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="welcomeAuthorName" placeholder="Nome">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">URL</label>
+                        <input type="text" class="form-control" id="welcomeAuthorUrl" placeholder="https://...">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Ícone (URL)</label>
+                        <input type="text" class="form-control" id="welcomeAuthorIcon" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="section-title">
+                      <i class="fas fa-footer"></i> Footer
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Texto</label>
+                        <input type="text" class="form-control" id="welcomeFooter" placeholder="Texto do footer">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Ícone (URL)</label>
+                        <input type="text" class="form-control" id="welcomeFooterIcon" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="section-title d-flex justify-content-between align-items-center">
+                      <span><i class="fas fa-th-list"></i> Campos Personalizados</span>
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addField('welcome')">
+                        <i class="fas fa-plus"></i> Adicionar Campo
+                      </button>
+                    </div>
+                    <div id="welcomeFields"></div>
+                  </div>
+
+                  <div class="embed-preview-container">
+                    <div class="preview-header">
+                      <%= botClient.user.username %> • hoje às 00:00
+                    </div>
+                    <div class="discord-embed" id="welcomePreview">
+                      <div class="discord-embed-title" id="welcomePreviewTitle">Bem-vindo ao seu ticket!</div>
+                      <div class="discord-embed-description" id="welcomePreviewDescription">Descreva seu problema...</div>
+                      <div id="welcomePreviewFields"></div>
+                      <div class="discord-embed-footer" id="welcomePreviewFooter" style="display: none;">
+                        <img id="welcomePreviewFooterIcon" style="width: 20px; height: 20px; border-radius: 50%; display: none; margin-right: 8px;">
+                        <span id="welcomePreviewFooterText"></span>
+                      </div>
+                      <img id="welcomePreviewImage" class="discord-embed-image" style="display: none;">
+                      <img id="welcomePreviewThumbnail" class="discord-embed-thumbnail" style="display: none; float: right;">
+                    </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Close Embed Editor -->
+          <div class="tab-pane fade" id="close">
+                <div class="embed-builder">
+                  <div class="embed-editor modern-embed-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="mb-0">Mensagem de Fechamento</h5>
+                      <div class="template-buttons">
+                        <span style="color: var(--text-muted); font-size: 12px; font-weight: 600;">Templates:</span>
+                        <button type="button" class="template-btn" onclick="loadTemplate('close', 'default')">
+                          <i class="fas fa-file-alt"></i> Padrão
+                        </button>
+                        <button type="button" class="template-btn" onclick="loadTemplate('close', 'modern')">
+                          <i class="fas fa-palette"></i> Moderno
+                        </button>
+                        <button type="button" class="template-btn" onclick="loadTemplate('close', 'thankyou')">
+                          <i class="fas fa-heart"></i> Agradecimento
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label class="form-label">Cor do Embed</label>
+                      <div class="color-picker-wrapper">
+                        <input type="color" id="closeColor" class="form-control" style="width: 60px; height: 40px; padding: 2px;" value="#FF6B6B">
+                        <input type="text" class="form-control" id="closeColorHex" value="#FF6B6B" style="width: 100px;">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="randomColor('close')">
+                          <i class="fas fa-random"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Título</label>
+                      <input type="text" class="form-control bg-dark text-white" id="closeTitle" placeholder="Ticket Fechado" maxlength="256">
+                      <small class="text-muted">Variáveis: {user}, {username}, {ticket}, {closer}</small>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">URL do Título</label>
+                      <input type="text" class="form-control bg-dark text-white" id="closeUrl" placeholder="https://...">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Descrição</label>
+                      <textarea class="form-control bg-dark text-white" id="closeDescription" rows="4" placeholder="Seu ticket foi fechado." maxlength="4096"></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Imagem Principal (URL)</label>
+                        <input type="text" class="form-control bg-dark text-white" id="closeImage" placeholder="https://...">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Thumbnail (URL)</label>
+                        <input type="text" class="form-control bg-dark text-white" id="closeThumbnail" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="section-title">
+                      <i class="fas fa-user"></i> Autor
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-4">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control bg-dark text-white" id="closeAuthorName" placeholder="Nome">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">URL</label>
+                        <input type="text" class="form-control bg-dark text-white" id="closeAuthorUrl" placeholder="https://...">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Ícone (URL)</label>
+                        <input type="text" class="form-control bg-dark text-white" id="closeAuthorIcon" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="section-title">
+                      <i class="fas fa-footer"></i> Footer
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Texto</label>
+                        <input type="text" class="form-control bg-dark text-white" id="closeFooter" placeholder="Texto do footer">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Ícone (URL)</label>
+                        <input type="text" class="form-control bg-dark text-white" id="closeFooterIcon" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="section-title d-flex justify-content-between align-items-center">
+                      <span><i class="fas fa-th-list"></i> Campos Personalizados</span>
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addField('close')">
+                        <i class="fas fa-plus"></i> Adicionar Campo
+                      </button>
+                    </div>
+                    <div id="closeFields"></div>
+                  </div>
+
+                  <div class="embed-preview-container">
+                    <div class="preview-header">
+                      <%= botClient.user.username %> • hoje às 00:00
+                    </div>
+                    <div class="discord-embed" id="closePreview">
+                      <div class="discord-embed-title" id="closePreviewTitle">Ticket Fechado</div>
+                      <div class="discord-embed-description" id="closePreviewDescription">Seu ticket foi fechado.</div>
+                      <div id="closePreviewFields"></div>
+                      <div class="discord-embed-footer" id="closePreviewFooter" style="display: none;">
+                        <img id="closePreviewFooterIcon" style="width: 20px; height: 20px; border-radius: 50%; display: none; margin-right: 8px;">
+                        <span id="closePreviewFooterText"></span>
+                      </div>
+                      <img id="closePreviewImage" class="discord-embed-image" style="display: none;">
+                      <img id="closePreviewThumbnail" class="discord-embed-thumbnail" style="display: none; float: right;">
+                    </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- JSON Editor -->
+          <div class="tab-pane fade" id="json">
+            <div class="row">
+                  <div class="col-md-6">
+                    <div class="modern-embed-card">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">JSON - Boas-vindas</h5>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="copyJson('welcomeJson')">
+                          <i class="fas fa-copy"></i> Copiar
+                        </button>
+                      </div>
+                      <textarea class="json-editor" id="welcomeJson"></textarea>
+                      <div class="mt-2 d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="importEmbedJson('welcome')">
+                          <i class="fas fa-upload"></i> Aplicar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatJson('welcomeJson')">
+                          <i class="fas fa-align-left"></i> Formatar
+                        </button>
+                      </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                    <div class="modern-embed-card">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">JSON - Fechamento</h5>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="copyJson('closeJson')">
+                          <i class="fas fa-copy"></i> Copiar
+                        </button>
+                      </div>
+                      <textarea class="json-editor" id="closeJson"></textarea>
+                      <div class="mt-2 d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="importEmbedJson('close')">
+                          <i class="fas fa-upload"></i> Aplicar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatJson('closeJson')">
+                          <i class="fas fa-align-left"></i> Formatar
+                        </button>
+                      </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="embed-actions-bar">
+          <a href="<%= returnTo || ('/dashboard/' + guild.id + '/tickets') %>" class="btn-modern btn-modern-secondary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Voltar</span>
+          </a>
+          <div class="embed-actions-group">
+            <button type="button" class="btn-modern btn-success" onclick="saveEmbeds()">
+              <i class="fas fa-save"></i>
+              <span>Salvar Embeds</span>
+            </button>
+            <button type="button" class="btn-modern btn-modern-secondary" onclick="resetToDefault()">
+              <i class="fas fa-undo"></i>
+              <span>Resetar</span>
+            </button>
+            <button type="button" class="btn-modern btn-modern-secondary" onclick="exportEmbeds()">
+              <i class="fas fa-download"></i>
+              <span>Exportar</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <%- include('footer'); -%>
+  <script src="/public/alerts.js"></script>
+  <script>
+    // Verificar se o sistema de alertas está disponível
+    if (typeof showSuccess === 'undefined') {
+      console.error('Sistema de alertas não carregado!');
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let welcomeFields = [];
+    let closeFields = [];
+
+    const templates = {
+      welcome: {
+        default: {
+          color: '#00BFFF',
+          title: 'Bem-vindo ao seu ticket!',
+          description: 'Descreva seu problema detalhadamente.\n\nUm membro da nossa equipe responderá em breve.',
+          fields: [],
+          footer: { text: 'Sistema de Tickets' }
+        },
+        modern: {
+          color: '#5865F2',
+          title: '🎫 Novo Ticket Criado',
+          description: 'Olá {user}! Seu ticket foi criado com sucesso.\n\n📝 Descreva seu problema com o máximo de detalhes possível.',
+          fields: [
+            { name: '🎫 Ticket', value: '#{ticket}', inline: true },
+            { name: '⏰ Status', value: 'Aguardando resposta', inline: true }
+          ],
+          footer: { text: 'Nossa equipe responderá em breve' }
+        },
+        minimal: {
+          color: '#2ECC71',
+          title: 'Ticket Aberto',
+          description: '{user} seu ticket #${ticket} está pronto!',
+          fields: []
+        }
+      },
+      close: {
+        default: {
+          color: '#FF6B6B',
+          title: 'Ticket Fechado',
+          description: 'Seu ticket foi fechado. Se precisar de mais ajuda, crie um novo ticket.',
+          fields: [],
+          footer: { text: 'Sistema de Tickets' }
+        },
+        modern: {
+          color: '#FF6B6B',
+          title: '🔒 Ticket Fechado',
+          description: 'Este ticket foi fechado por {closer}.\n\nObrigado por entrar em contato!',
+          fields: [
+            { name: '🎫 Ticket', value: '#{ticket}', inline: true },
+            { name: '👤 Fechado por', value: '{closer}', inline: true }
+          ],
+          footer: { text: 'Espero ter ajudado!' }
+        },
+        thankyou: {
+          color: '#F1C40F',
+          title: '🙏 Obrigado por entrar em contato!',
+          description: 'Seu ticket foi encerrado. esperamos ter ajudado!\n\nSe precisar de mais algo, crie um novo ticket.',
+          fields: [
+            { name: '📊 Avalie nosso atendimento', value: '[Clique aqui para avaliar]', inline: false }
+          ],
+          footer: { text: 'Atenciosamente, Equipe' }
+        }
+      }
+    };
+
+    function loadTemplate(type, templateName) {
+      const template = templates[type][templateName];
+      if (template) {
+        loadEmbedData(type, template);
+      }
+    }
+
+    function saveEmbeds() {
+      try {
+        const btn = document.querySelector('button[onclick="saveEmbeds()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+
+        const welcomeData = getEmbedData('welcome');
+        const closeData = getEmbedData('close');
+
+        if (!welcomeData.title && !welcomeData.description) {
+          showError('Embed Incompleta', 'A embed de boas-vindas precisa ter pelo menos um título ou descrição!');
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          return;
+        }
+
+        if (!closeData.title && !closeData.description) {
+          showError('Embed Incompleta', 'A embed de fechamento precisa ter pelo menos um título ou descrição!');
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          return;
+        }
+
+        document.getElementById('welcomeEmbedData').value = JSON.stringify(welcomeData);
+        document.getElementById('closeEmbedData').value = JSON.stringify(closeData);
+
+        document.getElementById('embedForm').submit();
+
+      } catch (error) {
+        console.error('Erro ao salvar:', error);
+        showError('Erro ao Salvar', 'Não foi possível salvar as embeds. Tente novamente.');
+        const btn = document.querySelector('button[onclick="saveEmbeds()"]');
+        btn.innerHTML = '<i class="fas fa-save"></i> Salvar Embeds';
+        btn.disabled = false;
+      }
+    }
+
+    // Abrir diretamente a aba de fechamento quando a URL tiver #close
+    if (window.location.hash === '#close') {
+      const closeTab = document.getElementById('close-tab');
+      if (closeTab) closeTab.click();
+    }
+
+    function syncColor(inputId, hexId) {
+      document.getElementById(inputId).addEventListener('input', function() {
+        document.getElementById(hexId).value = this.value;
+        updatePreview(inputId.replace('Color', ''));
+      });
+      document.getElementById(hexId).addEventListener('input', function() {
+        document.getElementById(inputId).value = this.value;
+        updatePreview(inputId.replace('Color', ''));
+      });
+    }
+
+    syncColor('welcomeColor', 'welcomeColorHex');
+    syncColor('closeColor', 'closeColorHex');
+
+    ['welcome', 'close'].forEach(type => {
+      ['Title', 'Description', 'Url', 'Image', 'Thumbnail', 'AuthorName', 'AuthorUrl', 'AuthorIcon', 'Footer', 'FooterIcon'].forEach(field => {
+        const input = document.getElementById(type + field);
+        if (input) {
+          input.addEventListener('input', () => updatePreview(type));
+        }
+      });
+    });
+
+    function randomColor(type) {
+      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      document.getElementById(type + 'Color').value = randomColor;
+      document.getElementById(type + 'ColorHex').value = randomColor;
+      updatePreview(type);
+    }
+
+    function updatePreview(type) {
+      const color = document.getElementById(type + 'Color').value;
+      const title = document.getElementById(type + 'Title').value;
+      const description = document.getElementById(type + 'Description').value;
+      const image = document.getElementById(type + 'Image').value;
+      const thumbnail = document.getElementById(type + 'Thumbnail').value;
+      const footer = document.getElementById(type + 'Footer').value;
+      const footerIcon = document.getElementById(type + 'FooterIcon').value;
+
+      const embed = document.getElementById(type + 'Preview');
+      embed.style.setProperty('--embed-color', color);
+
+      const titleEl = document.getElementById(type + 'PreviewTitle');
+      titleEl.textContent = title || 'Título do Embed';
+      titleEl.style.display = title ? 'block' : 'block';
+
+      const descEl = document.getElementById(type + 'PreviewDescription');
+      descEl.textContent = description || 'Descrição do embed...';
+      descEl.style.display = 'block';
+
+      const imageEl = document.getElementById(type + 'PreviewImage');
+      if (image) {
+        imageEl.src = image;
+        imageEl.style.display = 'block';
+      } else {
+        imageEl.style.display = 'none';
+      }
+
+      const thumbEl = document.getElementById(type + 'PreviewThumbnail');
+      if (thumbnail) {
+        thumbEl.src = thumbnail;
+        thumbEl.style.display = 'block';
+      } else {
+        thumbEl.style.display = 'none';
+      }
+
+      const footerEl = document.getElementById(type + 'PreviewFooter');
+      const footerTextEl = document.getElementById(type + 'PreviewFooterText');
+      const footerIconEl = document.getElementById(type + 'PreviewFooterIcon');
+      if (footer) {
+        footerTextEl.textContent = footer;
+        footerEl.style.display = 'flex';
+        if (footerIcon) {
+          footerIconEl.src = footerIcon;
+          footerIconEl.style.display = 'block';
+        } else {
+          footerIconEl.style.display = 'none';
+        }
+      } else {
+        footerEl.style.display = 'none';
+      }
+
+      updateFieldsPreview(type);
+    }
+
+    function addField(type) {
+      const container = document.getElementById(type + 'Fields');
+      const fieldIndex = type === 'welcome' ? welcomeFields.length : closeFields.length;
+      
+      const fieldHtml = `
+        <div class="field-item" id="${type}Field${fieldIndex}">
+          <button type="button" class="btn btn-sm btn-danger remove-field" onclick="removeField('${type}', ${fieldIndex})">
+            <i class="fas fa-times"></i>
+          </button>
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Nome</label>
+              <input type="text" class="form-control form-control-sm" placeholder="Nome do campo" value="" onchange="updateField('${type}', ${fieldIndex}, 'name', this.value)">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Valor</label>
+              <input type="text" class="form-control form-control-sm" placeholder="Valor do campo" value="" onchange="updateField('${type}', ${fieldIndex}, 'value', this.value)">
+            </div>
+            <div class="col-md-12 mt-2">
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="${type}FieldInline${fieldIndex}" onchange="updateField('${type}', ${fieldIndex}, 'inline', this.checked)">
+                <label class="form-check-label" for="${type}FieldInline${fieldIndex}">Exibir inline ( lado a lado )</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      container.insertAdjacentHTML('beforeend', fieldHtml);
+
+      if (type === 'welcome') {
+        welcomeFields.push({ name: '', value: '', inline: false });
+      } else {
+        closeFields.push({ name: '', value: '', inline: false });
+      }
+      
+      updateFieldsPreview(type);
+    }
+
+    function removeField(type, index) {
+      const fieldEl = document.getElementById(type + 'Field' + index);
+      if (fieldEl) fieldEl.remove();
+      
+      if (type === 'welcome') {
+        welcomeFields.splice(index, 1);
+      } else {
+        closeFields.splice(index, 1);
+      }
+      
+      // Re-render fields
+      renderFields(type);
+      updateFieldsPreview(type);
+    }
+
+    function updateField(type, index, key, value) {
+      if (type === 'welcome') {
+        welcomeFields[index] = { ...welcomeFields[index], [key]: value };
+      } else {
+        closeFields[index] = { ...closeFields[index], [key]: value };
+      }
+      updateFieldsPreview(type);
+    }
+
+    function renderFields(type) {
+      const container = document.getElementById(type + 'Fields');
+      const fields = type === 'welcome' ? welcomeFields : closeFields;
+      
+      container.innerHTML = '';
+      fields.forEach((field, index) => {
+        const fieldHtml = `
+          <div class="field-item" id="${type}Field${index}">
+            <button type="button" class="btn btn-sm btn-danger remove-field" onclick="removeField('${type}', ${index})">
+              <i class="fas fa-times"></i>
+            </button>
+            <div class="row">
+              <div class="col-md-6">
+                <label class="form-label">Nome</label>
+                <input type="text" class="form-control form-control-sm" placeholder="Nome do campo" value="${field.name || ''}" onchange="updateField('${type}', ${index}, 'name', this.value)">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Valor</label>
+                <input type="text" class="form-control form-control-sm" placeholder="Valor do campo" value="${field.value || ''}" onchange="updateField('${type}', ${index}, 'value', this.value)">
+              </div>
+              <div class="col-md-12 mt-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="${type}FieldInline${index}" ${field.inline ? 'checked' : ''} onchange="updateField('${type}', ${index}, 'inline', this.checked)">
+                  <label class="form-check-label" for="${type}FieldInline${index}">Exibir inline</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', fieldHtml);
+      });
+    }
+
+    function updateFieldsPreview(type) {
+      const container = document.getElementById(type + 'PreviewFields');
+      const fields = type === 'welcome' ? welcomeFields : closeFields;
+      
+      container.innerHTML = fields.map((field, index) => {
+        if (!field.name && !field.value) return '';
+        return `
+          <div class="discord-embed-field" style="${field.inline ? 'display: inline-block; width: calc(50% - 5px); margin-right: 10px;' : ''}">
+            <div class="discord-embed-field-name">${field.name || '...'}</div>
+            <div class="discord-embed-field-value">${field.value || '...'}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getEmbedData(type) {
+      const fields = type === 'welcome' ? welcomeFields : closeFields;
+      
+      return {
+        color: document.getElementById(type + 'Color').value,
+        title: document.getElementById(type + 'Title').value,
+        description: document.getElementById(type + 'Description').value,
+        url: document.getElementById(type + 'Url').value,
+        image: document.getElementById(type + 'Image').value,
+        thumbnail: document.getElementById(type + 'Thumbnail').value,
+        author: {
+          name: document.getElementById(type + 'AuthorName').value,
+          url: document.getElementById(type + 'AuthorUrl').value,
+          icon_url: document.getElementById(type + 'AuthorIcon').value
+        },
+        footer: {
+          text: document.getElementById(type + 'Footer').value,
+          icon_url: document.getElementById(type + 'FooterIcon').value
+        },
+        fields: fields.filter(f => f.name || f.value)
+      };
+    }
+
+    function loadEmbedData(type, data) {
+      if (!data) return;
+      
+      document.getElementById(type + 'Color').value = data.color || '#00BFFF';
+      document.getElementById(type + 'ColorHex').value = data.color || '#00BFFF';
+      document.getElementById(type + 'Title').value = data.title || '';
+      document.getElementById(type + 'Description').value = data.description || '';
+      document.getElementById(type + 'Url').value = data.url || '';
+      document.getElementById(type + 'Image').value = data.image || '';
+      document.getElementById(type + 'Thumbnail').value = data.thumbnail || '';
+      document.getElementById(type + 'AuthorName').value = data.author?.name || '';
+      document.getElementById(type + 'AuthorUrl').value = data.author?.url || '';
+      document.getElementById(type + 'AuthorIcon').value = data.author?.icon_url || '';
+      document.getElementById(type + 'Footer').value = data.footer?.text || '';
+      document.getElementById(type + 'FooterIcon').value = data.footer?.icon_url || '';
+
+      if (type === 'welcome') {
+        welcomeFields = data.fields || [];
+      } else {
+        closeFields = data.fields || [];
+      }
+
+      renderFields(type);
+      updatePreview(type);
+      updateJsonEditor(type);
+    }
+
+    function updateJsonEditor(type) {
+      const data = getEmbedData(type);
+      document.getElementById(type + 'Json').value = JSON.stringify(data, null, 2);
+    }
+
+    function isRecord(value) {
+      return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    function importEmbedJson(targetType) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+
+      input.addEventListener('change', async () => {
+        const file = input.files && input.files[0];
+        input.remove();
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+
+          const hasWelcome = isRecord(parsed) && isRecord(parsed.welcome);
+          const hasClose = isRecord(parsed) && isRecord(parsed.close);
+
+          if (hasWelcome || hasClose) {
+            const importBoth = hasWelcome && hasClose;
+
+            const confirmPromise = importBoth 
+              ? showConfirm('Importar Ambas', 'Este arquivo contém Boas-vindas e Fechamento. Importar as duas embeds?', null, null, 'info')
+              : Promise.resolve(true);
+
+            confirmPromise.then((shouldImport) => {
+              if (hasWelcome && (shouldImport || targetType === 'welcome')) {
+                document.getElementById('welcomeJson').value = JSON.stringify(parsed.welcome, null, 2);
+                loadEmbedData('welcome', parsed.welcome);
+              } else if (!hasWelcome && targetType === 'welcome') {
+                showError('Embed Não Encontrada', 'Este arquivo não contém a embed de Boas-vindas.');
+              }
+
+              if (hasClose && (shouldImport || targetType === 'close')) {
+                document.getElementById('closeJson').value = JSON.stringify(parsed.close, null, 2);
+                loadEmbedData('close', parsed.close);
+              } else if (!hasClose && targetType === 'close') {
+                showError('Embed Não Encontrada', 'Este arquivo não contém a embed de Fechamento.');
+              }
+            });
+
+            return;
+          }
+
+          if (!isRecord(parsed)) {
+            showError('JSON Inválido', 'O arquivo não contém um formato JSON válido.');
+            return;
+          }
+
+          document.getElementById(targetType + 'Json').value = JSON.stringify(parsed, null, 2);
+          loadEmbedData(targetType, parsed);
+        } catch (error) {
+          console.error('Erro ao importar JSON:', error);
+          showError('Erro na Importação', 'O arquivo JSON não pôde ser importado. Verifique o formato.');
+        }
+      }, { once: true });
+
+      input.click();
+    }
+
+    function loadWelcomeFromJson() {
+      try {
+        const json = document.getElementById('welcomeJson').value;
+        const data = JSON.parse(json);
+        loadEmbedData('welcome', data);
+      } catch (e) {
+        showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
+      }
+    }
+
+    function loadCloseFromJson() {
+      try {
+        const json = document.getElementById('closeJson').value;
+        const data = JSON.parse(json);
+        loadEmbedData('close', data);
+      } catch (e) {
+        showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
+      }
+    }
+
+    function formatJson(textareaId) {
+      try {
+        const textarea = document.getElementById(textareaId);
+        const data = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(data, null, 2);
+      } catch (e) {
+        showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
+      }
+    }
+
+    function copyJson(textareaId) {
+      const textarea = document.getElementById(textareaId);
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        showSuccess('Copiado!', 'JSON copiado para a área de transferência.');
+      });
+    }
+
+    function exportEmbeds() {
+      const welcomeData = getEmbedData('welcome');
+      const closeData = getEmbedData('close');
+      
+      const data = {
+        welcome: welcomeData,
+        close: closeData,
+        exportedAt: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ticket-embeds.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function resetToDefault() {
+      showConfirm(
+        'Resetar Embeds',
+        'Tem certeza que deseja resetar todas as embeds para o padrão? Esta ação não pode ser desfeita.',
+        () => {
+          loadEmbedData('welcome', templates.welcome.default);
+          loadEmbedData('close', templates.close.default);
+          showSuccess('Resetado', 'As embeds foram resetadas para o padrão.');
+        },
+        null,
+        'warning'
+      );
+    }
+
+    // Initialize
+    const savedWelcomeEmbed = <%- welcomeEmbed ? JSON.stringify(welcomeEmbed) : 'null' %>;
+    const savedCloseEmbed = <%- closeEmbed ? JSON.stringify(closeEmbed) : 'null' %>;
+    
+    if (savedWelcomeEmbed && Object.keys(savedWelcomeEmbed).length > 0) {
+      loadEmbedData('welcome', savedWelcomeEmbed);
+    } else {
+      loadEmbedData('welcome', templates.welcome.default);
+    }
+    
+    if (savedCloseEmbed && Object.keys(savedCloseEmbed).length > 0) {
+      loadEmbedData('close', savedCloseEmbed);
+    } else {
+      loadEmbedData('close', templates.close.default);
+    }
+
+    // Auto-save to JSON editors
+    ['welcome', 'close'].forEach(type => {
+      document.getElementById(type + 'Json').value = JSON.stringify(getEmbedData(type), null, 2);
+    });
+
+    // Abrir aba de fechamento quando link tiver #close
+    if (window.location.hash === '#close') {
+      const closeTab = document.getElementById('close-tab');
+      if (closeTab) closeTab.click();
+    }
+  </script>
+</body>
+</html>
