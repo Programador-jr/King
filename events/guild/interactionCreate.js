@@ -30,6 +30,12 @@ module.exports = async (client, interaction) => {
     try {
       console.log("[Ticket Modal Submit] Processando respostas do modal...");
       
+      // Extrair categoryId do customId do modal
+      const modalParts = interaction.customId.split('_');
+      const categoryId = modalParts.length > 3 ? (modalParts[3] === 'null' ? null : modalParts[3]) : null;
+      
+      console.log("[Ticket Modal Submit] Categoria extraída:", categoryId);
+      
       // Coletar respostas das perguntas
       const answers = {};
       let reason = "Ticket criado via painel";
@@ -68,11 +74,11 @@ module.exports = async (client, interaction) => {
         });
       }
 
-      // Criar o canal do ticket sem categoria específica
+      // Criar o canal do ticket com a categoria especificada
       const ticketChannel = await client.ticketHandler.createTicketChannel(
         interaction.guild,
         ticketData,
-        null // Sem categoria específica
+        categoryId // Usar categoria extraída do modal
       );
 
       if (!ticketChannel) {
@@ -80,6 +86,13 @@ module.exports = async (client, interaction) => {
           content: "❌ Não foi possível criar o canal do ticket.",
           ephemeral: true
         });
+      }
+
+      // Enviar log de abertura do ticket
+      try {
+        await client.ticketHandler.sendOpenLog(interaction.guild.id, ticketData, interaction.guild, interaction.user);
+      } catch (logError) {
+        console.error("[Ticket Modal Submit] Erro ao enviar log de abertura:", logError);
       }
 
       // Enviar embed de boas-vindas com as respostas e botão de fechar
@@ -172,19 +185,26 @@ module.exports = async (client, interaction) => {
         if (!panel) {
           console.log("[Create Ticket] Painel não encontrado, criando ticket diretamente...");
           // Se não encontrar painel, cria ticket diretamente
-          return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel");
+          return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel", null);
         }
 
         console.log("[Create Ticket] Painel encontrado:", panel.panelId);
         console.log("[Create Ticket] Perguntas configuradas:", panel.questions?.length || 0);
 
+        // Determinar a categoria do painel
+        let categoryId = null;
+        if (panel.useCategory && panel.categoryId) {
+          categoryId = panel.categoryId;
+          console.log("[Create Ticket] Usando categoria:", categoryId);
+        }
+
         // Verificar se o painel tem perguntas
         if (panel.questions && panel.questions.length > 0) {
           console.log("[Create Ticket] Abrindo modal com perguntas...");
-          return createTicketModal(interaction, panel.questions);
+          return createTicketModal(interaction, panel.questions, categoryId);
         } else {
           console.log("[Create Ticket] Sem perguntas, criando ticket diretamente...");
-          return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel");
+          return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel", categoryId);
         }
 
       } catch (error) {
@@ -197,12 +217,171 @@ module.exports = async (client, interaction) => {
       return;
     }
 
+    // ===============================
+    // BOTÃO DE FECHAR TICKET
+    // ===============================
+    if (interaction.customId === "close_ticket") {
+      if (!client.ticketHandler) {
+        const TicketHandler = require("../../handlers/tickets");
+        client.ticketHandler = new TicketHandler(client);
+      }
+
+      try {
+        console.log("[Close Ticket] Botão de fechar clicado...");
+        console.log("[Close Ticket] Canal:", interaction.channel.name);
+        console.log("[Close Ticket] Usuário:", interaction.user.tag);
+
+        // Verificar se o canal é um ticket
+        const channelName = interaction.channel.name;
+        if (!channelName.startsWith("ticket-")) {
+          console.log("[Close Ticket] Erro: Canal não é um ticket");
+          return interaction.reply({
+            content: "❌ Este não é um canal de ticket.",
+            ephemeral: true
+          });
+        }
+
+        // Extrair número do ticket do nome do canal
+        const ticketNumber = parseInt(channelName.replace(/[^0-9]/g, ""));
+        if (!ticketNumber) {
+          console.log("[Close Ticket] Erro: Não foi possível extrair número do ticket");
+          return interaction.reply({
+            content: "❌ Não foi possível identificar o número do ticket.",
+            ephemeral: true
+          });
+        }
+
+        console.log("[Close Ticket] Número do ticket:", ticketNumber);
+
+        // Verificar se o usuário tem permissão para fechar o ticket
+        const ticketData = client.ticketHandler.getTicket(interaction.guild.id, ticketNumber);
+        if (!ticketData) {
+          console.log("[Close Ticket] Erro: Ticket não encontrado no banco");
+          return interaction.reply({
+            content: "❌ Ticket não encontrado.",
+            ephemeral: true
+          });
+        }
+
+        console.log("[Close Ticket] Dados do ticket:", {
+          userId: ticketData.userId,
+          status: ticketData.status,
+          createdBy: ticketData.userId
+        });
+
+        // Verificar se é o dono do ticket ou tem permissão de administrador
+        const isTicketOwner = ticketData.userId === interaction.user.id;
+        const hasManageGuildPermission = interaction.member.permissions.has('ManageGuild');
+        
+        console.log("[Close Ticket] Permissões:", {
+          isTicketOwner,
+          hasManageGuildPermission,
+          interactionUserId: interaction.user.id,
+          ticketUserId: ticketData.userId
+        });
+        
+        if (!isTicketOwner && !hasManageGuildPermission) {
+          console.log("[Close Ticket] Erro: Usuário sem permissão");
+          return interaction.reply({
+            content: "❌ Apenas o dono do ticket ou staff pode fechar o ticket.",
+            ephemeral: true
+          });
+        }
+
+        // Fechar o ticket
+        console.log("[Close Ticket] Chamando closeTicket...");
+        const closedTicket = await client.ticketHandler.closeTicket(
+          interaction.guild.id,
+          ticketNumber,
+          interaction.user.id,
+          interaction.user.tag
+        );
+
+        console.log("[Close Ticket] closeTicket retornou:", closedTicket ? "sucesso" : "falha");
+
+        if (!closedTicket) {
+          console.log("[Close Ticket] Erro: closeTicket retornou null");
+          return interaction.reply({
+            content: "❌ Não foi possível fechar o ticket.",
+            ephemeral: true
+          });
+        }
+
+        // Calcular duração do ticket
+        const duration = closedTicket.closedAt && closedTicket.createdAt 
+          ? Math.floor((closedTicket.closedAt - closedTicket.createdAt) / 1000 / 60) // minutos
+          : 0;
+        const durationText = duration > 0 
+          ? `${duration} minuto${duration !== 1 ? 's' : ''}`
+          : "menos de 1 minuto";
+
+        // Remover permissões do usuário (o canal já foi renomeado pelo closeTicket)
+        await interaction.channel.permissionOverwrites.edit(closedTicket.userId, {
+          ViewChannel: false,
+          SendMessages: false
+        });
+
+        // Enviar log de fechamento do ticket
+        try {
+          await client.ticketHandler.sendCloseLog(interaction.guild.id, closedTicket, interaction.guild, interaction.user);
+        } catch (logError) {
+          console.error("[Close Ticket] Erro ao enviar log de fechamento:", logError);
+        }
+
+        // Enviar mensagem de confirmação com botões de ação
+        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+        const embed = new EmbedBuilder()
+          .setColor("#FF6B6B")
+          .setTitle("🔒 Ticket Fechado")
+          .setDescription(`Ticket fechado por ${interaction.user.tag}`)
+          .addFields(
+            { name: "Ticket", value: `#${ticketNumber}`, inline: true },
+            { name: "Fechado por", value: interaction.user.tag, inline: true },
+            { name: "Duração", value: durationText, inline: true }
+          )
+          .setTimestamp()
+          .setFooter({ text: "Atendimento • Suporte" });
+
+        // Criar botões de ação para o ticket fechado
+        const actionButtons = new ActionRowBuilder()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("reopen_ticket")
+              .setLabel("🔓 Reabrir Ticket")
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId("delete_ticket")
+              .setLabel("🗑️ Excluir Ticket")
+              .setStyle(ButtonStyle.Danger)
+          );
+
+        await interaction.channel.send({ 
+          embeds: [embed],
+          components: [actionButtons]
+        });
+
+        // Responder ao usuário
+        await interaction.reply({
+          content: "✅ Ticket fechado com sucesso!",
+          ephemeral: true
+        });
+
+      } catch (error) {
+        console.error("[Close Ticket] Erro:", error);
+        await interaction.reply({
+          content: "❌ Ocorreu um erro ao fechar o ticket.",
+          ephemeral: true
+        });
+      }
+      return;
+    }
+
     // Função para criar modal com perguntas
-    async function createTicketModal(interaction, questions) {
+    async function createTicketModal(interaction, questions, categoryId = null) {
       const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
       
       const modal = new ModalBuilder()
-        .setCustomId(`ticket_modal_${Date.now()}`)
+        .setCustomId(`ticket_modal_${Date.now()}_${categoryId || 'null'}`)
         .setTitle("Abrir Ticket");
 
       questions.forEach((question, index) => {
@@ -222,7 +401,7 @@ module.exports = async (client, interaction) => {
     }
 
     // Função para criar ticket diretamente
-    async function createTicketDirectly(interaction, ticketHandler, reason) {
+    async function createTicketDirectly(interaction, ticketHandler, reason, categoryId = null) {
       const ticketData = await ticketHandler.createTicket(
         interaction.guild.id,
         interaction.user.id,
@@ -237,11 +416,11 @@ module.exports = async (client, interaction) => {
         });
       }
 
-      // Criar o canal do ticket sem categoria específica
+      // Criar o canal do ticket com a categoria especificada
       const ticketChannel = await ticketHandler.createTicketChannel(
         interaction.guild,
         ticketData,
-        null // Sem categoria específica
+        categoryId // Usar categoria do painel se disponível
       );
 
       if (!ticketChannel) {
@@ -249,6 +428,13 @@ module.exports = async (client, interaction) => {
           content: "❌ Não foi possível criar o canal do ticket.",
           ephemeral: true
         });
+      }
+
+      // Enviar log de abertura do ticket
+      try {
+        await ticketHandler.sendOpenLog(interaction.guild.id, ticketData, interaction.guild, interaction.user);
+      } catch (logError) {
+        console.error("[Create Ticket Directly] Erro ao enviar log de abertura:", logError);
       }
 
       // Enviar embed de boas-vindas com botão de fechar
@@ -325,7 +511,7 @@ module.exports = async (client, interaction) => {
         });
 
         const embed = new EmbedBuilder()
-          .setColor(ee.color)
+          .setColor("#00D26A")
           .setTitle("🔓 Ticket Reaberto")
           .setDescription(`Este ticket foi reaberto por ${interaction.user.tag}.`)
           .addFields(
@@ -333,9 +519,22 @@ module.exports = async (client, interaction) => {
             { name: "Reaberto por", value: interaction.user.tag, inline: true }
           )
           .setTimestamp()
-          .setFooter({ text: ee.footertext, iconURL: ee.footericon });
+          .setFooter({ text: "Atendimento • Suporte" });
 
-        await interaction.reply({ embeds: [embed] });
+        // Adicionar botão de fechar novamente
+        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+        const closeButton = new ActionRowBuilder()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("close_ticket")
+              .setLabel("🔒 Fechar Ticket")
+              .setStyle(ButtonStyle.Danger)
+          );
+
+        await interaction.reply({ 
+          embeds: [embed],
+          components: [closeButton]
+        });
 
       } catch (error) {
         console.error("[Reopen Ticket] Erro:", error);

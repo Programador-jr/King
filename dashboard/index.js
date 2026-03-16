@@ -1325,7 +1325,7 @@ module.exports = client => {
             console.log("[Delete Panel] Não foi possível deletar a mensagem:", e.message);
           }
 
-          await client.ticketHandler.deletePanel(guildId, panel.messageId);
+          await client.ticketHandler.deletePanel(guildId, panel.id);
         }
 
         return res.json({ ok: true, message: "Painel excluído com sucesso" });

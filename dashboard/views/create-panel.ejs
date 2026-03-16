@@ -2070,100 +2070,120 @@
       // Initialize
       let editPanelData = null;
       <% if (typeof editPanel !== 'undefined') { %>
-        try {
-          editPanelData = <%- JSON.stringify(editPanel) %>;
-        } catch(e) {
-          console.error('Error parsing editPanelData:', e);
-        }
+      editPanelData = (<%- JSON.stringify(editPanel) %>);
       <% } %>
-      
-      if (editPanelData) {
-        // Se tem embeds (painel avançado), usa eles
-        // Se não (painel simples), cria a partir de title/description
-        if (editPanelData.embeds && editPanelData.embeds.length > 0) {
-          panelData = {
-            embeds: editPanelData.embeds || [],
-            buttons: editPanelData.buttons || [],
-            questions: editPanelData.questions || [],
-            useCategory: Boolean(editPanelData.useCategory || editPanelData.categoryId),
-            logs: normalizePanelLogs(editPanelData.logs)
-          };
-        } else {
-          // Converte painel simples para formato avançado
-          panelData = {
-            embeds: [{
-              title: editPanelData.title || "Central de Tickets",
-              description: editPanelData.description || "Clique no botão abaixo para criar um ticket.",
-              color: "#5865F2"
-            }],
-            buttons: [{
-              label: editPanelData.buttonLabel || "Criar Ticket",
-              style: "PRIMARY",
-              emoji: "🎫"
-            }],
-            questions: editPanelData.questions || [],
-            useCategory: Boolean(editPanelData.useCategory || editPanelData.categoryId),
-            logs: normalizePanelLogs(editPanelData.logs)
-          };
-        }
-        
-        if (editPanelData.channelId) {
-          const panelChannel = document.getElementById('panelChannel');
-          panelChannel.value = editPanelData.channelId;
-          panelChannel.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Função para inicializar o painel
+      function initializePanel() {
+        if (editPanelData) {
+          // Se tem embeds (painel avançado), usa eles
+          // Se não (painel simples), cria a partir de title/description
+          if (editPanelData.embeds && editPanelData.embeds.length > 0) {
+            panelData = {
+              embeds: editPanelData.embeds || [],
+              buttons: editPanelData.buttons || [],
+              questions: editPanelData.questions || [],
+              useCategory: Boolean(editPanelData.useCategory || editPanelData.categoryId),
+              logs: normalizePanelLogs(editPanelData.logs)
+            };
+          } else {
+            // Converte painel simples para formato avançado
+            panelData = {
+              embeds: [{
+                title: editPanelData.title || "Central de Tickets",
+                description: editPanelData.description || "Clique no botão abaixo para criar um ticket.",
+                color: "#5865F2"
+              }],
+              buttons: [{
+                label: editPanelData.buttonLabel || "Criar Ticket",
+                style: "PRIMARY",
+                emoji: "🎫"
+              }],
+              questions: editPanelData.questions || [],
+              useCategory: Boolean(editPanelData.useCategory || editPanelData.categoryId),
+              logs: normalizePanelLogs(editPanelData.logs)
+            };
+          }
           
+          if (editPanelData.channelId) {
+            const panelChannel = document.getElementById('panelChannel');
+            panelChannel.value = editPanelData.channelId;
+            panelChannel.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          
+          // Carregar configurações de categoria
           if (editPanelData.categoryId) {
             const panelCategory = document.getElementById('panelCategory');
             panelCategory.value = editPanelData.categoryId;
           }
+          
+          // Garantir que useCategory seja carregado corretamente
+          const useCategoryValue = Boolean(editPanelData.useCategory || editPanelData.categoryId);
+          panelData.useCategory = useCategoryValue;
+        } else {
+          // Se não há dados de edição, cria painel padrão
+          panelData = {
+            embeds: [{
+              title: "Central de Tickets",
+              description: "Clique no botão abaixo para criar um ticket.",
+              color: "#5865F2"
+            }],
+            buttons: [{
+              label: "Criar Ticket",
+              style: "PRIMARY",
+              emoji: "🎫"
+            }],
+            questions: [],
+            useCategory: false,
+            logs: {
+              Open: { enabled: false, type: 'channel', channelId: '', message: '' },
+              Close: { enabled: false, type: 'channel', channelId: '', message: '' }
+            }
+          };
         }
-      } else {
-        // Se não há dados de edição, cria painel padrão
-        panelData = {
-          embeds: [{
-            title: "Central de Tickets",
-            description: "Clique no botão abaixo para criar um ticket.",
-            color: "#5865F2"
-          }],
-          buttons: [{
-            label: "Criar Ticket",
-            style: "PRIMARY",
-            emoji: "🎫"
-          }],
-          useCategory: false,
-          logs: {
-            Open: { enabled: false, type: 'channel', channelId: '', message: '' },
-            Close: { enabled: false, type: 'channel', channelId: '', message: '' }
-          }
-        };
-      }
 
-      const panelCategoryEnabled = document.getElementById('panelCategoryEnabled');
-      if (panelCategoryEnabled) {
-        panelCategoryEnabled.checked = Boolean(panelData.useCategory);
-        panelCategoryEnabled.addEventListener('change', applyCategoryToggleState);
-      }
-      applyCategoryToggleState();
-      applyPanelLogsToForm();
-      ['Open', 'Close'].forEach((prefix) => {
-        const enabledInput = document.getElementById(`panelLog${prefix}Enabled`);
-        const typeInput = document.getElementById(`panelLog${prefix}Type`);
-        if (enabledInput) enabledInput.addEventListener('change', () => updatePanelLogDestination(prefix));
-        if (typeInput) typeInput.addEventListener('change', () => updatePanelLogDestination(prefix));
-      });
-      
-      renderEmbeds();
-      renderButtons();
-      renderQuestions();
-      renderPreview();
-
-      // Inicializar as abas do Bootstrap para as sub-abas (Editor/JSON)
-      setTimeout(() => {
-        const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="pill"]'));
-        triggerTabList.forEach(function (triggerEl) {
-          new bootstrap.Tab(triggerEl);
+        const panelCategoryEnabled = document.getElementById('panelCategoryEnabled');
+        const panelCategory = document.getElementById('panelCategory');
+        
+        if (panelCategoryEnabled) {
+          panelCategoryEnabled.checked = Boolean(panelData.useCategory);
+          panelCategoryEnabled.addEventListener('change', applyCategoryToggleState);
+        }
+        
+        // Aplicar o valor da categoria após o checkbox ser configurado
+        if (panelData.categoryId && panelCategory) {
+          panelCategory.value = panelData.categoryId;
+        }
+        
+        applyCategoryToggleState();
+        applyPanelLogsToForm();
+        ['Open', 'Close'].forEach((prefix) => {
+          const enabledInput = document.getElementById(`panelLog${prefix}Enabled`);
+          const typeInput = document.getElementById(`panelLog${prefix}Type`);
+          if (enabledInput) enabledInput.addEventListener('change', () => updatePanelLogDestination(prefix));
+          if (typeInput) typeInput.addEventListener('change', () => updatePanelLogDestination(prefix));
         });
-      }, 100);
+        
+        renderEmbeds();
+        renderButtons();
+        renderQuestions();
+        renderPreview();
+
+        // Inicializar as abas do Bootstrap para as sub-abas (Editor/JSON)
+        setTimeout(() => {
+          const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="pill"]'));
+          triggerTabList.forEach(function (triggerEl) {
+            new bootstrap.Tab(triggerEl);
+          });
+        }, 100);
+      }
+
+      // Verificar se o DOM está pronto antes de inicializar
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializePanel);
+      } else {
+        initializePanel();
+      }
     </script>
     
     <!-- Exemplos de uso dos alertas (pode ser removido) -->
