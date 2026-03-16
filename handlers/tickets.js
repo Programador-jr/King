@@ -249,7 +249,11 @@ class TicketHandler {
         tickets[ticketKey] = ticketData;
 
         const openTickets = Array.isArray(db.open) ? db.open.filter(t => t !== ticketNumber) : [];
-        const closedTickets = Array.isArray(db.closed) ? [...db.closed, ticketNumber] : [ticketNumber];
+        const closedTickets = Array.isArray(db.closed) 
+          ? db.closed.includes(ticketNumber) 
+            ? db.closed 
+            : [...db.closed, ticketNumber]
+          : [ticketNumber];
 
         this._saveTicketsDb(guildId, {
             ...db,
@@ -494,13 +498,31 @@ class TicketHandler {
         return Array.isArray(allData.ticketPanels) ? allData.ticketPanels : [];
     }
 
-    async deletePanel(guildId, messageId) {
+    async deletePanel(guildId, panelId) {
+        console.log(`[Delete Panel] Excluindo painel ${panelId} do servidor ${guildId}`);
+        
         const allData = this.client.settings.get(guildId) || {};
-        const panels = Array.isArray(allData.ticketPanels) ? allData.ticketPanels.filter(p => p.messageId !== messageId) : [];
+        const panels = Array.isArray(allData.ticketPanels) ? allData.ticketPanels : [];
+        
+        console.log(`[Delete Panel] Painéis antes da exclusão:`, panels.map(p => ({ id: p.id, messageId: p.messageId })));
+        
+        // Tentar encontrar por panelId primeiro
+        let filteredPanels = panels.filter(p => p.id !== panelId && p.panelId !== panelId);
+        
+        // Se não encontrou por panelId, tentar por messageId
+        if (filteredPanels.length === panels.length) {
+            console.log(`[Delete Panel] Não encontrado por panelId, tentando por messageId`);
+            filteredPanels = panels.filter(p => p.messageId !== panelId);
+        }
+        
+        console.log(`[Delete Panel] Painéis após exclusão:`, filteredPanels.map(p => ({ id: p.id, messageId: p.messageId })));
+        
         this.client.settings.set(guildId, {
             ...allData,
-            ticketPanels: panels
+            ticketPanels: filteredPanels
         });
+        
+        console.log(`[Delete Panel] Painel excluído com sucesso`);
     }
 
     async sendWebhookNotification(webhookUrl, ticketData, guild, user, message = null) {
