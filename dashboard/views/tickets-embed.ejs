@@ -710,10 +710,12 @@
       document.getElementById(inputId).addEventListener('input', function() {
         document.getElementById(hexId).value = this.value;
         updatePreview(inputId.replace('Color', ''));
+        updateJsonEditor(inputId.replace('Color', ''));
       });
       document.getElementById(hexId).addEventListener('input', function() {
         document.getElementById(inputId).value = this.value;
         updatePreview(inputId.replace('Color', ''));
+        updateJsonEditor(inputId.replace('Color', ''));
       });
     }
 
@@ -724,7 +726,10 @@
       ['Title', 'Description', 'Url', 'Image', 'Thumbnail', 'AuthorName', 'AuthorUrl', 'AuthorIcon', 'Footer', 'FooterIcon'].forEach(field => {
         const input = document.getElementById(type + field);
         if (input) {
-          input.addEventListener('input', () => updatePreview(type));
+          input.addEventListener('input', () => {
+            updatePreview(type);
+            updateJsonEditor(type);
+          });
         }
       });
     });
@@ -735,6 +740,7 @@
       document.getElementById(type + 'Color').value = randomColor;
       document.getElementById(type + 'ColorHex').value = randomColor;
       updatePreview(type);
+      updateJsonEditor(type);
     }
 
     function updatePreview(type) {
@@ -790,6 +796,7 @@
       }
 
       updateFieldsPreview(type);
+      updateJsonEditor(type);
     }
 
     function addField(type) {
@@ -829,6 +836,7 @@
       }
       
       updateFieldsPreview(type);
+      updateJsonEditor(type);
     }
 
     function removeField(type, index) {
@@ -844,6 +852,7 @@
       // Re-render fields
       renderFields(type);
       updateFieldsPreview(type);
+      updateJsonEditor(type);
     }
 
     function updateField(type, index, key, value) {
@@ -853,6 +862,7 @@
         closeFields[index] = { ...closeFields[index], [key]: value };
       }
       updateFieldsPreview(type);
+      updateJsonEditor(type);
     }
 
     function renderFields(type) {
@@ -963,89 +973,22 @@
     }
 
     function importEmbedJson(targetType) {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json,application/json';
-      input.style.display = 'none';
-      document.body.appendChild(input);
-
-      input.addEventListener('change', async () => {
-        const file = input.files && input.files[0];
-        input.remove();
-        if (!file) return;
-
-        try {
-          const text = await file.text();
-          const parsed = JSON.parse(text);
-
-          const hasWelcome = isRecord(parsed) && isRecord(parsed.welcome);
-          const hasClose = isRecord(parsed) && isRecord(parsed.close);
-
-          if (hasWelcome || hasClose) {
-            const importBoth = hasWelcome && hasClose;
-
-            const confirmPromise = importBoth 
-              ? showConfirm('Importar Ambas', 'Este arquivo contém Boas-vindas e Fechamento. Importar as duas embeds?', null, null, 'info')
-              : Promise.resolve(true);
-
-            confirmPromise.then((shouldImport) => {
-              if (hasWelcome && (shouldImport || targetType === 'welcome')) {
-                document.getElementById('welcomeJson').value = JSON.stringify(parsed.welcome, null, 2);
-                loadEmbedData('welcome', parsed.welcome);
-              } else if (!hasWelcome && targetType === 'welcome') {
-                showError('Embed Não Encontrada', 'Este arquivo não contém a embed de Boas-vindas.');
-              }
-
-              if (hasClose && (shouldImport || targetType === 'close')) {
-                document.getElementById('closeJson').value = JSON.stringify(parsed.close, null, 2);
-                loadEmbedData('close', parsed.close);
-              } else if (!hasClose && targetType === 'close') {
-                showError('Embed Não Encontrada', 'Este arquivo não contém a embed de Fechamento.');
-              }
-            });
-
-            return;
-          }
-
-          if (!isRecord(parsed)) {
-            showError('JSON Inválido', 'O arquivo não contém um formato JSON válido.');
-            return;
-          }
-
-          document.getElementById(targetType + 'Json').value = JSON.stringify(parsed, null, 2);
-          loadEmbedData(targetType, parsed);
-        } catch (error) {
-          console.error('Erro ao importar JSON:', error);
-          showError('Erro na Importação', 'O arquivo JSON não pôde ser importado. Verifique o formato.');
-        }
-      }, { once: true });
-
-      input.click();
-    }
-
-    function loadWelcomeFromJson() {
       try {
-        const json = document.getElementById('welcomeJson').value;
-        const data = JSON.parse(json);
-        loadEmbedData('welcome', data);
-      } catch (e) {
-        showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
-      }
-    }
-
-    function loadCloseFromJson() {
-      try {
-        const json = document.getElementById('closeJson').value;
-        const data = JSON.parse(json);
-        loadEmbedData('close', data);
+        const jsonTextarea = document.getElementById(targetType + 'Json');
+        if (!jsonTextarea) return;
+        
+        const data = JSON.parse(jsonTextarea.value);
+        loadEmbedData(targetType, data);
+        showSuccess('JSON Aplicado', 'O JSON foi aplicado com sucesso!');
       } catch (e) {
         showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
       }
     }
 
     function formatJson(textareaId) {
+      const textarea = document.getElementById(textareaId);
+      if (!textarea) return;
       try {
-        const textarea = document.getElementById(textareaId);
         const data = JSON.parse(textarea.value);
         textarea.value = JSON.stringify(data, null, 2);
       } catch (e) {
@@ -1112,6 +1055,17 @@
     // Auto-save to JSON editors
     ['welcome', 'close'].forEach(type => {
       document.getElementById(type + 'Json').value = JSON.stringify(getEmbedData(type), null, 2);
+      
+      // Add event listener to sync JSON editor with form
+      const jsonTextarea = document.getElementById(type + 'Json');
+      jsonTextarea.addEventListener('input', function() {
+        try {
+          const data = JSON.parse(this.value);
+          loadEmbedData(type, data);
+        } catch (e) {
+          // Invalid JSON, don't update preview
+        }
+      });
     });
 
     // Abrir aba de fechamento quando link tiver #close
