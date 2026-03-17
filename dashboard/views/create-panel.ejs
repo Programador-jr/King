@@ -1002,7 +1002,13 @@
         if (!textarea) return;
         try {
           const data = JSON.parse(textarea.value);
+          // Marcar que está formatando para não acionar o event listener
+          textarea.dataset.formatting = 'true';
           textarea.value = JSON.stringify(data, null, 2);
+          // Limpar flag após um pequeno delay
+          setTimeout(() => {
+            textarea.dataset.formatting = 'false';
+          }, 10);
         } catch (e) {
           showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
         }
@@ -1016,38 +1022,59 @@
         });
       }
 
-      function importEmbedJson(embedIndex) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json,application/json';
-        input.style.display = 'none';
-        document.body.appendChild(input);
-
-        input.addEventListener('change', async () => {
-          const file = input.files && input.files[0];
-          input.remove();
-          if (!file) return;
-
-          try {
-            const text = await file.text();
-            const parsed = JSON.parse(text);
-
-            if (!isRecord(parsed)) {
-              showError('JSON Inválido', 'O arquivo deve conter um objeto de embed válido.');
-              return;
-            }
-
-            document.getElementById(`embedJson-${embedIndex}`).value = JSON.stringify(parsed, null, 2);
-            panelData.embeds[embedIndex] = cloneEmbedData(parsed);
-            renderEmbeds();
-            renderPreview();
-          } catch (error) {
-            console.error('Erro ao importar JSON:', error);
-            showError('Erro na Importação', 'Não foi possível ler o arquivo JSON. Verifique o formato.');
+      // Aplicar JSON do textarea ao editor visual
+      function loadEmbedFromJson(embedIndex) {
+        try {
+          const textarea = document.getElementById(`embedJson-${embedIndex}`);
+          if (!textarea) return;
+          
+          const parsed = JSON.parse(textarea.value);
+          
+          if (!isRecord(parsed)) {
+            showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
+            return;
           }
-        }, { once: true });
+          
+          // Verificar se o índice existe
+          if (embedIndex >= panelData.embeds.length) {
+            showError('Índice Inválido', 'A embed selecionada não existe.');
+            return;
+          }
+          
+          panelData.embeds[embedIndex] = cloneEmbedData(parsed);
+          updateEmbedContent(embedIndex);
+          updateEmbedPreview(embedIndex);
+          showSuccess('JSON Aplicado', 'O JSON foi aplicado ao editor visual.');
+        } catch (e) {
+          showError('JSON Inválido', 'O formato JSON está incorreto. Verifique a sintaxe.');
+        }
+      }
 
-        input.click();
+      // Debounce para atualizar preview em tempo real ao digitar no JSON
+      const embedJsonPreviewTimeouts = {};
+      function debouncedEmbedJsonPreview(embedIndex) {
+        if (embedJsonPreviewTimeouts[embedIndex]) {
+          clearTimeout(embedJsonPreviewTimeouts[embedIndex]);
+        }
+        embedJsonPreviewTimeouts[embedIndex] = setTimeout(() => {
+          try {
+            const textarea = document.getElementById(`embedJson-${embedIndex}`);
+            if (!textarea || !textarea.value.trim()) return;
+            const parsed = JSON.parse(textarea.value);
+            if (isRecord(parsed) && embedIndex < panelData.embeds.length) {
+              panelData.embeds[embedIndex] = cloneEmbedData(parsed);
+              renderEmbedFields(embedIndex);
+              updateEmbedPreview(embedIndex);
+            }
+          } catch (e) {
+            // JSON inválido, não faz nada enquanto digita
+          }
+        }, 500);
+      }
+
+      // Função mantida para compatibilidade (agora redireciona para loadEmbedFromJson)
+      function importEmbedJson(embedIndex) {
+        loadEmbedFromJson(embedIndex);
       }
 
       function updateEmbedJsonPreview(index) {
@@ -1376,9 +1403,9 @@
                   <i class="fas fa-copy"></i> Copiar
                 </button>
               </div>
-              <textarea class="json-editor" id="embedJson-${index}"></textarea>
+              <textarea class="json-editor" id="embedJson-${index}" oninput="debouncedEmbedJsonPreview(${index})"></textarea>
               <div class="mt-2 d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-primary" onclick="importEmbedJson(${index})">
+                <button type="button" class="btn btn-sm btn-primary" onclick="loadEmbedFromJson(${index})">
                   <i class="fas fa-upload"></i> Aplicar
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatJson('embedJson-${index}')">
@@ -1393,6 +1420,29 @@
         renderEmbedFields(index);
         updateEmbedPreview(index);
         updateEmbedJsonPreview(index);
+        
+        // Add event listener to sync JSON editor with form
+        const jsonTextarea = document.getElementById(`embedJson-${index}`);
+        if (jsonTextarea) {
+          jsonTextarea.addEventListener('input', function() {
+            // Não fazer nada se estiver formatando
+            if (jsonTextarea.dataset.formatting === 'true') return;
+            
+            try {
+              const data = JSON.parse(this.value);
+              if (isRecord(data)) {
+                panelData.embeds[index] = cloneEmbedData(data);
+                // Atualizar apenas os campos e preview sem re-renderizar tudo
+                renderEmbedFields(index);
+                updateEmbedPreview(index);
+                updateEmbedJsonPreview(index);
+                scheduleRenderPreview();
+              }
+            } catch (e) {
+              // Invalid JSON, don't update preview
+            }
+          });
+        }
       }
 
       function syncEmbedColor(index) {
@@ -1400,6 +1450,7 @@
         const hexInput = document.getElementById(`embedColorHex-${index}`);
         if (colorInput && hexInput) {
           hexInput.value = colorInput.value;
+          updateEmbedField(index, 'color', colorInput.value);
           updateEmbedPreview(index);
         }
       }
@@ -1409,6 +1460,7 @@
         const hexInput = document.getElementById(`embedColorHex-${index}`);
         if (colorInput && hexInput) {
           colorInput.value = hexInput.value;
+          updateEmbedField(index, 'color', hexInput.value);
           updateEmbedPreview(index);
         }
       }
