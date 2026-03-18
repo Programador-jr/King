@@ -1,0 +1,47 @@
+name: CI - Lightweight
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+
+    - name: Install deps
+      run: npm install --prefer-offline --no-audit --no-fund
+
+    - name: Skip Dependabot
+      if: github.actor == 'dependabot[bot]'
+      run: |
+        echo "Skipping CI for Dependabot"
+        exit 0
+
+    - name: Syntax check
+      run: |
+        node --check index.js
+        find . -name "*.js" -not -path "./node_modules/*" -exec node --check {} \;
+
+    - name: Lint (optional)
+      run: |
+        if [ -f package.json ] && grep -q "\"lint\"" package.json; then
+          npm run lint
+        else
+          echo "No lint script, skipping..."
+        fi
+
+    - name: Safe startup test
+      run: |
+        NODE_ENV=test node index.js || exit 1

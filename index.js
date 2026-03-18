@@ -121,6 +121,11 @@ async function startBot() {
   }
 }
 
+if (process.env.NODE_ENV === 'test') {
+  console.log('🧪 Test mode ativo - pulando inicialização do bot');
+  process.exit(0);
+}
+
 startBot();
 client.on("clientReady", () => {
   require("./dashboard/index.js")(client);
