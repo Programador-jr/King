@@ -1120,7 +1120,7 @@ module.exports = client => {
           client.settings.set(guild.id, closeData, "ticketCloseEmbed");
         }
 
-        res.redirect(`/dashboard/${guild.id}/tickets/embed?success=true&returnTo=${encodeURIComponent(returnTo)}`);
+        res.redirect(`/dashboard/${guild.id}/tickets/embed?success=` + encodeURIComponent("Embed salva com sucesso!") + `&returnTo=${encodeURIComponent(returnTo)}`);
       } catch (err) {
         console.error("[Embed] Erro ao salvar embed:", err);
         res.redirect(`/dashboard/${guild.id}/tickets/embed?error=` + encodeURIComponent("Erro ao salvar embed") + `&returnTo=${encodeURIComponent(returnTo)}`);
@@ -1840,6 +1840,106 @@ module.exports = client => {
         console.error("[Update Panel] Erro:", err);
         return res.status(500).json({ ok: false, message: "Erro ao atualizar painel: " + err.message });
       }
+    });
+
+    // ===============================
+    // AUTOMOD ROUTES
+    // ===============================
+    app.get("/dashboard/:guildID/automod", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      const settings = client.settings.get(guild.id);
+
+      res.render("automod", {
+        req, user: req.isAuthenticated() ? req.user : null, guild, botClient: client,
+        Permissions, bot: websiteInfo, callback: resolveCallbackForRequest(req),
+        categories: client.categories, commands: client.commands,
+        BotConfig, BotFilters, SPOTIFY_MIXES, YT_MIXES, BotEmojis,
+        settings
+      });
+    });
+
+    app.post("/dashboard/:guildID/automod", checkAuth, async (req, res) => {
+      const guild = client.guilds.cache.get(req.params.guildID);
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); } 
+        catch (err) { console.error(err); }
+      }
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+      }
+
+      const {
+        automodEnabled, automodLogType, automodLogChannelId, automodLogWebhook,
+        automodLogMessage,
+        automodMuteRole,
+        automodPenalty1, automodPenalty2, automodPenalty3,
+        automodBypassRoles,
+        automodAntiSpamEnabled, automodAntiSpamMaxMessages, automodAntiSpamMaxSeconds,
+        automodAntiLinksEnabled,
+        automodAntiInviteEnabled,
+        automodAntiWordsEnabled, automodAntiWordsList,
+        automodAntiWordsWarnMessage,
+        automodAntiNewAccountsEnabled, automodAntiNewAccountsMinDays
+      } = req.body;
+
+      console.log(`[Dashboard] Salvando automod para guild ${guild.id}`);
+      
+      client.settings.set(guild.id, !!automodEnabled, "automodEnabled");
+      client.settings.set(guild.id, automodLogType === 'webhook' ? 'webhook' : 'channel', "automodLogType");
+      client.settings.set(guild.id, automodLogChannelId || null, "automodLogChannelId");
+      client.settings.set(guild.id, automodLogWebhook || null, "automodLogWebhook");
+      client.settings.set(guild.id, automodLogMessage || '{user} | {type} | {reason}', "automodLogMessage");
+
+      const bypassRoles = Array.isArray(automodBypassRoles) ? automodBypassRoles : automodBypassRoles ? [automodBypassRoles] : [];
+      client.settings.set(guild.id, bypassRoles, "automodBypassRoles");
+
+      client.settings.set(guild.id, automodMuteRole || null, "automodMuteRole");
+      client.settings.set(guild.id, automodPenalty1 || "none", "automodPenalty1");
+      client.settings.set(guild.id, automodPenalty2 || "mute", "automodPenalty2");
+      client.settings.set(guild.id, automodPenalty3 || "kick", "automodPenalty3");
+
+      client.settings.set(guild.id, !!automodAntiSpamEnabled, "automodAntiSpamEnabled");
+      client.settings.set(guild.id, parseInt(automodAntiSpamMaxMessages) || 5, "automodAntiSpamMaxMessages");
+      client.settings.set(guild.id, parseInt(automodAntiSpamMaxSeconds) || 3, "automodAntiSpamMaxSeconds");
+
+      client.settings.set(guild.id, !!automodAntiLinksEnabled, "automodAntiLinksEnabled");
+
+      client.settings.set(guild.id, !!automodAntiInviteEnabled, "automodAntiInviteEnabled");
+
+      client.settings.set(guild.id, !!automodAntiWordsEnabled, "automodAntiWordsEnabled");
+      
+      client.settings.set(guild.id, automodAntiWordsWarnMessage || "Você usou palavras proibidas neste servidor.", "automodAntiWordsWarnMessage");
+      
+      let wordsList = [];
+      if (automodAntiWordsList) {
+          if (Array.isArray(automodAntiWordsList)) {
+              wordsList = automodAntiWordsList.map(w => String(w).trim()).filter(w => w);
+          } else if (typeof automodAntiWordsList === 'string') {
+              wordsList = automodAntiWordsList.split(',').map(w => w.trim()).filter(w => w);
+          }
+      }
+      client.settings.set(guild.id, wordsList, "automodAntiWordsList");
+
+      client.settings.set(guild.id, !!automodAntiNewAccountsEnabled, "automodAntiNewAccountsEnabled");
+      client.settings.set(guild.id, parseInt(automodAntiNewAccountsMinDays) || 1, "automodAntiNewAccountsMinDays");
+
+      res.redirect("/dashboard/" + guild.id + "/automod?success=" + encodeURIComponent("Configurações do Auto-Mod salvas com sucesso!"));
     });
 
     /**

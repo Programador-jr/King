@@ -5017,8 +5017,6 @@ textarea:focus-visible {
 
 .skip-link:focus { top: 0; }
 
-.btn, .nav-link { min-height: 44px; }
-
 /* ============================================
    MELHORIAS DE UX - FADE IN
    ============================================ */
@@ -5124,12 +5122,25 @@ textarea:focus-visible {
 }
 
 .btn-bedge-editor {
+  height: 50px;
   display: inline-flex;
   border-radius: 10px;
   align-items: center;
   gap: 10px;
   margin: 1.5em 0;
 }
+
+    .btn-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--theme-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
 /* ============================================
    TOGGLES (FORM-SWITCH)

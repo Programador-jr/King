@@ -1,22 +1,28 @@
-//Import Modules
-const config = require(`../../botconfig/config.json`);
-const ee = require(`../../botconfig/embed.json`);
-const settings = require(`../../botconfig/settings.json`);
-const { onCoolDown, replacemsg } = require("../../handlers/functions");
 const {
   EmbedBuilder,
   ActionRowBuilder,
-  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  StringSelectMenuBuilder,
   ChannelType,
   PermissionFlagsBits
 } = require("discord.js");
 
 module.exports = async (client, interaction) => {
-  // Debug log
-  console.log(`[Interaction] Tipo: ${interaction.type}, CustomId: ${interaction.customId}, User: ${interaction.user.tag}`);
+  client.settings.ensure(interaction.guildId, {
+    prefix: client.config?.prefix || "!",
+    defaultvolume: 50,
+    defaultautoplay: false,
+    defaultfilters: ["bassboost6", "clear"],
+    djroles: [],
+    botchannel: [],
+    musicChannels: [],
+    confessionChannel: null,
+    mixDefault: "youtube"
+  });
 
   // ===============================
   // MODAL SUBMIT (TICKETS COM PERGUNTAS)
@@ -30,18 +36,16 @@ module.exports = async (client, interaction) => {
     try {
       console.log("[Ticket Modal Submit] Processando respostas do modal...");
       
-      // Extrair categoryId do customId do modal
       const modalParts = interaction.customId.split('_');
       const categoryId = modalParts.length > 3 ? (modalParts[3] === 'null' ? null : modalParts[3]) : null;
       
       console.log("[Ticket Modal Submit] Categoria extraída:", categoryId);
       
-      // Coletar respostas das perguntas
       const answers = {};
       let reason = "Ticket criado via painel";
       
-      // Obter todos os campos do modal
-      interaction.fields.fields.forEach((field, customId) => {
+      interaction.fields.fields.forEach((field) => {
+        const customId = field.customId;
         answers[customId] = field.value;
         if (customId === 'reason' || field.value.length > 0) {
           reason = field.value;
@@ -50,7 +54,6 @@ module.exports = async (client, interaction) => {
 
       console.log("[Ticket Modal Submit] Respostas coletadas:", Object.keys(answers).length);
 
-      // Verificar novamente se o usuário já tem um ticket aberto
       const existingTicket = client.ticketHandler.getUserTicket(interaction.guild.id, interaction.user.id);
       if (existingTicket) {
         return interaction.reply({
@@ -59,7 +62,6 @@ module.exports = async (client, interaction) => {
         });
       }
 
-      // Criar o ticket com as respostas
       const ticketData = await client.ticketHandler.createTicket(
         interaction.guild.id,
         interaction.user.id,
@@ -74,11 +76,10 @@ module.exports = async (client, interaction) => {
         });
       }
 
-      // Criar o canal do ticket com a categoria especificada
       const ticketChannel = await client.ticketHandler.createTicketChannel(
         interaction.guild,
         ticketData,
-        categoryId // Usar categoria extraída do modal
+        categoryId
       );
 
       if (!ticketChannel) {
@@ -88,15 +89,11 @@ module.exports = async (client, interaction) => {
         });
       }
 
-      // Enviar log de abertura do ticket
       try {
         await client.ticketHandler.sendOpenLog(interaction.guild.id, ticketData, interaction.guild, interaction.user);
       } catch (logError) {
         console.error("[Ticket Modal Submit] Erro ao enviar log de abertura:", logError);
       }
-
-      // Enviar embed de boas-vindas com as respostas e botão de fechar
-      const { MessageActionRow, MessageButton, EmbedBuilder } = require("discord.js");
       
       const embed = new EmbedBuilder()
         .setColor("#5865F2")
@@ -109,7 +106,6 @@ module.exports = async (client, interaction) => {
         .setTimestamp()
         .setFooter({ text: "Atendimento • Suporte" });
 
-      // Adicionar as respostas das perguntas como campos
       Object.entries(answers).forEach(([customId, answer], index) => {
         if (answer && answer.trim()) {
           embed.addFields({
@@ -120,13 +116,12 @@ module.exports = async (client, interaction) => {
         }
       });
 
-      // Criar botão de fechar
-      const closeButton = new MessageActionRow()
+      const closeButton = new ActionRowBuilder()
         .addComponents(
-          new MessageButton()
+          new ButtonBuilder()
             .setCustomId("close_ticket")
             .setLabel("🔒 Fechar Ticket")
-            .setStyle("DANGER")
+            .setStyle(ButtonStyle.Danger)
         );
 
       await ticketChannel.send({
@@ -135,7 +130,6 @@ module.exports = async (client, interaction) => {
         components: [closeButton]
       });
 
-      // Responder ao usuário
       await interaction.reply({
         content: `✅ Ticket criado com sucesso! <#${ticketChannel.id}>`,
         ephemeral: true
@@ -152,9 +146,9 @@ module.exports = async (client, interaction) => {
   }
 
   // ===============================
-  // BOTÕES / SELECT MENU (CONFISSÃO)
+  // BOTÕES / SELECT MENU
   // ===============================
-  if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) {
+  if (interaction.isButton() || interaction.isStringSelectMenu()) {
 
     // ===============================
     // BOTÕES DE TICKETS
@@ -168,7 +162,6 @@ module.exports = async (client, interaction) => {
       try {
         console.log("[Create Ticket] Botão clicado, verificando ticket existente...");
         
-        // Verificar se usuário já tem um ticket aberto
         const existingTicket = client.ticketHandler.getUserTicket(interaction.guild.id, interaction.user.id);
         if (existingTicket) {
           return interaction.reply({
@@ -179,26 +172,22 @@ module.exports = async (client, interaction) => {
 
         console.log("[Create Ticket] Buscando painel para verificar perguntas...");
         
-        // Encontrar o painel correspondente
         const panel = client.ticketHandler.findPanelByCustomId(interaction.guild.id, interaction.customId);
         
         if (!panel) {
           console.log("[Create Ticket] Painel não encontrado, criando ticket diretamente...");
-          // Se não encontrar painel, cria ticket diretamente
           return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel", null);
         }
 
         console.log("[Create Ticket] Painel encontrado:", panel.panelId);
         console.log("[Create Ticket] Perguntas configuradas:", panel.questions?.length || 0);
 
-        // Determinar a categoria do painel
         let categoryId = null;
         if (panel.useCategory && panel.categoryId) {
           categoryId = panel.categoryId;
           console.log("[Create Ticket] Usando categoria:", categoryId);
         }
 
-        // Verificar se o painel tem perguntas
         if (panel.questions && panel.questions.length > 0) {
           console.log("[Create Ticket] Abrindo modal com perguntas...");
           return createTicketModal(interaction, panel.questions, categoryId);
@@ -231,9 +220,8 @@ module.exports = async (client, interaction) => {
         console.log("[Close Ticket] Canal:", interaction.channel.name);
         console.log("[Close Ticket] Usuário:", interaction.user.tag);
 
-        // Verificar se o canal é um ticket
         const channelName = interaction.channel.name;
-        if (!channelName.startsWith("ticket-")) {
+        if (!channelName.startsWith("ticket-") && !channelName.startsWith("closed-")) {
           console.log("[Close Ticket] Erro: Canal não é um ticket");
           return interaction.reply({
             content: "❌ Este não é um canal de ticket.",
@@ -241,7 +229,6 @@ module.exports = async (client, interaction) => {
           });
         }
 
-        // Extrair número do ticket do nome do canal
         const ticketNumber = parseInt(channelName.replace(/[^0-9]/g, ""));
         if (!ticketNumber) {
           console.log("[Close Ticket] Erro: Não foi possível extrair número do ticket");
@@ -253,7 +240,6 @@ module.exports = async (client, interaction) => {
 
         console.log("[Close Ticket] Número do ticket:", ticketNumber);
 
-        // Verificar se o usuário tem permissão para fechar o ticket
         const ticketData = client.ticketHandler.getTicket(interaction.guild.id, ticketNumber);
         if (!ticketData) {
           console.log("[Close Ticket] Erro: Ticket não encontrado no banco");
@@ -269,9 +255,8 @@ module.exports = async (client, interaction) => {
           createdBy: ticketData.userId
         });
 
-        // Verificar se é o dono do ticket ou tem permissão de administrador
         const isTicketOwner = ticketData.userId === interaction.user.id;
-        const hasManageGuildPermission = interaction.member.permissions.has('ManageGuild');
+        const hasManageGuildPermission = interaction.member.permissions.has(PermissionFlagsBits.ManageGuild);
         
         console.log("[Close Ticket] Permissões:", {
           isTicketOwner,
@@ -288,8 +273,6 @@ module.exports = async (client, interaction) => {
           });
         }
 
-        // Fechar o ticket
-        console.log("[Close Ticket] Chamando closeTicket...");
         const closedTicket = await client.ticketHandler.closeTicket(
           interaction.guild.id,
           ticketNumber,
@@ -307,29 +290,24 @@ module.exports = async (client, interaction) => {
           });
         }
 
-        // Calcular duração do ticket
         const duration = closedTicket.closedAt && closedTicket.createdAt 
-          ? Math.floor((closedTicket.closedAt - closedTicket.createdAt) / 1000 / 60) // minutos
+          ? Math.floor((closedTicket.closedAt - closedTicket.createdAt) / 1000 / 60)
           : 0;
         const durationText = duration > 0 
           ? `${duration} minuto${duration !== 1 ? 's' : ''}`
           : "menos de 1 minuto";
 
-        // Remover permissões do usuário (o canal já foi renomeado pelo closeTicket)
         await interaction.channel.permissionOverwrites.edit(closedTicket.userId, {
           ViewChannel: false,
           SendMessages: false
         });
 
-        // Enviar log de fechamento do ticket
         try {
           await client.ticketHandler.sendCloseLog(interaction.guild.id, closedTicket, interaction.guild, interaction.user);
         } catch (logError) {
           console.error("[Close Ticket] Erro ao enviar log de fechamento:", logError);
         }
 
-        // Enviar mensagem de confirmação com botões de ação
-        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
         const embed = new EmbedBuilder()
           .setColor("#FF6B6B")
           .setTitle("🔒 Ticket Fechado")
@@ -342,7 +320,6 @@ module.exports = async (client, interaction) => {
           .setTimestamp()
           .setFooter({ text: "Atendimento • Suporte" });
 
-        // Criar botões de ação para o ticket fechado
         const actionButtons = new ActionRowBuilder()
           .addComponents(
             new ButtonBuilder()
@@ -360,7 +337,6 @@ module.exports = async (client, interaction) => {
           components: [actionButtons]
         });
 
-        // Responder ao usuário
         await interaction.reply({
           content: "✅ Ticket fechado com sucesso!",
           ephemeral: true
@@ -376,103 +352,9 @@ module.exports = async (client, interaction) => {
       return;
     }
 
-    // Função para criar modal com perguntas
-    async function createTicketModal(interaction, questions, categoryId = null) {
-      const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
-      
-      const modal = new ModalBuilder()
-        .setCustomId(`ticket_modal_${Date.now()}_${categoryId || 'null'}`)
-        .setTitle("Abrir Ticket");
-
-      questions.forEach((question, index) => {
-        const input = new TextInputBuilder()
-          .setCustomId(question.id || `question_${index}`)
-          .setLabel(question.label || 'Pergunta')
-          .setStyle(question.type === 'textarea' ? TextInputStyle.Paragraph : TextInputStyle.Short)
-          .setPlaceholder(question.placeholder || '')
-          .setRequired(question.required !== false)
-          .setMaxLength(1000);
-
-        const actionRow = new ActionRowBuilder().addComponents(input);
-        modal.addComponents(actionRow);
-      });
-
-      await interaction.showModal(modal);
-    }
-
-    // Função para criar ticket diretamente
-    async function createTicketDirectly(interaction, ticketHandler, reason, categoryId = null) {
-      const ticketData = await ticketHandler.createTicket(
-        interaction.guild.id,
-        interaction.user.id,
-        reason,
-        interaction.user.tag
-      );
-
-      if (!ticketData) {
-        return interaction.reply({
-          content: "❌ Não foi possível criar o ticket.",
-          ephemeral: true
-        });
-      }
-
-      // Criar o canal do ticket com a categoria especificada
-      const ticketChannel = await ticketHandler.createTicketChannel(
-        interaction.guild,
-        ticketData,
-        categoryId // Usar categoria do painel se disponível
-      );
-
-      if (!ticketChannel) {
-        return interaction.reply({
-          content: "❌ Não foi possível criar o canal do ticket.",
-          ephemeral: true
-        });
-      }
-
-      // Enviar log de abertura do ticket
-      try {
-        await ticketHandler.sendOpenLog(interaction.guild.id, ticketData, interaction.guild, interaction.user);
-      } catch (logError) {
-        console.error("[Create Ticket Directly] Erro ao enviar log de abertura:", logError);
-      }
-
-      // Enviar embed de boas-vindas com botão de fechar
-      const { MessageActionRow, MessageButton, EmbedBuilder } = require("discord.js");
-      
-      const embed = new EmbedBuilder()
-        .setColor("#5865F2")
-        .setTitle("🎫 Ticket Criado")
-        .setDescription(`Olá ${interaction.user}!\n\nSeu ticket foi criado com sucesso.\nA equipe irá responder assim que possível.`)
-        .addFields(
-          { name: "Ticket", value: `#${ticketData.ticketNumber}`, inline: true },
-          { name: "Criado por", value: interaction.user.tag, inline: true }
-        )
-        .setTimestamp()
-        .setFooter({ text: "Atendimento • Suporte" });
-
-      // Criar botão de fechar
-      const closeButton = new MessageActionRow()
-        .addComponents(
-          new MessageButton()
-            .setCustomId("close_ticket")
-            .setLabel("🔒 Fechar Ticket")
-            .setStyle("DANGER")
-        );
-
-      await ticketChannel.send({
-        content: `${interaction.user}`,
-        embeds: [embed],
-        components: [closeButton]
-      });
-
-      // Responder ao usuário
-      await interaction.reply({
-        content: `✅ Ticket criado com sucesso! <#${ticketChannel.id}>`,
-        ephemeral: true
-      });
-    }
-
+    // ===============================
+    // REABRIR TICKET
+    // ===============================
     if (interaction.customId === "reopen_ticket") {
       if (!client.ticketHandler) {
         const TicketHandler = require("../../handlers/tickets");
@@ -521,8 +403,6 @@ module.exports = async (client, interaction) => {
           .setTimestamp()
           .setFooter({ text: "Atendimento • Suporte" });
 
-        // Adicionar botão de fechar novamente
-        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
         const closeButton = new ActionRowBuilder()
           .addComponents(
             new ButtonBuilder()
@@ -546,6 +426,9 @@ module.exports = async (client, interaction) => {
       return;
     }
 
+    // ===============================
+    // DELETAR TICKET
+    // ===============================
     if (interaction.customId === "delete_ticket") {
       if (!client.ticketHandler) {
         const TicketHandler = require("../../handlers/tickets");
@@ -588,8 +471,10 @@ module.exports = async (client, interaction) => {
       return;
     }
 
+    // ===============================
+    // CONFESSION CHANNEL SETUP
+    // ===============================
     if (interaction.customId === "setup_confession_channel") {
-
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return interaction.reply({
           content: "❌ Apenas administradores podem configurar.",
@@ -628,9 +513,7 @@ module.exports = async (client, interaction) => {
     }
 
     if (interaction.customId === "select_confession_channel") {
-
       const channelId = interaction.values[0];
-
       client.settings.set(interaction.guild.id, channelId, "confessionChannel");
 
       return interaction.update({
@@ -641,22 +524,9 @@ module.exports = async (client, interaction) => {
   }
 
   // ===============================
-  // SUA LÓGICA ANTIGA (INALTERADA)
+  // SLASH COMMANDS
   // ===============================
-
   const CategoryName = interaction.commandName;
-
-  client.settings.ensure(interaction.guildId, {
-    prefix: config.prefix,
-    defaultvolume: 50,
-    defaultautoplay: false,
-    defaultfilters: [`bassboost6`, `clear`],
-    djroles: [],
-    botchannel: [],
-    musicChannels: [],
-    confessionChannel: null,
-    mixDefault: "youtube"
-  });
 
   let prefix = client.settings.get(interaction.guildId, "prefix");
 
@@ -680,19 +550,17 @@ module.exports = async (client, interaction) => {
 
   if (!command) return;
 
-  // Verificação de canais de música
   const musicChannels = client.settings.get(interaction.guildId, "musicChannels") || [];
   const isMusicCommand = command.category === "Musica";
 
   if (isMusicCommand && musicChannels.length > 0) {
     if (!musicChannels.includes(interaction.channelId) &&
         !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-
       return interaction.reply({
         ephemeral: true,
         embeds: [
           new EmbedBuilder()
-            .setColor(ee.wrongcolor)
+            .setColor(client.embedColor?.wrong || "#FF0000")
             .setTitle("❌ Este comando só pode ser usado em canais específicos!")
             .setDescription(`Por favor, use em um desses canais:\n> ${musicChannels.map(c => `<#${c}>`).join(", ")}`)
         ]
@@ -700,38 +568,22 @@ module.exports = async (client, interaction) => {
     }
   }
 
-  let botchannels = client.settings.get(interaction.guildId, `botchannel`);
+  let botchannels = client.settings.get(interaction.guildId, "botchannel");
   if (!botchannels || !Array.isArray(botchannels)) botchannels = [];
 
   if (botchannels.length > 0) {
     if (!botchannels.includes(interaction.channelId) &&
         !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-
       return interaction.reply({
         ephemeral: true,
         embeds: [
           new EmbedBuilder()
-            .setColor(ee.wrongcolor)
+            .setColor(client.embedColor?.wrong || "#FF0000")
             .setTitle("❌ Você não pode usar esse comando aqui.")
             .setDescription(`Use em:\n> ${botchannels.map(c => `<#${c}>`).join(", ")}`)
         ]
       });
     }
-  }
-
-  if (onCoolDown(interaction, command)) {
-    return interaction.reply({
-      ephemeral: true,
-      embeds: [
-        new EmbedBuilder()
-          .setColor(ee.wrongcolor)
-          .setTitle(replacemsg(settings.messages.cooldown, {
-            prefix: prefix,
-            command: command,
-            timeLeft: onCoolDown(interaction, command)
-          }))
-      ]
-    });
   }
 
   try {
@@ -746,7 +598,7 @@ module.exports = async (client, interaction) => {
       ephemeral: true,
       embeds: [
         new EmbedBuilder()
-          .setColor(ee.wrongcolor)
+          .setColor(client.embedColor?.wrong || "#FF0000")
           .setTitle("Erro ao executar o comando.")
       ]
     };
@@ -758,3 +610,92 @@ module.exports = async (client, interaction) => {
     }
   }
 };
+
+// ===============================
+// FUNÇÕES AUXILIARES
+// ===============================
+async function createTicketModal(interaction, questions, categoryId = null) {
+  const modal = new ModalBuilder()
+    .setCustomId(`ticket_modal_${Date.now()}_${categoryId || 'null'}`)
+    .setTitle("Abrir Ticket");
+
+  questions.forEach((question, index) => {
+    const input = new TextInputBuilder()
+      .setCustomId(question.id || `question_${index}`)
+      .setLabel(question.label || 'Pergunta')
+      .setStyle(question.type === 'textarea' ? TextInputStyle.Paragraph : TextInputStyle.Short)
+      .setPlaceholder(question.placeholder || '')
+      .setRequired(question.required !== false)
+      .setMaxLength(1000);
+
+    const actionRow = new ActionRowBuilder().addComponents(input);
+    modal.addComponents(actionRow);
+  });
+
+  await interaction.showModal(modal);
+}
+
+async function createTicketDirectly(interaction, ticketHandler, reason, categoryId = null) {
+  const ticketData = await ticketHandler.createTicket(
+    interaction.guild.id,
+    interaction.user.id,
+    reason,
+    interaction.user.tag
+  );
+
+  if (!ticketData) {
+    return interaction.reply({
+      content: "❌ Não foi possível criar o ticket.",
+      ephemeral: true
+    });
+  }
+
+  const ticketChannel = await ticketHandler.createTicketChannel(
+    interaction.guild,
+    ticketData,
+    categoryId
+  );
+
+  if (!ticketChannel) {
+    return interaction.reply({
+      content: "❌ Não foi possível criar o canal do ticket.",
+      ephemeral: true
+    });
+  }
+
+  try {
+    await ticketHandler.sendOpenLog(interaction.guild.id, ticketData, interaction.guild, interaction.user);
+  } catch (logError) {
+    console.error("[Create Ticket Directly] Erro ao enviar log de abertura:", logError);
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor("#5865F2")
+    .setTitle("🎫 Ticket Criado")
+    .setDescription(`Olá ${interaction.user}!\n\nSeu ticket foi criado com sucesso.\nA equipe irá responder assim que possível.`)
+    .addFields(
+      { name: "Ticket", value: `#${ticketData.ticketNumber}`, inline: true },
+      { name: "Criado por", value: interaction.user.tag, inline: true }
+    )
+    .setTimestamp()
+    .setFooter({ text: "Atendimento • Suporte" });
+
+  const closeButton = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId("close_ticket")
+        .setLabel("🔒 Fechar Ticket")
+        .setStyle(ButtonStyle.Danger)
+    );
+
+  await ticketChannel.send({
+    content: `${interaction.user}`,
+    embeds: [embed],
+    components: [closeButton]
+  });
+
+  await interaction.reply({
+    content: `✅ Ticket criado com sucesso! <#${ticketChannel.id}>`,
+    ephemeral: true
+  });
+}
