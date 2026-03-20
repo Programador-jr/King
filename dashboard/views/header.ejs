@@ -248,10 +248,11 @@
       window.showToast = showToast;
 
       const urlParams = new URLSearchParams(window.location.search);
+      const alertSystem = window.alertSystem || new AlertSystem();
       const errorParam = urlParams.get('error');
-      if (errorParam) showToast(errorParam, 'error');
+      if (errorParam) alertSystem.error('Erro!', decodeURIComponent(errorParam));
       const successParam = urlParams.get('success');
-      if (successParam) showToast(successParam, 'success');
+      if (successParam) alertSystem.success('Sucesso!', decodeURIComponent(successParam));
 
       const backToTopBtn = document.querySelector('.back-to-top') || document.createElement('button');
       if (!backToTopBtn.parentElement) {

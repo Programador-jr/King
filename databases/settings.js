@@ -129,6 +129,135 @@ const guildSettingsSchema = new mongoose.Schema({
   ticketCloseEmbed: {
     type: mongoose.Schema.Types.Mixed,
     default: null
+  },
+
+  // ========================
+  // AUTOMOD SETTINGS
+  // ========================
+  automodEnabled: {
+    type: Boolean,
+    default: false
+  },
+  automodLogChannelId: {
+    type: String,
+    default: null
+  },
+  automodLogWebhook: {
+    type: String,
+    default: null
+  },
+  automodLogType: {
+    type: String,
+    enum: ["channel", "webhook"],
+    default: "channel"
+  },
+  automodLogMessage: {
+    type: String,
+    default: '{user} | {type} | {reason}'
+  },
+  automodBypassRoles: [{
+    type: String
+  }],
+  automodMuteRole: {
+    type: String,
+    default: null
+  },
+  automodPenalty1: {
+    type: String,
+    enum: ["none", "warn", "mute", "kick", "ban"],
+    default: "none"
+  },
+  automodPenalty2: {
+    type: String,
+    enum: ["none", "warn", "mute", "kick", "ban"],
+    default: "mute"
+  },
+  automodPenalty3: {
+    type: String,
+    enum: ["none", "warn", "mute", "kick", "ban"],
+    default: "kick"
+  },
+
+  // Anti-Spam
+  automodAntiSpamEnabled: {
+    type: Boolean,
+    default: false
+  },
+  automodAntiSpamMaxMessages: {
+    type: Number,
+    default: 5
+  },
+  automodAntiSpamMaxSeconds: {
+    type: Number,
+    default: 3
+  },
+
+  // Anti-Links
+  automodAntiLinksEnabled: {
+    type: Boolean,
+    default: false
+  },
+
+  // Anti-Invite
+  automodAntiInviteEnabled: {
+    type: Boolean,
+    default: false
+  },
+
+  // Anti-Words
+  automodAntiWordsEnabled: {
+    type: Boolean,
+    default: false
+  },
+  automodAntiWordsList: [{
+    type: String
+  }],
+  automodAntiWordsWarnMessage: {
+    type: String,
+    default: "Você usou palavras proibidas neste servidor."
+  },
+
+  // Anti-NewAccounts
+  automodAntiNewAccountsEnabled: {
+    type: Boolean,
+    default: false
+  },
+  automodAntiNewAccountsMinDays: {
+    type: Number,
+    default: 1
+  },
+
+  // Infractions storage (userId -> { count, lastWarning })
+  automodInfractions: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+
+  // Log message template
+  automodLogMessage: {
+    type: String,
+    default: '{user} | {type} | {reason}'
+  },
+
+  // Global penalties
+  automodMuteRole: {
+    type: String,
+    default: null
+  },
+  automodPenalty1: {
+    type: String,
+    enum: ["none", "warn", "mute", "kick", "ban"],
+    default: "none"
+  },
+  automodPenalty2: {
+    type: String,
+    enum: ["none", "warn", "mute", "kick", "ban"],
+    default: "mute"
+  },
+  automodPenalty3: {
+    type: String,
+    enum: ["none", "warn", "mute", "kick", "ban"],
+    default: "kick"
   }
 }, {
   timestamps: true,

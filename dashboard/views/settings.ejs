@@ -349,6 +349,34 @@
             </div>
           </div>
 
+          <!-- Card de Auto-Moderação -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+              <div class="settings-card-title">
+                <h3>Auto-Moderação</h3>
+                <p>Regras automáticas de moderação</p>
+              </div>
+            </div>
+            <div class="settings-card-body">
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-shield-alt"></i>
+                  <h5>Sistema AutoMod</h5>
+                </div>
+                <p class="form-helper">Configure anti-spam, anti-links, anti-palavras e mais.</p>
+                <div class="queue-actions">
+                  <a href="/dashboard/<%= guild.id %>/automod" class="btn-modern btn-modern-primary">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Configurar AutoMod</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Card de Player/Fila -->
           <div class="settings-card">
             <div class="settings-card-header">
@@ -380,16 +408,14 @@
             </div>
           </div>
 
-          <div class="settings-actions">
-            <a href="/dashboard" class="btn-modern btn-modern-secondary">
-              <i class="fas fa-arrow-left"></i>
-              <span>Voltar</span>
-            </a>
-            <button type="submit" class="btn-modern btn-success">
-              <i class="fas fa-save"></i>
-              <span>Salvar Configurações</span>
-            </button>
-          </div>
+      <div class="btn-bar">
+        <a href="/dashboard" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Salvar Configurações
+        </button>
+      </div>
         </form>
       </div>
     </section>

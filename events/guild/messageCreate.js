@@ -9,6 +9,79 @@ module.exports = async (client, message) => {
     if(!message.guild || !message.channel || message.author.bot) return;
     if(message.channel.partial) await message.channel.fetch();
     if(message.partial) await message.fetch();
+    
+    client.settings.ensure(message.guild.id, {
+      welcomeEnabled: false,
+      welcomeChannelId: null,
+      welcomeMessage: "Bem-vindo(a) {user} ao {server}!",
+      welcomeEmbed: null,
+      welcomeDmEnabled: false,
+      welcomeDmMessage: "Olá {user}! Bem-vindo(a) ao {server}!",
+      welcomeAutoRoles: [],
+      automodEnabled: false,
+      automodLogChannelId: null,
+      automodLogWebhook: null,
+      automodLogType: "channel",
+      automodLogMessage: '{user} | {type} | {reason}',
+      automodBypassRoles: [],
+      automodMuteRole: null,
+      automodPenalty1: "none",
+      automodPenalty2: "mute",
+      automodPenalty3: "kick",
+      automodAntiSpamEnabled: false,
+      automodAntiSpamMaxMessages: 5,
+      automodAntiSpamMaxSeconds: 3,
+      automodAntiLinksEnabled: false,
+      automodAntiInviteEnabled: false,
+      automodAntiWordsEnabled: false,
+      automodAntiWordsList: [],
+      automodAntiWordsWarnMessage: "Você usou palavras proibidas neste servidor.",
+      automodAntiNewAccountsEnabled: false,
+      automodAntiNewAccountsMinDays: 1
+    });
+    
+    if (client.automodHandler) {
+      try {
+        const violations = await client.automodHandler.checkMessage(message);
+        
+        if (violations && violations.length > 0) {
+          for (const violation of violations) {
+            console.log(`[AutoMod] Violação: ${violation.type} - ${violation.reason}`);
+            
+            await message.delete().catch(() => {});
+            
+            const penaltyResult = await client.automodHandler.applyPenalty(
+              message.member, 
+              violation.type,
+              violation.type === "antiWords" ? client.automodHandler.getSettings(message.guild.id).antiWords.warnMessage : null
+            );
+            
+            const dmEmbed = new Discord.EmbedBuilder()
+              .setColor("Red")
+              .setTitle(`⚠️ Você violou a regra: ${client.automodHandler._getRuleName(violation.type)}`)
+              .setDescription(penaltyResult.message)
+              .addFields([
+                { name: "Canal", value: message.channel.toString(), inline: true },
+                { name: "Servidor", value: message.guild.name, inline: true },
+                { name: "Suas infrações", value: `${penaltyResult.infractionCount}`, inline: true },
+                { name: "Próxima penalidade", value: penaltyResult.penaltyText, inline: true }
+              ])
+              .setFooter({ text: "Sistema de Auto-Moderação" })
+              .setTimestamp();
+            
+            await message.author.send({ embeds: [dmEmbed] }).catch(() => {});
+            
+            await client.automodHandler.logViolation(message.guild, {
+              ...violation,
+              reason: `${penaltyResult.message} [${penaltyResult.penaltyText}]`
+            }, message, message.member);
+          }
+          return;
+        }
+      } catch (e) {
+        console.error("[AutoMod] Erro ao verificar mensagem:", e);
+      }
+    }
     client.settings.ensure(message.guild.id, {
       prefix: config.prefix,
       defaultvolume: 50,

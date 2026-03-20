@@ -20,6 +20,7 @@ const client = new Discord.Client({
     intents: [ 
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMembers,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.DirectMessages,
@@ -87,6 +88,32 @@ client.settings = new MongoDBEnmap();
 
 const TicketHandler = require("./handlers/tickets");
 client.ticketHandler = new TicketHandler(client);
+
+const AutoModHandler = require("./handlers/automod");
+client.automodHandler = new AutoModHandler(client);
+
+const automodDefaults = {
+    automodEnabled: false,
+    automodLogChannelId: null,
+    automodLogWebhook: null,
+    automodLogType: "channel",
+    automodLogMessage: '{user} | {type} | {reason}',
+    automodBypassRoles: [],
+    automodMuteRole: null,
+    automodPenalty1: "none",
+    automodPenalty2: "mute",
+    automodPenalty3: "kick",
+    automodAntiSpamEnabled: false,
+    automodAntiSpamMaxMessages: 5,
+    automodAntiSpamMaxSeconds: 3,
+    automodAntiLinksEnabled: false,
+    automodAntiInviteEnabled: false,
+    automodAntiWordsEnabled: false,
+    automodAntiWordsList: [],
+    automodAntiWordsWarnMessage: "Você usou palavras proibidas neste servidor.",
+    automodAntiNewAccountsEnabled: false,
+    automodAntiNewAccountsMinDays: 1
+};
 
 async function startBot() {
   try {

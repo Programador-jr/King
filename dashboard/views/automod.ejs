@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+  <link rel="stylesheet" href="/public/style.css">
+  <link rel="stylesheet" href="/public/alerts.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/index.css">
+  <title>AutoMod | <%= guild.name %></title>
+  <style>
+    .settings-card {
+      background: var(--card-bg);
+      border: 1px solid var(--theme-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .settings-card h4 {
+      margin-bottom: 20px;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--theme-border);
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 26px;
+    }
+    
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--panel-bg);
+      border: 1px solid var(--theme-border);
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--text-muted);
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+      background-color: white;
+    }
+    
+    .rule-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--theme-border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: all 0.3s;
+    }
+    
+    .rule-card.enabled {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    
+    .rule-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    
+    .rule-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    
+    .rule-title i { color: var(--accent); }
+    .rule-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+
+    .info-box {
+      background: rgba(88, 101, 242, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body class="theme-discord">
+  <%- include('header'); -%>
+
+  <section class="dashboard-page settings-page">
+    <div class="section-header">
+      <h1><i class="fas fa-shield-alt"></i> Auto-Moderação</h1>
+      <p class="section-description">Configure regras automáticas de moderação para seu servidor.</p>
+    </div>
+
+    <form method="POST" action="/dashboard/<%= guild.id %>/automod" class="settings-form">
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <strong>Info:</strong> As regras se aplicam a todos os membros, inclusive admins e dono do servidor.
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fas fa-cog"></i> Configurações Gerais</h4>
+            
+            <div class="d-flex align-items-center justify-content-between mb-4">
+              <div>
+                <label style="font-weight: 600;">Ativar Auto-Moderação</label>
+                <small class="text-muted d-block">Ativa todas as regras de moderação</small>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" name="automodEnabled" value="on" <%= settings && settings.automodEnabled ? 'checked' : '' %>>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">
+                <i class="fas fa-shield-alt"></i> Cargos Ignorados
+              </label>
+              <small class="text-muted d-block mb-2">Membros com esses cargos não serão afetados por nenhuma regra de moderação</small>
+              <select name="automodBypassRoles" class="form-select" multiple size="4">
+                <% guild.roles.cache.filter(r => r.name !== '@everyone').sort((a, b) => b.position - a.position).forEach(role => { %>
+                  <option value="<%= role.id %>" 
+                    <%= settings && settings.automodBypassRoles && settings.automodBypassRoles.includes(role.id) ? 'selected' : '' %>>
+                    <%= role.name %>
+                  </option>
+                <% }); %>
+              </select>
+              <small class="text-muted">Segure Ctrl/Cmd para selecionar múltiplos cargos</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Tipo de Log</label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="automodLogType" value="channel" 
+                    <%= !settings || settings.automodLogType === 'channel' ? 'checked' : '' %>>
+                  <label class="form-check-label">Canal de Texto</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="automodLogType" value="webhook" 
+                    <%= settings && settings.automodLogType === 'webhook' ? 'checked' : '' %>>
+                  <label class="form-check-label">Webhook</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3" id="logChannelSection">
+              <label class="form-label">Canal de Logs</label>
+              <select name="automodLogChannelId" class="form-select">
+                <option value="">Selecione um canal...</option>
+                <% guild.channels.cache.filter(c => c.isTextBased()).forEach(channel => { %>
+                  <option value="<%= channel.id %>" <%= settings && settings.automodLogChannelId === channel.id ? 'selected' : '' %>>
+                    #<%= channel.name %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+
+            <div class="mb-3" id="logWebhookSection" style="<%= settings && settings.automodLogType === 'webhook' ? '' : 'display:none;' %>">
+              <label class="form-label">URL do Webhook</label>
+              <input type="text" name="automodLogWebhook" class="form-control" 
+                value="<%= settings && settings.automodLogWebhook ? settings.automodLogWebhook : '' %>"
+                placeholder="https://discord.com/api/webhooks/...">
+            </div>
+
+            <hr class="my-4">
+
+            <div class="mb-3">
+              <label class="form-label">Mensagem do Log</label>
+              <div class="d-flex gap-2">
+                <input type="text" name="automodLogMessage" readonly class="form-control" 
+                  id="logMessageInput" 
+                  value="<%= settings && settings.automodLogMessage ? settings.automodLogMessage : '{user} | {type} | {reason}' %>">
+                <button type="button" class="btn btn-outline-secondary" onclick="openLogMessageModal()" title="Editar mensagem">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+              <small class="text-muted">
+                Use o botão <i class="fas fa-edit"></i> para editar com preview em tempo real.
+              </small>
+            </div>
+
+            <hr class="my-4">
+
+            <h5><i class="fas fa-exclamation-triangle"></i> Sistema de Penalidades</h5>
+            <p class="text-muted small mb-3">Configurações válidas para todas as regras de moderação.</p>
+
+            <div class="col-md-6">
+              <label class="form-label">Role de Mute</label>
+              <select name="automodMuteRole" class="form-select">
+                <option value="">Nenhuma</option>
+                <% guild.roles.cache.filter(r => r.name !== '@everyone').sort((a, b) => b.position - a.position).forEach(role => { %>
+                  <option value="<%= role.id %>" <%= settings && settings.automodMuteRole === role.id ? 'selected' : '' %>>
+                    <%= role.name %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-md-4">
+                <label class="form-label">1ª Infração</label>
+                <select name="automodPenalty1" class="form-select">
+                  <option value="none" <%= !settings || settings.automodPenalty1 === 'none' ? 'selected' : '' %>>Nenhuma</option>
+                  <option value="warn" <%= settings && settings.automodPenalty1 === 'warn' ? 'selected' : '' %>>Apenas aviso</option>
+                  <option value="mute" <%= settings && settings.automodPenalty1 === 'mute' ? 'selected' : '' %>>Mute</option>
+                  <option value="kick" <%= settings && settings.automodPenalty1 === 'kick' ? 'selected' : '' %>>Kick</option>
+                  <option value="ban" <%= settings && settings.automodPenalty1 === 'ban' ? 'selected' : '' %>>Ban</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">2ª Infração</label>
+                <select name="automodPenalty2" class="form-select">
+                  <option value="none" <%= !settings || settings.automodPenalty2 === 'none' ? 'selected' : '' %>>Nenhuma</option>
+                  <option value="warn" <%= settings && settings.automodPenalty2 === 'warn' ? 'selected' : '' %>>Apenas aviso</option>
+                  <option value="mute" <%= settings && settings.automodPenalty2 === 'mute' ? 'selected' : '' %>>Mute</option>
+                  <option value="kick" <%= settings && settings.automodPenalty2 === 'kick' ? 'selected' : '' %>>Kick</option>
+                  <option value="ban" <%= settings && settings.automodPenalty2 === 'ban' ? 'selected' : '' %>>Ban</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">3ª Infração (máxima)</label>
+                <select name="automodPenalty3" class="form-select">
+                  <option value="none" <%= !settings || settings.automodPenalty3 === 'none' ? 'selected' : '' %>>Nenhuma</option>
+                  <option value="warn" <%= settings && settings.automodPenalty3 === 'warn' ? 'selected' : '' %>>Apenas aviso</option>
+                  <option value="mute" <%= settings && settings.automodPenalty3 === 'mute' ? 'selected' : '' %>>Mute</option>
+                  <option value="kick" <%= settings && settings.automodPenalty3 === 'kick' ? 'selected' : '' %>>Kick</option>
+                  <option value="ban" <%= settings && settings.automodPenalty3 === 'ban' ? 'selected' : '' %>>Ban</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fas fa-bolt"></i> Regras de Moderação</h4>
+
+            <div class="rule-card <%= settings && settings.automodAntiSpamEnabled ? 'enabled' : '' %>">
+              <div class="rule-header">
+                <div class="rule-title">
+                  <i class="fas fa-comment-dots"></i>
+                  Anti-Spam
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" name="automodAntiSpamEnabled" value="on" <%= settings && settings.automodAntiSpamEnabled ? 'checked' : '' %>>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="rule-desc">Bloqueia spam de mensagens repetidas</div>
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label">Máximo de mensagens</label>
+                  <input type="number" name="automodAntiSpamMaxMessages" class="form-control" 
+                    value="<%= settings ? settings.automodAntiSpamMaxMessages : 5 %>" min="2" max="20">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Em segundos</label>
+                  <input type="number" name="automodAntiSpamMaxSeconds" class="form-control" 
+                    value="<%= settings ? settings.automodAntiSpamMaxSeconds : 3 %>" min="1" max="60">
+                </div>
+              </div>
+            </div>
+
+            <div class="rule-card <%= settings && settings.automodAntiLinksEnabled ? 'enabled' : '' %>">
+              <div class="rule-header">
+                <div class="rule-title">
+                  <i class="fas fa-link"></i>
+                  Anti-Links
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" name="automodAntiLinksEnabled" value="on" <%= settings && settings.automodAntiLinksEnabled ? 'checked' : '' %>>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="rule-desc">Bloqueia envio de links externos</div>
+            </div>
+
+            <div class="rule-card <%= settings && settings.automodAntiInviteEnabled ? 'enabled' : '' %>">
+              <div class="rule-header">
+                <div class="rule-title">
+                  <i class="fas fa-user-friends"></i>
+                  Anti-Invite
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" name="automodAntiInviteEnabled" value="on" <%= settings && settings.automodAntiInviteEnabled ? 'checked' : '' %>>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="rule-desc">Bloqueia convites de outros servidores</div>
+            </div>
+
+            <div class="rule-card <%= settings && settings.automodAntiWordsEnabled ? 'enabled' : '' %>">
+              <div class="rule-header">
+                <div class="rule-title">
+                  <i class="fas fa-comment-slash"></i>
+                  Anti-Palavras
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" name="automodAntiWordsEnabled" value="on" <%= settings && settings.automodAntiWordsEnabled ? 'checked' : '' %>>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="rule-desc">Bloqueia palavras específicas com sistema de infrações progressivas</div>
+              
+              <div class="mt-3">
+                <label class="form-label">Mensagem de aviso</label>
+                <input type="text" name="automodAntiWordsWarnMessage" class="form-control" 
+                  value="<%= settings && settings.automodAntiWordsWarnMessage ? settings.automodAntiWordsWarnMessage : 'Você usou palavras proibidas neste servidor.' %>"
+                  placeholder="Mensagem exibida ao usuário">
+              </div>
+
+              <div class="mt-3">
+                <label class="form-label">Palavras bloqueadas (separadas por vírgula)</label>
+                <textarea name="automodAntiWordsList" class="form-control" rows="3" 
+                  placeholder="palavra1, palavra2, palavra3"><%= settings && settings.automodAntiWordsList && Array.isArray(settings.automodAntiWordsList) ? settings.automodAntiWordsList.join(', ') : '' %></textarea>
+                <small class="text-muted">Digite as palavras separadas por vírgula. Ex: palavra1, palavra2, palavra3</small>
+              </div>
+            </div>
+
+            <div class="rule-card <%= settings && settings.automodAntiNewAccountsEnabled ? 'enabled' : '' %>">
+              <div class="rule-header">
+                <div class="rule-title">
+                  <i class="fas fa-user-clock"></i>
+                  Anti-Contas Novas
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" name="automodAntiNewAccountsEnabled" value="on" <%= settings && settings.automodAntiNewAccountsEnabled ? 'checked' : '' %>>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="rule-desc">Kicka membros com contas muito novas</div>
+              <div class="col-md-6">
+                <label class="form-label">Idade mínima (dias)</label>
+                <input type="number" name="automodAntiNewAccountsMinDays" class="form-control" 
+                  value="<%= settings ? settings.automodAntiNewAccountsMinDays : 1 %>" min="0" max="365">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="settings-card">
+            <h4><i class="fas fa-info-circle"></i> Resumo</h4>
+            <ul class="list-unstyled small">
+              <li class="mb-2">
+                <i class="fas fa-<%= settings && settings.automodAntiSpamEnabled ? 'check-circle text-success' : 'times-circle text-danger' %>"></i>
+                Anti-Spam
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-<%= settings && settings.automodAntiLinksEnabled ? 'check-circle text-success' : 'times-circle text-danger' %>"></i>
+                Anti-Links
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-<%= settings && settings.automodAntiInviteEnabled ? 'check-circle text-success' : 'times-circle text-danger' %>"></i>
+                Anti-Invite
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-<%= settings && settings.automodAntiWordsEnabled ? 'check-circle text-success' : 'times-circle text-danger' %>"></i>
+                Anti-Palavras
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-<%= settings && settings.automodAntiNewAccountsEnabled ? 'check-circle text-success' : 'times-circle text-danger' %>"></i>
+                Anti-Contas Novas
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-bar">
+        <a href="/dashboard/<%= guild.id %>" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Salvar Configurações
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <div class="modal fade" id="logMessageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Mensagem de Log</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label fw-bold">Mensagem:</label>
+          <textarea id="logMessageEditor" class="form-control" rows="3" 
+            placeholder="{user} | {type} | {reason}"></textarea>
+          
+          <div class="mt-3">
+            <label class="form-label fw-bold">Preview (dados reais):</label>
+            <div id="logMessagePreview" class="p-3 rounded" style="background: #2f3136; color: #dcddde; font-family: monospace; min-height: 50px;"></div>
+          </div>
+          
+          <div class="mt-3 p-3 rounded" style="background: rgba(88, 101, 242, 0.1); border: 1px solid var(--accent);">
+            <small class="text-muted">
+              <strong>Variáveis disponíveis:</strong><br>
+              <code>{user}</code> → <%= guild.name %>#0001<br>
+              <code>{type}</code> → Anti-Palavras<br>
+              <code>{reason}</code> → Você usou palavras proibidas<br>
+              <code>{guild}</code> → <%= guild.name %><br>
+              <code>{channel}</code> → #geral
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveLogMessage()">
+            <i class="fas fa-save"></i> Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('footer'); -%>
+  <script src="/public/alerts.js"></script>
+  <script src="/public/settings-multiselect.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.querySelectorAll('input[name="automodLogType"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        document.getElementById('logChannelSection').style.display = this.value === 'channel' ? 'block' : 'none';
+        document.getElementById('logWebhookSection').style.display = this.value === 'webhook' ? 'block' : 'none';
+      });
+    });
+
+    document.querySelectorAll('.rule-card input[type="checkbox"]').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const card = this.closest('.rule-card');
+        if (card) {
+          card.classList.toggle('enabled', this.checked);
+        }
+      });
+    });
+
+    const previewData = {
+      user: '<%= guild.name %>#1234',
+      type: 'Anti-Palavras',
+      reason: 'Você usou palavras proibidas',
+      guild: '<%= guild.name %>',
+      channel: '#geral'
+    };
+
+    function openLogMessageModal() {
+      const currentValue = document.getElementById('logMessageInput').value;
+      document.getElementById('logMessageEditor').value = currentValue;
+      updateLogPreview(currentValue);
+      new bootstrap.Modal(document.getElementById('logMessageModal')).show();
+    }
+
+    function updateLogPreview(template) {
+      let preview = template
+        .replace(/{user}/g, previewData.user)
+        .replace(/{type}/g, previewData.type)
+        .replace(/{reason}/g, previewData.reason)
+        .replace(/{guild}/g, previewData.guild)
+        .replace(/{channel}/g, previewData.channel);
+      document.getElementById('logMessagePreview').textContent = preview || 'Preview aparecerá aqui...';
+    }
+
+    function saveLogMessage() {
+      const value = document.getElementById('logMessageEditor').value;
+      document.getElementById('logMessageInput').value = value;
+      bootstrap.Modal.getInstance(document.getElementById('logMessageModal')).hide();
+    }
+
+    document.getElementById('logMessageEditor').addEventListener('input', function(e) {
+      updateLogPreview(e.target.value);
+    });
+  </script>
+</body>
+</html>
