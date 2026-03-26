@@ -356,6 +356,20 @@ const withoutCookieFlags = (flags) => {
 
 const json = (url, flags = {}, options = {}) =>
   new Promise((resolve, reject) => {
+    let settled = false;
+
+    const resolveOnce = (value) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
+    const rejectOnce = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+
     const child = spawn(YTDLP_PATH, buildArgs(url, flags), {
       windowsHide: true,
       ...options,
@@ -372,15 +386,15 @@ const json = (url, flags = {}, options = {}) =>
       stderr += chunk.toString();
     });
 
-    child.on("error", reject);
+    child.on("error", rejectOnce);
     child.on("close", (code) => {
       if (code !== 0) {
-        return reject(new Error((stderr || stdout || `yt-dlp exited with code ${code}`).trim()));
+        return rejectOnce(new Error((stderr || stdout || `yt-dlp exited with code ${code}`).trim()));
       }
       try {
-        resolve(parseYtDlpJsonOutput(stdout, stderr));
+        resolveOnce(parseYtDlpJsonOutput(stdout, stderr));
       } catch (err) {
-        reject(err);
+        rejectOnce(err);
       }
     });
   });

@@ -162,6 +162,13 @@ class AlertSystem {
   // Confirm personalizado com modal
   confirm(title, message, onConfirm, onCancel, type = 'warning') {
     return new Promise((resolve) => {
+      let settled = false;
+      const resolveOnce = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+
       // Remover modal existente se houver
       this.closeModal();
       
@@ -208,13 +215,13 @@ class AlertSystem {
       const handleCancel = () => {
         this.closeModal();
         if (onCancel) onCancel();
-        resolve(false);
+        resolveOnce(false);
       };
       
       const handleConfirm = () => {
         this.closeModal();
         if (onConfirm) onConfirm();
-        resolve(true);
+        resolveOnce(true);
       };
       
       // Eventos dos botões

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
@@ -27,11 +27,11 @@
         return item ? (num / item.value).toFixed(digits).replace(rx, '$1') + item.symbol : '0';
       };
 
-      const queue = guild ? botClient.distube.getQueue(guild.id) : null;
+      const queue = guild ? bot.distube.getQueue(guild.id) : null;
       const hasQueue = Boolean(queue && Array.isArray(queue.songs) && queue.songs.length > 0);
       const current = hasQueue ? queue.songs[0] : null;
       const currentCover = current
-        ? (current.thumbnail || (current.id ? `https://img.youtube.com/vi/${current.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 512 })))
+        ? (current.thumbnail || (current.id ? `https://img.youtube.com/vi/${current.id}/mqdefault.jpg` : bot.avatar512))
         : '';
       const progress = hasQueue
         ? Math.max(0, Math.min(100, (Math.floor(queue.currentTime) / Math.max(1, Math.floor(current.duration))) * 100))
@@ -239,7 +239,7 @@
                   >
                     <div class="queue-track-cover">
                       <img
-                        src="<%= song.thumbnail || (song.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : botClient.user.displayAvatarURL({ size: 256 })) %>"
+                        src="<%= song.thumbnail || (song.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : bot.avatar) %>"
                         alt="<%= song.name %>"
                       >
                     </div>

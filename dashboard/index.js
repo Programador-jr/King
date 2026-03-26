@@ -19,6 +19,26 @@ const {
   getDashboardCallbackUrl,
 } = require("../handlers/dashboardConfig");
 
+const getBotData = (client) => ({
+  avatar: client.user.displayAvatarURL({ size: 128 }),
+  avatar512: client.user.displayAvatarURL({ size: 512 }),
+  username: client.user.username,
+  id: client.user.id,
+  guildCount: client.guilds.cache.size,
+  guilds: client.guilds.cache,
+  settings: client.settings,
+  discord: client.user,
+  distube: {
+    getQueue: (guildId) => client.distube.getQueue(guildId)
+  }
+});
+
+const getQueueBotData = (client) => {
+  const data = getBotData(client);
+  data.getQueue = (guildId) => client.distube.getQueue(guildId);
+  return data;
+};
+
 /**
  *  STARTING THE WEBSITE
  * @param {*} client THE DISCORD BOT CLIENT 
@@ -368,9 +388,9 @@ module.exports = client => {
           req: req,
           user: req.isAuthenticated() ? req.user : null,
           //guild: client.guilds.cache.get(req.params.guildID),
-          botClient: client,
+          bot: getBotData(client),
           Permissions: Permissions,
-          bot: websiteInfo,
+          websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
           categories: client.categories, 
           commands: client.commands, 
@@ -388,9 +408,9 @@ module.exports = client => {
       res.render("termos", {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
       });
     })
 
@@ -398,9 +418,9 @@ module.exports = client => {
       res.render("privacidade", {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
       });
     })
 
@@ -411,9 +431,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         //guild: client.guilds.cache.get(req.params.guildID),
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories, 
         commands: client.commands, 
@@ -444,9 +464,9 @@ module.exports = client => {
           req: req,
           user: req.isAuthenticated() ? req.user : null,
           //guild: client.guilds.cache.get(req.params.guildID),
-          botClient: client,
+          bot: getBotData(client),
           Permissions: Permissions,
-          bot: websiteInfo,
+          websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
           categories: client.categories, 
           commands: client.commands, 
@@ -512,9 +532,9 @@ module.exports = client => {
           req: req,
           user: req.isAuthenticated() ? req.user : null,
           guild: client.guilds.cache.get(req.params.guildID),
-          botClient: client,
+          bot: getBotData(client),
           Permissions: Permissions,
-          bot: websiteInfo,
+          websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
           categories: client.categories, 
           commands: client.commands, 
@@ -530,11 +550,6 @@ module.exports = client => {
 
     // Settings endpoint.
     app.post("/dashboard/:guildID", checkAuth, async (req, res) => {
-      // Logs para depuração
-      console.log('[DEBUG] POST /dashboard/:guildID - req.body:', req.body);
-      console.log('[DEBUG] Headers:', req.headers);
-      console.log('[DEBUG] Content-Type:', req.headers['content-type']);
-      
       // We validate the request, check if guild exists, member is in guild and if member has minimum permissions, if not, we redirect it back.
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Can't get Guild Information Data!"));
@@ -563,7 +578,6 @@ module.exports = client => {
       if(req.body.defaultautoplay !== undefined) {
         const autoplayValue = req.body.defaultautoplay === 'on' || req.body.defaultautoplay === 'true';
         client.settings.set(guild.id, autoplayValue, "defaultautoplay");
-        console.log(`[SETTINGS] Autoplay salvo para guild ${guild.id}: ${autoplayValue}`);
       }
       
       //mix default (spotify or youtube)
@@ -624,10 +638,10 @@ module.exports = client => {
           req: req,
           user: req.isAuthenticated() ? req.user : null,
           guild: client.guilds.cache.get(req.params.guildID),
-          botClient: client,
+          bot: getBotData(client),
           
           Permissions: Permissions,
-          bot: websiteInfo,
+          websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
           categories: client.categories, 
           commands: client.commands, 
@@ -662,16 +676,13 @@ module.exports = client => {
 
         // Salvar no banco de dados
         client.settings.set(guild.id, defaultautoplay, "defaultautoplay");
-        console.log(`[AJAX] Autoplay atualizado via toggle para guild ${guild.id}: ${defaultautoplay}`);
 
         // Aplicar à fila ativa se existir
         const activeQueue = client.distube.getQueue(guild.id);
         if (activeQueue && typeof activeQueue.toggleAutoplay === 'function') {
           try {
-            // Se o autoplay na fila for diferente da configuração, atualiza
             if (activeQueue.autoplay !== defaultautoplay) {
               await activeQueue.toggleAutoplay();
-              console.log(`[AJAX] Autoplay aplicado à fila ativa: ${defaultautoplay}`);
             }
           } catch (error) {
             console.error('Erro ao atualizar autoplay na fila:', error);
@@ -699,9 +710,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         guild: client.guilds.cache.get(req.params.guildID),
-        botClient: client,
+        bot: getQueueBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories, 
         commands: client.commands, 
@@ -893,9 +904,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         //guild: client.guilds.cache.get(req.params.guildID),
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories, 
         commands: client.commands, 
@@ -954,9 +965,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
         commands: client.commands,
@@ -1076,9 +1087,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
         commands: client.commands,
@@ -1156,9 +1167,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         ticket: ticket
       });
     });
@@ -1543,9 +1554,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
         commands: client.commands,
@@ -1589,9 +1600,9 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
-        botClient: client,
+        bot: getBotData(client),
         Permissions: Permissions,
-        bot: websiteInfo,
+        websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
         commands: client.commands,
@@ -1862,8 +1873,8 @@ module.exports = client => {
       const settings = client.settings.get(guild.id);
 
       res.render("automod", {
-        req, user: req.isAuthenticated() ? req.user : null, guild, botClient: client,
-        Permissions, bot: websiteInfo, callback: resolveCallbackForRequest(req),
+        req, user: req.isAuthenticated() ? req.user : null, guild, bot: getBotData(client),
+        Permissions, websiteInfo: websiteInfo, callback: resolveCallbackForRequest(req),
         categories: client.categories, commands: client.commands,
         BotConfig, BotFilters, SPOTIFY_MIXES, YT_MIXES, BotEmojis,
         settings
@@ -1898,8 +1909,6 @@ module.exports = client => {
         automodAntiNewAccountsEnabled, automodAntiNewAccountsMinDays
       } = req.body;
 
-      console.log(`[Dashboard] Salvando automod para guild ${guild.id}`);
-      
       client.settings.set(guild.id, !!automodEnabled, "automodEnabled");
       client.settings.set(guild.id, automodLogType === 'webhook' ? 'webhook' : 'channel', "automodLogType");
       client.settings.set(guild.id, automodLogChannelId || null, "automodLogChannelId");

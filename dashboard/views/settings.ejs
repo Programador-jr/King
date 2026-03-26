@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="/public/alerts.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
@@ -109,7 +109,7 @@
       <div class="section-header">
         <h1><i class="fas fa-cogs"></i> Configurações do Servidor</h1>
         <p class="section-description">
-          Edite as configurações do <%= botClient.user.username %> em <b><%= guild.name %></b>.
+          Edite as configurações do <%= bot.username %> em <b><%= guild.name %></b>.
         </p>
       </div>
 
@@ -138,7 +138,7 @@
                     const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
                     const isThread = typeof channel.isThread === 'function' && channel.isThread();
                     if (!isTextBased || isThread) return false;
-                    const perms = channel.permissionsFor(botClient.user);
+                    const perms = channel.permissionsFor(bot.discord);
                     return Boolean(perms && perms.has(['ViewChannel', 'SendMessages', 'EmbedLinks']));
                   })
                   .sort((a, b) => a.rawPosition - b.rawPosition);
@@ -149,54 +149,7 @@
                   <h5>Prefixo</h5>
                 </div>
                 <p class="form-helper">Prefixo usado para comandos de texto.</p>
-                <input type="text" class="form-control modern-input" name="prefix" value="<%= botClient.settings.get(guild.id, 'prefix') %>" placeholder="Ex.: k!">
-              </div>
-
-              <div class="settings-group">
-                <div class="settings-group-header">
-                  <i class="fas fa-play-circle"></i>
-                  <h5>Reprodução automática padrão</h5>
-                </div>
-                <p class="form-helper">Ativa autoplay por padrão quando a fila iniciar.</p>
-                <div class="form-check form-switch modern-switch">
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    role="switch"
-                    name="defaultautoplay"
-                    id="defaultautoplay"
-                    <%= botClient.settings.get(guild.id, 'defaultautoplay') ? 'checked' : '' %>
-                  >
-                  <label class="form-check-label" for="defaultautoplay" id="autoplay-label">
-                    <%= botClient.settings.get(guild.id, 'defaultautoplay') ? 'Ativado' : 'Desativado' %>
-                  </label>
-                </div>
-              </div>
-
-              <div class="settings-group">
-                <div class="settings-group-header">
-                  <i class="fas fa-volume-up"></i>
-                  <h5>Volume padrão</h5>
-                </div>
-                <p class="form-helper">Volume aplicado quando uma nova fila é criada.</p>
-                <input oninput="this.closest('.settings-group').querySelector('output').value = this.value" type="range" class="form-range modern-range" min="1" max="150" step="1" value="<%= botClient.settings.get(guild.id, 'defaultvolume') %>" name="defaultvolume" id="defaultvolume">
-                <p class="slider-value">Volume atual: <output><%= botClient.settings.get(guild.id, 'defaultvolume') %></output>%</p>
-              </div>
-
-              <div class="settings-group">
-                <div class="settings-group-header">
-                  <i class="fas fa-user-tag"></i>
-                  <h5>Cargos DJ</h5>
-                </div>
-                <p class="form-helper">Usuários com estes cargos podem usar comandos de controle de música/fila.</p>
-                <select class="form-select modern-select" multiple aria-label="DJ Roles" name="djroles">
-                  <% const djroles = botClient.settings.get(guild.id, 'djroles') || []; %>
-                  <% guild.roles.cache.filter(role => !role.managed).sort((a, b) => b.rawPosition - a.rawPosition).forEach((role) => { %>
-                    <option value="<%= role.id %>" <%= djroles.includes(role.id) ? 'selected' : '' %>>
-                      @<%= role.name %>
-                    </option>
-                  <% }) %>
-                </select>
+                <input type="text" class="form-control modern-input" name="prefix" value="<%= bot.settings.get(guild.id, 'prefix') %>" placeholder="Ex.: k!">
               </div>
 
               <div class="settings-group">
@@ -205,14 +158,14 @@
                   <h5>Canais liberados para comandos</h5>
                 </div>
                 <p class="form-helper">Se definido, o bot responde comandos apenas nestes canais.</p>
-                <% const botchannels = botClient.settings.get(guild.id, 'botchannel') || []; %>
+                <% const botchannels = bot.settings.get(guild.id, 'botchannel') || []; %>
                 <select class="form-select modern-select" multiple aria-label="Bot Channels" name="botchannel">
                   <% guild.channels.cache
                       .filter((channel) => {
                         const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
                         const isThread = typeof channel.isThread === 'function' && channel.isThread();
                         if (!isTextBased || isThread) return false;
-                        const perms = channel.permissionsFor(botClient.user);
+                        const perms = channel.permissionsFor(bot.discord);
                         return Boolean(perms && perms.has(['ViewChannel', 'SendMessages', 'EmbedLinks']));
                       })
                       .sort((a, b) => a.rawPosition - b.rawPosition)
@@ -230,7 +183,7 @@
                   <h5>Canal de Confissões</h5>
                 </div>
                 <p class="form-helper">Canal usado para enviar confissões anônimas. Se vazio, o comando de confissões fica desativado.</p>
-                <% const confessionChannel = botClient.settings.get(guild.id, 'confessionChannel') || ''; %>
+                <% const confessionChannel = bot.settings.get(guild.id, 'confessionChannel') || ''; %>
                 <select class="form-select modern-select" aria-label="Confession Channel" name="confessionChannel">
                   <option value="" <%= !confessionChannel ? 'selected' : '' %>>Nenhum canal (desativa comando)</option>
                   <% guild.channels.cache
@@ -238,7 +191,7 @@
                         const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
                         const isThread = typeof channel.isThread === 'function' && channel.isThread();
                         if (!isTextBased || isThread) return false;
-                        const perms = channel.permissionsFor(botClient.user);
+                        const perms = channel.permissionsFor(bot.discord);
                         return Boolean(perms && perms.has(['ViewChannel', 'SendMessages', 'EmbedLinks']));
                       })
                       .sort((a, b) => a.rawPosition - b.rawPosition)
@@ -256,14 +209,14 @@
                   <h5>Canais de Música</h5>
                 </div>
                 <p class="form-helper">Se definido, apenas nestes canais será possível usar comandos de música. Se vazio, qualquer canal pode usar.</p>
-                <% const musicchannels = botClient.settings.get(guild.id, 'musicChannels') || []; %>
+                <% const musicchannels = bot.settings.get(guild.id, 'musicChannels') || []; %>
                 <select class="form-select modern-select" multiple aria-label="Music Channels" name="musicChannels">
                   <% guild.channels.cache
                       .filter((channel) => {
                         const isTextBased = typeof channel.isTextBased === 'function' && channel.isTextBased();
                         const isThread = typeof channel.isThread === 'function' && channel.isThread();
                         if (!isTextBased || isThread) return false;
-                        const perms = channel.permissionsFor(botClient.user);
+                        const perms = channel.permissionsFor(bot.discord);
                         return Boolean(perms && perms.has(['ViewChannel', 'SendMessages', 'EmbedLinks']));
                       })
                       .sort((a, b) => a.rawPosition - b.rawPosition)
@@ -289,13 +242,60 @@
               </div>
             </div>
             <div class="settings-card-body">
+
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-play-circle"></i>
+                  <h5>Reprodução automática padrão</h5>
+                </div>
+                <p class="form-helper">Ativa autoplay por padrão quando a fila iniciar.</p>
+                <div class="form-check form-switch modern-switch">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    name="defaultautoplay"
+                    id="defaultautoplay"
+                    <%= bot.settings.get(guild.id, 'defaultautoplay') ? 'checked' : '' %>
+                  >
+                  <label class="form-check-label" for="defaultautoplay" id="autoplay-label">
+                    <%= bot.settings.get(guild.id, 'defaultautoplay') ? 'Ativado' : 'Desativado' %>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-volume-up"></i>
+                  <h5>Volume padrão</h5>
+                </div>
+                <p class="form-helper">Volume aplicado quando uma nova fila é criada.</p>
+                <input oninput="this.closest('.settings-group').querySelector('output').value = this.value" type="range" class="form-range modern-range" min="1" max="150" step="1" value="<%= bot.settings.get(guild.id, 'defaultvolume') %>" name="defaultvolume" id="defaultvolume">
+                <p class="slider-value">Volume atual: <output><%= bot.settings.get(guild.id, 'defaultvolume') %></output>%</p>
+              </div>
+
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-user-tag"></i>
+                  <h5>Cargos DJ</h5>
+                </div>
+                <p class="form-helper">Usuários com estes cargos podem usar comandos de controle de música/fila.</p>
+                <select class="form-select modern-select" multiple aria-label="DJ Roles" name="djroles">
+                  <% const djroles = bot.settings.get(guild.id, 'djroles') || []; %>
+                  <% guild.roles.cache.filter(role => !role.managed).sort((a, b) => b.rawPosition - a.rawPosition).forEach((role) => { %>
+                    <option value="<%= role.id %>" <%= djroles.includes(role.id) ? 'selected' : '' %>>
+                      @<%= role.name %>
+                    </option>
+                  <% }) %>
+                </select>
+              </div>              
               <div class="settings-group">
                 <div class="settings-group-header">
                   <i class="fas fa-random"></i>
                   <h5>Mix padrão</h5>
                 </div>
                 <p class="form-helper">Plataforma padrão para o comando mix. Se a playlist selected falhar, usa a outra como fallback.</p>
-                <% const mixDefault = botClient.settings.get(guild.id, 'mixDefault') || 'youtube'; %>
+                <% const mixDefault = bot.settings.get(guild.id, 'mixDefault') || 'youtube'; %>
                 <select class="form-select modern-select" aria-label="Mix Default" name="mixDefault">
                   <option value="youtube" <%= mixDefault === 'youtube' ? 'selected' : '' %>>YouTube (padrão)</option>
                   <option value="spotify" <%= mixDefault === 'spotify' ? 'selected' : '' %>>Spotify</option>
@@ -308,7 +308,7 @@
                   <h5>Filtros padrão</h5>
                 </div>
                 <p class="form-helper">Filtros que o bot aplica antes de iniciar a reprodução.</p>
-                <% const defaultfilters = botClient.settings.get(guild.id, 'defaultfilters') || []; %>
+                <% const defaultfilters = bot.settings.get(guild.id, 'defaultfilters') || []; %>
                 <% const blockedDashboardFilters = new Set(['custombassboost', 'customspeed', 'clear']); %>
                 <select class="form-select modern-select" multiple aria-label="Default Filters" name="defaultfilters">
                   <% Object.keys(BotFilters).filter((filter) => !blockedDashboardFilters.has(filter)).forEach((filter) => { %>
@@ -396,7 +396,7 @@
                 </div>
                 <p class="form-helper">Veja e gerencie a fila de músicas atual.</p>
                 <div class="queue-info">
-                  <p><strong>Músicas na fila:</strong> <span id="queueCount"><%= botClient.distube.getQueue(guild.id) && botClient.distube.getQueue(guild.id).songs ? botClient.distube.getQueue(guild.id).songs.length : 0 %></span></p>
+                  <p><strong>Músicas na fila:</strong> <span id="queueCount"><%= bot.distube.getQueue(guild.id) && bot.distube.getQueue(guild.id).songs ? bot.distube.getQueue(guild.id).songs.length : 0 %></span></p>
                 </div>
                 <div class="queue-actions">
                   <a href="/queue/<%= guild.id %>" class="btn-modern btn-modern-secondary">

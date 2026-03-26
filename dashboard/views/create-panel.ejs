@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="/public/alerts.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
@@ -1379,7 +1379,7 @@
 
               <div class="embed-preview-container">
                 <div class="preview-header">
-                  <%= botClient.user.username %> • hoje às 00:00
+                  <%= bot.username %> • hoje às 00:00
                 </div>
                 <div class="discord-embed" id="embedPreview-${index}">
                   <div class="discord-embed-title" id="embedPreviewTitle-${index}">Título do Embed</div>

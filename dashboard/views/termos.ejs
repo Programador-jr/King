@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
-    <title>Termos de Serviço - <%= botClient.user.username %></title>
+    <title>Termos de Serviço - <%= bot.username %></title>
   </head>
   <body class="theme-discord">
     <%- include('header'); -%>
@@ -22,7 +22,7 @@
         <div class="legal-section">
           <h2>1. Aceitação dos Termos</h2>
           <p>
-            Ao utilizar o <strong><%= botClient.user.username %></strong>, você concorda em cumprir estes Termos de Serviço. 
+            Ao utilizar o <strong><%= bot.username %></strong>, você concorda em cumprir estes Termos de Serviço. 
             Se você não concorda com qualquer parte destes termos, não utilize nosso bot.
           </p>
         </div>
@@ -30,7 +30,7 @@
         <div class="legal-section">
           <h2>2. Descrição do Serviço</h2>
           <p>
-            O <%= botClient.user.username %> é um bot do Discord que oferece funcionalidades de música, 
+            O <%= bot.username %> é um bot do Discord que oferece funcionalidades de música, 
             utilitários, moderação e outras ferramentas para servidores do Discord.
           </p>
         </div>
@@ -57,7 +57,7 @@
         <div class="legal-section">
           <h2>5. Limitação de Responsabilidade</h2>
           <p>
-            O <%= botClient.user.username %> e seus desenvolvedores não serão responsáveis por quaisquer 
+            O <%= bot.username %> e seus desenvolvedores não serão responsáveis por quaisquer 
             danos indiretos, incidentais, especiais ou consequenciais decorrentes do uso ou incapacidade 
             de usar o serviço.
           </p>

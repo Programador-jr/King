@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
-    <title>Dashboard | <%= bot.name %></title>
+    <title>Dashboard | <%= websiteInfo.name %></title>
   </head>
   <body>
     <%- include('header'); -%>
@@ -29,8 +29,8 @@
             return (guildPerms & MANAGE_GUILD) === MANAGE_GUILD;
           })
           .sort((a, b) => {
-            const inA = botClient.guilds.cache.has(a.id) ? 1 : 0;
-            const inB = botClient.guilds.cache.has(b.id) ? 1 : 0;
+            const inA = bot.guilds.has(a.id) ? 1 : 0;
+            const inB = bot.guilds.has(b.id) ? 1 : 0;
             return inB - inA;
           });
         %>
@@ -41,8 +41,8 @@
               const guildIcon = guild.icon
                 ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.webp?size=512`
                 : `https://cdn.discordapp.com/embed/avatars/0.png`;
-              const onServer = botClient.guilds.cache.has(guild.id);
-              const botGuild = onServer ? botClient.guilds.cache.get(guild.id) : null;
+              const onServer = bot.guilds.has(guild.id);
+              const botGuild = onServer ? bot.guilds.get(guild.id) : null;
               const memberCount = botGuild ? botGuild.memberCount : (guild.memberCount || guild.members?.cache?.size || 'N/A');
             %>
               <div class="col-12 col-sm-6 col-xl-4">
@@ -96,7 +96,7 @@
                       </p>
                       <div class="card-actions">
                         <a
-                          href="<%= `https://discord.com/oauth2/authorize?client_id=${botClient.user.id}&scope=bot%20applications.commands&guild_id=${guild.id}&response_type=code&redirect_uri=${encodeURIComponent(`${callback}`)}` %>"
+                          href="<%= `https://discord.com/oauth2/authorize?client_id=${bot.id}&scope=bot%20applications.commands&guild_id=${guild.id}&response_type=code&redirect_uri=${encodeURIComponent(`${callback}`)}` %>"
                           class="btn-modern btn-modern-success"
                           target="_blank"
                           rel="noopener noreferrer"

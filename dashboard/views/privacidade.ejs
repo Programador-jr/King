@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
-    <title>Política de Privacidade - <%= botClient.user.username %></title>
+    <title>Política de Privacidade - <%= bot.username %></title>
   </head>
   <body class="theme-discord">
     <%- include('header'); -%>
@@ -26,7 +26,7 @@
         <div class="legal-section">
           <h2>1. Introdução</h2>
           <p>
-            Esta Política de Privacidade descreve como o <strong><%= botClient.user.username %></strong> 
+            Esta Política de Privacidade descreve como o <strong><%= bot.username %></strong> 
             coleta, usa e protege suas informações. Ao utilizar nosso bot, você concorda com esta política.
           </p>
         </div>
