@@ -161,21 +161,34 @@ class LavalinkManagerWrapper extends EventEmitter {
         if (this.manager?.useable) return Promise.resolve(true);
 
         return new Promise((resolve, reject) => {
+            let settled = false;
             let lastError = null;
 
-            const timer = setTimeout(() => {
+            const resolveOnce = (value) => {
+                if (settled) return;
+                settled = true;
                 cleanup();
+                resolve(value);
+            };
+
+            const rejectOnce = (error) => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                reject(error instanceof Error ? error : new Error(String(error)));
+            };
+
+            const timer = setTimeout(() => {
                 if (lastError) {
-                    reject(lastError);
+                    rejectOnce(lastError);
                     return;
                 }
-                reject(new Error("Nenhum node Lavalink ficou utilizavel no tempo limite."));
+                rejectOnce(new Error("Nenhum node Lavalink ficou utilizavel no tempo limite."));
             }, timeoutMs);
 
             const onConnect = () => {
                 if (!this.manager?.useable) return;
-                cleanup();
-                resolve(true);
+                resolveOnce(true);
             };
 
             const onError = (_node, error) => {

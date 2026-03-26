@@ -162,15 +162,6 @@ class AutoModHandler {
         
         const settings = this.getSettings(message.guild.id);
         
-        console.log(`[AutoMod DEBUG] ====================`);
-        console.log(`[AutoMod DEBUG] automodEnabled: ${settings.enabled}`);
-        console.log(`[AutoMod DEBUG] bypassRoles: [${settings.bypassRoles.join(', ')}]`);
-        console.log(`[AutoMod DEBUG] antiSpam.enabled: ${settings.antiSpam.enabled}`);
-        console.log(`[AutoMod DEBUG] antiWords.enabled: ${settings.antiWords.enabled}`);
-        console.log(`[AutoMod DEBUG] antiLinks.enabled: ${settings.antiLinks.enabled}`);
-        console.log(`[AutoMod DEBUG] antiInvite.enabled: ${settings.antiInvite.enabled}`);
-        console.log(`[AutoMod DEBUG] ====================`);
-        
         if (!settings.enabled) return null;
         
         if (this.hasBypassRole(message.member, settings.bypassRoles)) return null;

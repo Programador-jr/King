@@ -3,18 +3,18 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="<%= botClient.user.displayAvatarURL({ size: 128 }) %>">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
-    <title>Fila | <%= bot.name %></title>
+    <title>Fila | <%= websiteInfo.name %></title>
   </head>
   <body>
     <%- include('header'); -%>
 
     <section class="dashboard-page">
-      <% if (user && user.guilds && user.guilds.filter((guild) => botClient.guilds.cache.get(guild.id)).length > 0) { %>
+      <% if (user && user.guilds && user.guilds.filter((guild) => bot.guilds.get(guild.id)).length > 0) { %>
         <div class="head">
           <h1>Servidores Compartilhados</h1>
         </div>
@@ -24,10 +24,10 @@
 
         <div class="row g-3 server-grid">
           <% user.guilds
-            .filter((guild) => botClient.guilds.cache.get(guild.id))
+            .filter((guild) => bot.guilds.get(guild.id))
             .sort((a, b) => {
-              const queueA = botClient.distube.getQueue(a.id);
-              const queueB = botClient.distube.getQueue(b.id);
+              const queueA = bot.distube.getQueue(a.id);
+              const queueB = bot.distube.getQueue(b.id);
               const lenA = queueA && queueA.songs ? queueA.songs.length : 0;
               const lenB = queueB && queueB.songs ? queueB.songs.length : 0;
               return lenB - lenA;
@@ -36,7 +36,7 @@
               const icon = guild.icon
                 ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.webp?size=512`
                 : `https://cdn.discordapp.com/embed/avatars/0.png`;
-              const queueSize = botClient.distube.getQueue(guild.id) ? botClient.distube.getQueue(guild.id).songs.length : 0;
+              const queueSize = bot.distube.getQueue(guild.id) ? bot.distube.getQueue(guild.id).songs.length : 0;
           %>
             <div class="col-12 col-sm-6 col-xl-4">
               <article class="card text-white bg-dark server-card">
@@ -64,7 +64,7 @@
           <div class="hero-actions" style="justify-content:center;">
             <a
               class="btn-modern btn-modern-primary"
-              href="https://discord.com/api/oauth2/authorize?client_id=<%= botClient.user.id %>&permissions=8&scope=bot%20applications.commands"
+              href="https://discord.com/api/oauth2/authorize?client_id=<%= bot.id %>&permissions=8&scope=bot%20applications.commands"
               target="_blank"
               rel="noopener noreferrer"
             >

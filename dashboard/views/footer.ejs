@@ -4,7 +4,7 @@
       <!-- Bot Logo -->
       <div class="footer-logo-section">
         <div class="footer-logo-wrapper">
-          <img src="<%= botClient.user.displayAvatarURL({ size: 256 }) %>" alt="<%= botClient.user.username %>" class="footer-logo">
+          <img src="<%= bot.avatar %>" alt="<%= bot.username %>" class="footer-logo">
           <div class="footer-status-indicator status-online"></div>
         </div>
       </div>
@@ -79,7 +79,7 @@
       <div class="footer-copyright">
         <p>
           <i class="far fa-copyright"></i>
-          <strong><%= new Date().getFullYear() %> <%= botClient.user.username %></strong>
+          <strong><%= new Date().getFullYear() %> <%= bot.username %></strong>
           <span>• Todos os direitos reservados</span>
         </p>
       </div>

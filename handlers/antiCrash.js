@@ -120,9 +120,4 @@ module.exports = () => {
     if (info.stack) console.log(info.stack);
   });
 
-  process.on("multipleResolves", (type, promise, reason) => {
-    const info = formatError(reason);
-    console.log(" [antiCrash] :: Multiple resolves");
-    console.log(`[antiCrash] type=${type} code=${info.code} message=${info.message}`);
-  });
 };

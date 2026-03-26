@@ -230,14 +230,18 @@ function onCoolDown(message, command) {
   function GetUser(message, arg){
     var errormessage = ":x: Não consegui encontrar esse usuário...";
     return new Promise(async (resolve, reject) => {
+      let settled = false;
+      const resolveOnce = (value) => { if (!settled) { settled = true; resolve(value); } };
+      const rejectOnce = (value) => { if (!settled) { settled = true; reject(value); } };
+      
       var args = arg, client = message.client;
-      if(!client || !message) return reject("CLIENTE NÃO ESTÁ DEFINIDO")
+      if(!client || !message) return rejectOnce("CLIENTE NÃO ESTÁ DEFINIDO")
       if(!args || args == null || args == undefined) args = message.content.trim().split(/ +/).slice(1);
       let user = message.mentions.users.first();
       if(!user && args[0] && args[0].length == 18) {
         user = await client.users.fetch(args[0])
-        if(!user) return reject(errormessage)
-        return resolve(user);
+        if(!user) return rejectOnce(errormessage)
+        return resolveOnce(user);
       }
       else if(!user && args[0]){
         let alluser = message.guild.members.cache.map(member=> String(member.user.tag).toLowerCase())
@@ -247,15 +251,15 @@ function onCoolDown(message, command) {
           alluser = message.guild.members.cache.map(member => String(member.displayName + "#" + member.user.discriminator).toLowerCase())
           user = alluser.find(user => user.startsWith(args.join(" ").toLowerCase()))
           user = message.guild.members.cache.find(me => String(me.displayName + "#" + me.user.discriminator).toLowerCase() == user)
-          if(!user || user == null || !user.id) return reject(errormessage)
+          if(!user || user == null || !user.id) return rejectOnce(errormessage)
         }
         user = await client.users.fetch(user.user.id)
-        if(!user) return reject(errormessage)
-        return resolve(user);
+        if(!user) return rejectOnce(errormessage)
+        return resolveOnce(user);
       }
       else {
         user = message.mentions.users.first() || message.author;
-        return resolve(user);
+        return resolveOnce(user);
       }
     })
   }
@@ -269,26 +273,30 @@ function onCoolDown(message, command) {
   function GetRole(message, arg){
     var errormessage = ":x: Eu falhei em encontrar esse cargo...";
     return new Promise(async (resolve, reject) => {
+      let settled = false;
+      const resolveOnce = (value) => { if (!settled) { settled = true; resolve(value); } };
+      const rejectOnce = (value) => { if (!settled) { settled = true; reject(value); } };
+      
       var args = arg, client = message.client;
-      if(!client || !message) return reject("CLIENTE NÃO ESTÁ DEFINIDO")
+      if(!client || !message) return rejectOnce("CLIENTE NÃO ESTÁ DEFINIDO")
       if(!args || args == null || args == undefined) args = message.content.trim().split(/ +/).slice(1);
       let user = message.mentions.roles.filter(role=>role.guild.id==message.guild.id).first();
       if(!user && args[0] && args[0].length == 18) {
         user = message.guild.roles.cache.get(args[0])
-        if(!user) return reject(errormessage)
-        return resolve(user);
+        if(!user) return rejectOnce(errormessage)
+        return resolveOnce(user);
       }
       else if(!user && args[0]){
         let alluser = message.guild.roles.cache.map(role => String(role.name).toLowerCase())
         user = alluser.find(r => r.split(" ").join("").includes(args.join("").toLowerCase()))
         user = message.guild.roles.cache.find(role => String(role.name).toLowerCase() === user)
-        if(!user) return reject(errormessage)
-        return resolve(user);
+        if(!user) return rejectOnce(errormessage)
+        return resolveOnce(user);
       }
       else {
         user = message.mentions.roles.filter(role=>role.guild.id==message.guild.id).first();
-        if(!user) return reject(errormessage)
-        return resolve(user);
+        if(!user) return rejectOnce(errormessage)
+        return resolveOnce(user);
       }
     })
   }
@@ -303,14 +311,18 @@ function onCoolDown(message, command) {
   function GetGlobalUser(message, arg){
     var errormessage = ":x: Não consegui encontrar esse usuário...";
     return new Promise(async (resolve, reject) => {
+      let settled = false;
+      const resolveOnce = (value) => { if (!settled) { settled = true; resolve(value); } };
+      const rejectOnce = (value) => { if (!settled) { settled = true; reject(value); } };
+      
       var args = arg, client = message.client;
-      if(!client || !message) return reject("CLIENTE NÃO ESTÁ DEFINIDO")
+      if(!client || !message) return rejectOnce("CLIENTE NÃO ESTÁ DEFINIDO")
       if(!args || args == null || args == undefined) args = message.content.trim().split(/ +/).slice(1);
       let user = message.mentions.users.first();
       if(!user && args[0] && args[0].length == 18) {
         user = await client.users.fetch(args[0])
-        if(!user) return reject(errormessage)
-        return resolve(user);
+        if(!user) return rejectOnce(errormessage)
+        return resolveOnce(user);
       }
       else if(!user && args[0]){
         let alluser = [], allmembers = [];
@@ -324,15 +336,15 @@ function onCoolDown(message, command) {
         if(!user || user == null || !user.id) {
           user = alluser.find(user => user.startsWith(args.join(" ").toLowerCase()))
           user = allmembers.find(me => String(me.displayName + "#" + me.user.discriminator).toLowerCase() == user)
-          if(!user || user == null || !user.id) return reject(errormessage)
+          if(!user || user == null || !user.id) return rejectOnce(errormessage)
         }
         user = await client.users.fetch(user.user.id)
-        if(!user) return reject(errormessage)
-        return resolve(user);
+        if(!user) return rejectOnce(errormessage)
+        return resolveOnce(user);
       }
       else {
         user = message.mentions.users.first() || message.author;
-        return resolve(user);
+        return resolveOnce(user);
       }
     })
   }
