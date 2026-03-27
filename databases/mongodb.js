@@ -3,8 +3,20 @@ const dns = require("node:dns");
 const GuildSettings = require("./settings");
 const GuildStats = require("./infos");
 
-const DNS_SERVERS = (process.env.DNS_SERVERS || "1.1.1.1,8.8.8.8").split(",");
-dns.setServers(DNS_SERVERS);
+const isProduction = process.env.NODE_ENV;
+let dnsServers = null;
+
+if (!isProduction) {
+  const rawDnsServers = process.env.DNS_SERVERS;
+  dnsServers = rawDnsServers
+    .split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+
+  if (dnsServers.length) {
+    dns.setServers(dnsServers);
+  }
+}
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -16,7 +28,10 @@ async function connectMongoDB() {
   try {
     await mongoose.connect(MONGO_URI);
     isConnected = true;
-    console.log(`✅ Conectado ao MongoDB (DNS: ${DNS_SERVERS.join(", ")})`);
+    const dnsLabel = dnsServers && dnsServers.length
+      ? `DNS forçado: ${dnsServers.join(", ")}`
+      : "DNS padrão do sistema";
+    console.log(`✅ Conectado ao MongoDB (${dnsLabel})`);
   } catch (error) {
     console.error("❌ Erro ao conectar no MongoDB:", error.message);
     process.exit(1);
