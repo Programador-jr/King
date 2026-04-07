@@ -2,6 +2,7 @@ const { EventEmitter } = require("node:events");
 const fs = require("node:fs");
 const path = require("node:path");
 const { LavalinkManager } = require("lavalink-client");
+const playdl = require("play-dl");
 const WebSocket = require("ws");
 
 class LavalinkManagerWrapper extends EventEmitter {
@@ -19,6 +20,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         this.voiceStateCache = new Map();
         this.voiceServerCache = new Map();
         this.voiceRecovery = new Map();
+        this.trackStatsCache = new Map();
     }
 
     parseBoolean(value, fallback = false) {
@@ -52,6 +54,99 @@ class LavalinkManagerWrapper extends EventEmitter {
         if (level === "error") return console.error(line);
         if (level === "warn") return console.warn(line);
         return console.log(line);
+    }
+
+    normalizeStat(value) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    extractStatsFromTrack(track) {
+        const info = track?.info || {};
+        const userData = track?.userData || {};
+        const stats = userData?.stats || {};
+
+        const views = this.normalizeStat(
+            stats.views ?? userData.views ?? info.views ?? info.viewCount ?? info.view_count ?? info.viewcount,
+        );
+        const likes = this.normalizeStat(
+            stats.likes ?? userData.likes ?? info.likes ?? info.likeCount ?? info.like_count ?? info.likecount,
+        );
+        const dislikes = this.normalizeStat(
+            stats.dislikes ?? userData.dislikes ?? info.dislikes ?? info.dislikeCount ?? info.dislike_count ?? info.dislikecount,
+        );
+
+        return { views, likes, dislikes };
+    }
+
+    getTrackStatsKey(track) {
+        const info = track?.info || {};
+        return String(info.identifier || info.uri || info.url || "").trim();
+    }
+
+    isYouTubeTrack(track) {
+        const info = track?.info || {};
+        const source = String(info.sourceName || "").toLowerCase();
+        const uri = String(info.uri || "").toLowerCase();
+        if (source.includes("youtube") || source === "yt" || source === "ytsearch" || source === "ytmsearch") {
+            return true;
+        }
+        return uri.includes("youtube.com") || uri.includes("youtu.be");
+    }
+
+    async fetchYouTubeStats(track) {
+        const info = track?.info || {};
+        const identifier = String(info.identifier || "").trim();
+        const uri = String(info.uri || "").trim();
+        const url = uri || (identifier ? `https://www.youtube.com/watch?v=${identifier}` : "");
+        if (!url) return null;
+
+        try {
+            const result = await playdl.video_basic_info(url);
+            const details = result?.video_details || {};
+            const views = this.normalizeStat(details.views);
+            const likes = this.normalizeStat(details.likes);
+            const dislikes = this.normalizeStat(details.dislikes);
+            if (views === null && likes === null && dislikes === null) return null;
+            return { views, likes, dislikes };
+        } catch {
+            return null;
+        }
+    }
+
+    async ensureTrackStats(track) {
+        if (!track) return null;
+        const existing = this.extractStatsFromTrack(track);
+        if (existing.views !== null || existing.likes !== null || existing.dislikes !== null) {
+            return existing;
+        }
+
+        const cacheKey = this.getTrackStatsKey(track);
+        if (cacheKey && this.trackStatsCache.has(cacheKey)) {
+            const cached = this.trackStatsCache.get(cacheKey);
+            track.userData = { ...(track.userData || {}), stats: cached };
+            return cached;
+        }
+
+        if (!this.isYouTubeTrack(track)) return null;
+        const fetched = await this.fetchYouTubeStats(track);
+        if (!fetched) return null;
+
+        if (cacheKey) this.trackStatsCache.set(cacheKey, fetched);
+        track.userData = { ...(track.userData || {}), stats: fetched };
+        return fetched;
+    }
+
+    async ensureSongStats(song) {
+        if (!song) return null;
+        const track = song.__track;
+        if (!track) return null;
+        const stats = await this.ensureTrackStats(track);
+        if (!stats) return null;
+        song.views = stats.views ?? song.views ?? 0;
+        song.likes = stats.likes ?? song.likes ?? 0;
+        song.dislikes = stats.dislikes ?? song.dislikes ?? 0;
+        return stats;
     }
 
     normalizeApiVersion(value, fallback = "v4") {
@@ -213,6 +308,7 @@ class LavalinkManagerWrapper extends EventEmitter {
 
         this.manager.on("trackStart", (player, track, payload) => {
             this.lastTrackStartAt.set(player.guildId, Date.now());
+            this.ensureTrackStats(track).catch(() => {});
             this.emit("playSong", player, track, payload);
         });
 
@@ -1310,6 +1406,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         const info = track?.info || {};
         const requester = this.normalizeRequester(track?.requester || info?.requester || track?.userData?.requester);
         const durationSec = Number.isFinite(info.duration) ? Math.floor(info.duration / 1000) : 0;
+        const stats = this.extractStatsFromTrack(track);
 
         return {
             name: info.title || "Sem titulo",
@@ -1322,6 +1419,9 @@ class LavalinkManagerWrapper extends EventEmitter {
             user: requester,
             requester,
             isStream: Boolean(info.isStream),
+            views: stats.views ?? 0,
+            likes: stats.likes ?? 0,
+            dislikes: stats.dislikes ?? 0,
             __track: track,
         };
     }

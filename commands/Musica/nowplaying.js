@@ -56,6 +56,9 @@ module.exports = {
 				
 				const currentFilters = getCurrentFilters(newQueue);
 				let newTrack = newQueue.songs[0];
+				if (client.lavalink?.ensureSongStats) {
+					await client.lavalink.ensureSongStats(newTrack).catch(() => {});
+				}
 				
 				message.reply({
 					embeds: [
