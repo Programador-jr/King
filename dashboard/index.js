@@ -504,6 +504,11 @@ module.exports = client => {
         botchannel: [],
         musicChannels: [],
         confessionChannel: null,
+        moderationRoles: [],
+        moderationLogEnabled: false,
+        moderationLogType: "channel",
+        moderationLogChannelId: null,
+        moderationLogWebhook: null,
         mixDefault: "youtube"
       })
 
@@ -604,6 +609,44 @@ module.exports = client => {
 
       const safeMusicChannels = normalizeSettingsArray(req.body.musicChannels);
       client.settings.set(guild.id, safeMusicChannels, "musicChannels");
+
+      const safeModerationRoles = normalizeSettingsArray(req.body.moderationRoles);
+      client.settings.set(guild.id, safeModerationRoles, "moderationRoles");
+
+      const moderationLogEnabled = req.body.moderationLogEnabled === "on" || req.body.moderationLogEnabled === "true";
+      const moderationLogType = req.body.moderationLogType === "webhook" ? "webhook" : "channel";
+      client.settings.set(guild.id, moderationLogEnabled, "moderationLogEnabled");
+      client.settings.set(guild.id, moderationLogType, "moderationLogType");
+
+      const moderationLogChannelId = String(req.body.moderationLogChannelId || "").trim();
+      if (moderationLogChannelId) {
+        let modLogChannel = guild.channels.cache.get(moderationLogChannelId);
+        if (!modLogChannel) {
+          try {
+            modLogChannel = await guild.channels.fetch(moderationLogChannelId);
+          } catch {
+            modLogChannel = null;
+          }
+        }
+
+        const isTextBased = Boolean(modLogChannel && typeof modLogChannel.isTextBased === "function" && modLogChannel.isTextBased());
+        const isThread = Boolean(modLogChannel && typeof modLogChannel.isThread === "function" && modLogChannel.isThread());
+        const perms = modLogChannel ? modLogChannel.permissionsFor(client.user) : null;
+        const hasSendPerms = Boolean(perms && perms.has(["ViewChannel", "SendMessages", "EmbedLinks"]));
+
+        if (isTextBased && !isThread && hasSendPerms) {
+          client.settings.set(guild.id, moderationLogChannelId, "moderationLogChannelId");
+        }
+      } else {
+        client.settings.set(guild.id, null, "moderationLogChannelId");
+      }
+
+      const moderationLogWebhook = String(req.body.moderationLogWebhook || "").trim();
+      if (moderationLogWebhook && moderationLogWebhook.startsWith("https://discord.com/api/webhooks/")) {
+        client.settings.set(guild.id, moderationLogWebhook, "moderationLogWebhook");
+      } else if (!moderationLogWebhook) {
+        client.settings.set(guild.id, null, "moderationLogWebhook");
+      }
       if (typeof req.body.confessionChannel === "string") {
         const requestedChannelId = req.body.confessionChannel.trim();
         if (!requestedChannelId) {

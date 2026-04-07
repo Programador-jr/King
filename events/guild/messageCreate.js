@@ -100,6 +100,11 @@ module.exports = async (client, message) => {
       botchannel: [],
       musicChannels: [],
       confessionChannel: null,
+      moderationRoles: [],
+      moderationLogEnabled: false,
+      moderationLogType: "channel",
+      moderationLogChannelId: null,
+      moderationLogWebhook: null,
       mixDefault: "youtube"
     })
     let prefix = client.settings.get(message.guild.id, `prefix`)
