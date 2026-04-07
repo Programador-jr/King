@@ -66,7 +66,7 @@ async function startConfession(client, context, user) {
     const embed = new MessageEmbed()
       .setColor(ee.wrongcolor)
       .setTitle("💭 Confissão")
-      .setDescription("<a:declined:876968121116807208> O canal de confissões não foi configurado neste servidor.\nPeça para um administrador configurar em `botchat` ou no painel.")
+      .setDescription(`${client.allEmojis.x} O canal de confissões não foi configurado neste servidor.\nPeça para um administrador configurar em **botchat** ou no painel.`)
       .setFooter(ee.footertext, ee.footericon);
 
     if (isInteraction) {
@@ -83,7 +83,7 @@ async function startConfession(client, context, user) {
     const embed = new MessageEmbed()
       .setColor(ee.wrongcolor)
       .setTitle("💭 Confissão")
-      .setDescription("<a:declined:876968121116807208> O canal de confissões configurado não foi encontrado ou não é válido.\nPeça para um administrador configurar novamente em `botchat` ou no painel.")
+      .setDescription(`${client.allEmojis.x} O canal de confissões configurado não foi encontrado ou não é válido.\nPeça para um administrador configurar novamente em **botchat** ou no painel.`)
       .setFooter(ee.footertext, ee.footericon);
 
     if (isInteraction) {
@@ -98,7 +98,7 @@ async function startConfession(client, context, user) {
     const embed = new MessageEmbed()
       .setColor(ee.wrongcolor)
       .setTitle("💭 Confissão")
-      .setDescription("<a:declined:876968121116807208> Não foi possível abrir DM com você.\nVerifique suas configurações de privacidade.")
+      .setDescription(`${client.allEmojis.x} Não foi possível abrir DM com você.\nVerifique suas configurações de privacidade.`)
       .setFooter(ee.footertext, ee.footericon);
 
     if (isInteraction) {
@@ -146,7 +146,7 @@ async function startConfession(client, context, user) {
   const confirmEmbed = new MessageEmbed()
     .setColor(ee.color)
     .setTitle("💭 Confissão")
-    .setDescription("<a:true:891138804734373918> Uma DM foi enviada para você com as instruções!\nVerifique suas mensagens diretas.")
+    .setDescription(`${client.allEmojis.check_mark} Uma DM foi enviada para você com as instruções!\nVerifique suas mensagens diretas.`)
     .setFooter(ee.footertext, ee.footericon);
 
   if (isInteraction) {
@@ -177,7 +177,7 @@ module.exports.handleDM = async (client, dmMessage) => {
         new MessageEmbed()
           .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("<a:declined:876968121116807208> Confissão cancelada.")
+          .setDescription(`${client.allEmojis.x} Confissão cancelada.`)
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -196,7 +196,7 @@ module.exports.handleDM = async (client, dmMessage) => {
         new MessageEmbed()
           .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("<a:declined:876968121116807208> Servidor não encontrado.")
+          .setDescription(`${client.allEmojis.x} Servidor não encontrado.`)
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -213,7 +213,7 @@ module.exports.handleDM = async (client, dmMessage) => {
         new MessageEmbed()
           .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("<a:declined:876968121116807208> O canal de confissões não está configurado corretamente neste servidor.\nPeça para um administrador configurar novamente.")
+          .setDescription(`${client.allEmojis.x} O canal de confissões não está configurado corretamente neste servidor.\nPeça para um administrador configurar novamente.`)
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -233,7 +233,7 @@ module.exports.handleDM = async (client, dmMessage) => {
         new MessageEmbed()
           .setColor(ee.wrongcolor)
           .setTitle("💭 Confissão")
-          .setDescription("<a:declined:876968121116807208> Erro ao enviar confissão. O bot pode não ter permissão.")
+          .setDescription(`${client.allEmojis.x} Erro ao enviar confissão. O bot pode não ter permissão.`)
           .setFooter(ee.footertext, ee.footericon)
       ]
     }).catch(() => {});
@@ -246,7 +246,7 @@ module.exports.handleDM = async (client, dmMessage) => {
         .setColor(ee.color)
         .setTitle("💭 Confissão Enviada!")
         .setDescription(
-          "<a:true:891138804734373918> Sua confissão foi enviada com sucesso!\n\n" +
+          `${client.allEmojis.check_mark} Sua confissão foi enviada com sucesso!\n\n` +
           `📍 Canal: ${targetChannel}`
         )
         .setFooter(ee.footertext, ee.footericon)

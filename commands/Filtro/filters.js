@@ -137,7 +137,7 @@ module.exports = {
         try {
           if (interaction.user.id !== member.id) {
             return interaction.reply({
-              content: "<a:declined:876968121116807208> Você não pode usar isso!",
+              content: `${client.allEmojis.x} Você não pode usar isso!`,
               ephemeral: true
             }).catch(() => {});
           }
@@ -147,7 +147,7 @@ module.exports = {
           const queue = client.distube.getQueue(guildId);
           if (!queue) {
             return interaction.editReply({
-              content: "<a:declined:876968121116807208> Não há música tocando!",
+              content: `${client.allEmojis.x} Não há música tocando!`,
               components: []
             }).catch(() => {});
           }
@@ -160,7 +160,7 @@ module.exports = {
             
             if (!selectRow) {
               return interaction.editReply({
-                content: action === "add" ? "<a:true:891138804734373918> Todos os filtros regulares já estão ativos!" : "<a:declined:876968121116807208> Nenhum filtro regular ativo para remover!",
+                content: action === "add" ? `${client.allEmojis.check_mark} Todos os filtros regulares já estão ativos!` : `${client.allEmojis.x} Nenhum filtro regular ativo para remover!`,
                 components: []
               }).catch(() => {});
             }
@@ -190,8 +190,8 @@ module.exports = {
             
             await interaction.editReply({
               content: isAdd 
-                ? `<a:true:891138804734373918> Filtros adicionados: ${selectedFilters.map(f => `\`${f}\``).join(", ")}` 
-                : `<a:true:891138804734373918> Filtros removidos: ${selectedFilters.map(f => `\`${f}\``).join(", ")}`,
+                ? `${client.allEmojis.check_mark} Filtros adicionados: ${selectedFilters.map(f => `\`${f}\``).join(", ")}` 
+                : `${client.allEmojis.check_mark} Filtros removidos: ${selectedFilters.map(f => `\`${f}\``).join(", ")}`,
               embeds: [
                 new MessageEmbed()
                   .setColor(ee.color)

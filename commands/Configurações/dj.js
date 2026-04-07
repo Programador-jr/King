@@ -78,7 +78,7 @@ module.exports = {
     collector.on("collect", async (interaction) => {
       try {
         if (interaction.user.id !== message.author.id) {
-          return interaction.reply({ content: "<a:declined:876968121116807208> Você não pode usar isso!", ephemeral: true });
+          return interaction.reply({ content: `${client.allEmojis.x} Você não pode usar isso!`, ephemeral: true });
         }
 
         await interaction.deferUpdate();
@@ -112,7 +112,7 @@ module.exports = {
           
           if (djs.length === 0) {
             return interaction.editReply({
-              content: "<a:declined:876968121116807208> Nenhum cargo DJ configurado para remover!",
+              content: `${client.allEmojis.x} Nenhum cargo DJ configurado para remover!`,
               embeds: [],
               components: []
             });
@@ -153,7 +153,7 @@ module.exports = {
           client.settings.set(message.guild.id, [], "djroles");
           
           return interaction.editReply({
-            content: "<a:true:891138804734373918> Todos os cargos DJ foram removidos!",
+            content: `${client.allEmojis.check_mark} Todos os cargos DJ foram removidos!`,
             embeds: [getEmbed()],
             components: [mainRow]
           });
@@ -176,7 +176,7 @@ module.exports = {
           client.settings.set(message.guild.id, newDJs, "djroles");
 
           return interaction.editReply({
-            content: `<a:true:891138804734373918> ${roleIds.length} cargo(s) adicionado(s) como DJ!`,
+            content: `${client.allEmojis.check_mark} ${roleIds.length} cargo(s) adicionado(s) como DJ!`,
             embeds: [getEmbed()],
             components: [mainRow]
           });
@@ -191,7 +191,7 @@ module.exports = {
           client.settings.set(message.guild.id, newDJs, "djroles");
 
           return interaction.editReply({
-            content: `<a:true:891138804734373918> ${roleIdsToRemove.length} cargo(s) removido(s) dos DJs!`,
+            content: `${client.allEmojis.check_mark} ${roleIdsToRemove.length} cargo(s) removido(s) dos DJs!`,
             embeds: [getEmbed()],
             components: [mainRow]
           });
