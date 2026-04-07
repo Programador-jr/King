@@ -5,7 +5,7 @@ const ee = require("../../botconfig/embed.json");
 module.exports = async (client, guild) => {
   try {
     addUserJoined(guild.id);
-    console.log(`Bot entrou no servidor: ${guild.name} (${guild.id})`);
+    console.log("Bot entrou em um servidor.");
     
     // Envia mensagem de entrada em um novo servidor
     const logChannelId = process.env.LOG_CHANNEL_ID;
@@ -32,6 +32,7 @@ module.exports = async (client, guild) => {
       }
     }
   } catch (e) {
-    console.log("Erro no evento guildCreate:", e);
+    const message = e instanceof Error ? e.message : String(e || "");
+    console.log(`Erro no evento guildCreate: ${message.replace(/\s+/g, " ").trim()}`);
   }
 };
