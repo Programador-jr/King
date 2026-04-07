@@ -499,7 +499,7 @@ module.exports = client => {
         prefix: BotConfig.prefix,      
         defaultvolume: 50,
         defaultautoplay: false,
-        defaultfilters: [`bassboost5`],
+        defaultfilters: [],
         djroles: [],
         botchannel: [],
         musicChannels: [],
@@ -509,21 +509,13 @@ module.exports = client => {
 
       const storedDefaultFilters = client.settings.get(guild.id, "defaultfilters");
       const storedArray = Array.isArray(storedDefaultFilters) ? storedDefaultFilters.map((f) => String(f || "").trim()).filter(Boolean) : [];
-      const isLegacyDefault =
-        storedArray.length === 2 &&
-        storedArray.includes("bassboost6") &&
-        storedArray.includes("clear");
       const normalizedDefaultFilters = sanitizeDashboardFilters(storedDefaultFilters);
 
-      if (isLegacyDefault || !normalizedDefaultFilters.length) {
-        client.settings.set(guild.id, ["bassboost5"], "defaultfilters");
-      } else {
-        const isDifferent =
-          storedArray.length !== normalizedDefaultFilters.length ||
-          storedArray.some((filter, idx) => filter !== normalizedDefaultFilters[idx]);
-        if (isDifferent) {
-          client.settings.set(guild.id, normalizedDefaultFilters, "defaultfilters");
-        }
+      const isDifferent =
+        storedArray.length !== normalizedDefaultFilters.length ||
+        storedArray.some((filter, idx) => filter !== normalizedDefaultFilters[idx]);
+      if (isDifferent) {
+        client.settings.set(guild.id, normalizedDefaultFilters, "defaultfilters");
       }
 
 
@@ -593,12 +585,15 @@ module.exports = client => {
       
       // defaultfilters / roles / channels must always be stored as arrays
       const safeFilters = sanitizeDashboardFilters(req.body.defaultfilters);
-      const savedDefaultFilters = safeFilters.length ? safeFilters : ["bassboost5"];
-      client.settings.set(guild.id, savedDefaultFilters, "defaultfilters");
+      client.settings.set(guild.id, safeFilters, "defaultfilters");
 
       const activeQueue = client.distube.getQueue(guild.id);
       if (activeQueue?.filters && typeof activeQueue.filters.set === "function") {
-        await activeQueue.filters.set(savedDefaultFilters).catch(() => {});
+        if (safeFilters.length) {
+          await activeQueue.filters.set(safeFilters).catch(() => {});
+        } else if (typeof activeQueue.filters.clear === "function") {
+          await activeQueue.filters.clear().catch(() => {});
+        }
       }
 
       const safeDjRoles = normalizeSettingsArray(req.body.djroles);
