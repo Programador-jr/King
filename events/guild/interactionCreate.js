@@ -16,7 +16,7 @@ module.exports = async (client, interaction) => {
     prefix: client.config?.prefix || "!",
     defaultvolume: 50,
     defaultautoplay: false,
-    defaultfilters: ["bassboost6", "clear"],
+    defaultfilters: [],
     djroles: [],
     botchannel: [],
     musicChannels: [],
