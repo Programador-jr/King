@@ -133,7 +133,7 @@ module.exports = {
     collector.on("collect", async (interaction) => {
       try {
         if (interaction.user.id !== message.author.id) {
-          return interaction.reply({ content: "<a:declined:876968121116807208> Você não pode usar isso!", ephemeral: true }).catch(() => null);
+          return interaction.reply({ content: `${client.allEmojis.x} Você não pode usar isso!`, ephemeral: true }).catch(() => null);
         }
 
         if (interaction.customId === "botchat_menu") {
@@ -213,7 +213,7 @@ module.exports = {
           
           currentView = "main";
           return safeUpdate(interaction, {
-            content: `<a:true:891138804734373918> Canal de confissões configurado: <#${channelId}>`,
+            content: `${client.allEmojis.check_mark} Canal de confissões configurado: <#${channelId}>`,
             embeds: [getMainEmbed()],
             components: [mainRow]
           });
@@ -255,8 +255,8 @@ module.exports = {
           currentView = "main";
           return safeUpdate(interaction, {
             content: channelIds.length > 0 
-              ? `<a:true:891138804734373918> Canais de música atualizados: ${channelIds.map(c => `<#${c}>`).join(", ")}`
-              : "<a:true:891138804734373918> Canais de música removidos. Agora qualquer canal pode usar comandos de música.",
+              ? `${client.allEmojis.check_mark} Canais de música atualizados: ${channelIds.map(c => `<#${c}>`).join(", ")}`
+              : `${client.allEmojis.check_mark} Canais de música removidos. Agora qualquer canal pode usar comandos de música.`,
             embeds: [getMainEmbed()],
             components: [mainRow]
           });
@@ -267,7 +267,7 @@ module.exports = {
           
           currentView = "main";
           return safeUpdate(interaction, {
-            content: "<a:true:891138804734373918> Todos os canais de música foram removidos.",
+            content: `${client.allEmojis.check_mark} Todos os canais de música foram removidos.`,
             embeds: [getMainEmbed()],
             components: [mainRow]
           });

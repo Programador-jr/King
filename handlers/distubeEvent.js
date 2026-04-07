@@ -679,7 +679,7 @@ A MUSICA ACABOU!`, song.user.displayAvatarURL({
           client.settings.ensure(queue.id, {
             defaultvolume: 50,
             defaultautoplay: false,
-            defaultfilters: [`bassboost6`, `clear`]
+            defaultfilters: []
           })
           let data = client.settings.get(queue.id)
           queue.autoplay = Boolean(data.defaultautoplay);

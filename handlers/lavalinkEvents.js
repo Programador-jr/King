@@ -1,4 +1,18 @@
-console.log(`Bem-vindo ao MANIPULADOR LAVALINK`.yellow);
+const shortError = (error) => {
+  if (!error) return "";
+  const message = error instanceof Error ? error.message : String(error);
+  return String(message || "").replace(/\s+/g, " ").trim().slice(0, 200);
+};
+
+const logShort = (level, message, error) => {
+  const suffix = error ? ` ${shortError(error)}` : "";
+  const line = `[Lavalink] ${message}${suffix}`.trim();
+  if (level === "error") return console.error(line);
+  if (level === "warn") return console.warn(line);
+  return console.log(line);
+};
+
+logShort("info", "Handler iniciado.");
 const PlayerMap = new Map();
 const getPlayerMapKey = (queueId) => `currentmsg_${queueId}`;
 const Discord = require(`discord.js`);
@@ -66,7 +80,7 @@ const sendToChannel = async (target, payload, deleteAfterMs = 0) => {
     }
     return sent;
   } catch (e) {
-    console.log(e);
+    logShort("warn", "Falha ao enviar mensagem.", e);
     return null;
   }
 };
@@ -289,7 +303,7 @@ module.exports = (client) => {
                 const file = new AttachmentBuilder(Buffer.from(fullLyrics, "utf8"), { name: filename });
                 return i.editReply({ content: null, embeds: [embed], files: [file] }).catch(() => {});
             } catch (e) {
-                console.log(e.stack ? String(e.stack).grey : String(e).grey);
+                logShort("warn", "Falha ao buscar letra.", e);
                 const payload = { content: `${client.allEmojis.x} **Falha ao buscar a letra agora.**`, embeds: [] };
                 if (i.deferred || i.replied) return i.editReply(payload).catch(() => {});
                 return replyAndDelete(i, { ...payload, ephemeral: true });
@@ -297,10 +311,10 @@ module.exports = (client) => {
           }
         });
       } catch (error) {
-        console.error(error);
+        logShort("warn", "Falha ao enviar mensagem da musica.", error);
       }
     } catch (error) {
-      console.error(error);
+      logShort("warn", "Falha ao tocar musica.", error);
     }
   });
 
@@ -330,7 +344,7 @@ module.exports = (client) => {
         
         PlayerMap.delete(getPlayerMapKey(player.guildId));
     } catch (e) {
-        console.error(e);
+        logShort("warn", "Falha ao finalizar musica.", e);
     }
   });
 
@@ -352,7 +366,7 @@ module.exports = (client) => {
         
         await client.lavalink.stop(player.guildId);
     } catch (e) {
-        console.error(e);
+        logShort("warn", "Falha ao encerrar fila.", e);
     }
   });
 
@@ -372,16 +386,16 @@ module.exports = (client) => {
             });
         }
     } catch (e) {
-        console.error(e);
+        logShort("warn", "Falha ao tratar canal vazio.", e);
     }
   });
 
   client.lavalink.on('nodeError', async (node, error) => {
-    console.error('[Lavalink Node Error]', error);
+    logShort("error", "Node error.", error);
   });
 
   client.lavalink.on('error', async (guildId, error) => {
-    console.error('[Lavalink Error]', error);
+    logShort("error", "Erro interno.", error);
   });
 
   function receiveQueueData(newQueue, newTrack) {

@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "postinstall": "node scripts/fix-sift.js",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
@@ -10,7 +11,7 @@
     "axios": "^1.13.5",
     "colors": "^1.4.0",
     "cpu-stat": "^2.0.1",
-    "discord.js": "^14.25.1",
+    "discord.js": "^14.26.2",
     "distube": "^5.2.3",
     "dotenv": "^17.3.1",
     "ejs": "^5.0.1",
@@ -25,6 +26,7 @@
     "passport-discord": "^0.1.4",
     "play-dl": "^1.9.7",
     "pretty-ms": "^9.3.0",
+    "sift": "^17.1.3",
     "youtubei.js": "^16.0.1"
   },
   "devDependencies": {

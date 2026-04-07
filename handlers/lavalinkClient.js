@@ -1,4 +1,6 @@
 const { EventEmitter } = require("node:events");
+const fs = require("node:fs");
+const path = require("node:path");
 const { LavalinkManager } = require("lavalink-client");
 const WebSocket = require("ws");
 
@@ -28,13 +30,43 @@ class LavalinkManagerWrapper extends EventEmitter {
         return fallback;
     }
 
+    shortError(error) {
+        if (!error) return "";
+        const message = error instanceof Error ? error.message : String(error);
+        return String(message || "").replace(/\s+/g, " ").trim().slice(0, 200);
+    }
+
+    shortPayload(payload) {
+        if (!payload) return "";
+        const code = payload?.code ?? payload?.op ?? null;
+        const reason = payload?.reason || payload?.message || null;
+        if (code !== null || reason) {
+            return `code=${code ?? "?"} reason=${String(reason || "").replace(/\s+/g, " ").trim().slice(0, 120)}`;
+        }
+        return this.shortError(payload);
+    }
+
+    log(level, message, error) {
+        const suffix = error ? ` ${this.shortError(error)}` : "";
+        const line = `[Lavalink] ${message}${suffix}`.trim();
+        if (level === "error") return console.error(line);
+        if (level === "warn") return console.warn(line);
+        return console.log(line);
+    }
+
+    normalizeApiVersion(value, fallback = "v4") {
+        const raw = String(value || "").trim().toLowerCase();
+        if (raw === "v3" || raw === "3") return "v3";
+        if (raw === "v4" || raw === "4") return "v4";
+        return fallback;
+    }
+
     getNodeOptions() {
         const rawHost = String(process.env.LAVALINK_HOST || "localhost").trim();
         const hostWithoutProtocol = rawHost.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
         const host = hostWithoutProtocol.split("/")[0];
         const port = Number.parseInt(process.env.LAVALINK_PORT || "2333", 10) || 2333;
-        const secureDefault = port === 443;
-        const secure = this.parseBoolean(process.env.LAVALINK_SECURE, secureDefault);
+        const secureDefault = port === 443 || /^https:\/\//i.test(rawHost);
         const authorization = String(process.env.LAVALINK_PASSWORD || "").trim();
 
         if (!authorization) {
@@ -45,23 +77,88 @@ class LavalinkManagerWrapper extends EventEmitter {
             id: "main-node",
             host,
             port,
-            secure,
+            secure: secureDefault,
             authorization,
+            apiVersion: "v4",
         };
     }
 
-    getApiVersion() {
-        const raw = String(process.env.LAVALINK_API_VERSION || "v4").trim().toLowerCase();
-        return raw === "v3" ? "v3" : "v4";
+    resolveHost(rawHost) {
+        const cleaned = String(rawHost || "").trim();
+        if (!cleaned) return "";
+        const hostWithoutProtocol = cleaned.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+        return hostWithoutProtocol.split("/")[0];
+    }
+
+    loadNodesFromConfig() {
+        const configPath = path.join(__dirname, "..", "botconfig", "lavalink.json");
+        if (!fs.existsSync(configPath)) return [];
+
+        let raw;
+        try {
+            raw = fs.readFileSync(configPath, "utf8");
+        } catch (error) {
+            this.log("warn", "Falha ao ler lavalink.json.", error);
+            return [];
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            this.log("warn", "lavalink.json invalido.", error);
+            return [];
+        }
+
+        const entries = Array.isArray(parsed) ? parsed : Object.values(parsed || {});
+        const nodes = [];
+
+        for (let index = 0; index < entries.length; index += 1) {
+            const entry = entries[index] || {};
+            const rawHost = entry.host || entry.hostname || entry.url || "";
+            const host = this.resolveHost(rawHost);
+            const port = Number.parseInt(entry.port, 10);
+            const authorization = String(entry.password || entry.authorization || "").trim();
+
+            if (!host || !Number.isFinite(port) || !authorization) {
+                this.log("warn", `Node ignorado (config incompleta) na posicao ${index + 1}.`);
+                continue;
+            }
+
+            const secureDefault = port === 443 || /^https:\/\//i.test(String(rawHost || "").trim());
+            const secure = typeof entry.secure !== "undefined"
+                ? this.parseBoolean(entry.secure, secureDefault)
+                : secureDefault;
+            const apiVersion = this.normalizeApiVersion(entry.version || entry.apiVersion, "v4");
+
+            nodes.push({
+                id: String(entry.id || entry.name || `node-${index + 1}`),
+                host,
+                port,
+                secure,
+                authorization,
+                apiVersion,
+            });
+        }
+
+        return nodes;
+    }
+
+    getNodeOptionsList() {
+        const fromConfig = this.loadNodesFromConfig();
+        if (fromConfig.length) return fromConfig;
+        return [this.getNodeOptions()];
     }
 
     applyApiVersionCompatibility() {
         if (!this.manager) return;
-        const apiVersion = this.getApiVersion();
-        if (apiVersion !== "v3") return;
+        let patched = false;
 
         for (const node of this.manager.nodeManager.nodes.values()) {
+            const apiVersion = this.normalizeApiVersion(node?.options?.apiVersion, "v4");
+            if (apiVersion !== "v3") continue;
             node.version = "v3";
+            patched = true;
 
             if (node.__v3WebsocketPatched) continue;
             node.__v3WebsocketPatched = true;
@@ -92,22 +189,25 @@ class LavalinkManagerWrapper extends EventEmitter {
             };
         }
 
-        console.log("[Lavalink] Compatibilidade v3 ativada (REST /v3 + WS /v3/websocket).");
+        if (patched) {
+            this.log("info", "Compatibilidade v3 ativada.");
+        }
     }
 
     attachEvents() {
         this.manager.nodeManager.on("connect", (node) => {
-            console.log(`[Lavalink] Node conectado: ${node.id} (${node.options.host}:${node.options.port})`);
+            this.log("info", `Node conectado: ${node.id}`);
             this.emit("nodeConnect", node);
         });
 
         this.manager.nodeManager.on("disconnect", (node, reason) => {
-            console.error(`[Lavalink] Node desconectado: ${node.id}`, reason || "");
+            const detail = this.shortPayload(reason);
+            this.log("warn", `Node desconectado: ${node.id}${detail ? ` (${detail})` : ""}`);
             this.emit("nodeDisconnect", node, reason);
         });
 
         this.manager.nodeManager.on("error", (node, error) => {
-            console.error(`[Lavalink] Node error (${node?.id || "unknown"}):`, error);
+            this.log("error", `Node error: ${node?.id || "unknown"}`, error);
             this.emit("nodeError", node, error);
         });
 
@@ -157,7 +257,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         });
     }
 
-    waitForUsableNode(timeoutMs = 15000) {
+    waitForUsableNode(timeoutMs = 15000, failFast = false) {
         if (this.manager?.useable) return Promise.resolve(true);
 
         return new Promise((resolve, reject) => {
@@ -193,6 +293,9 @@ class LavalinkManagerWrapper extends EventEmitter {
 
             const onError = (_node, error) => {
                 lastError = error instanceof Error ? error : new Error(String(error));
+                if (failFast) {
+                    rejectOnce(lastError);
+                }
             };
 
             const cleanup = () => {
@@ -350,7 +453,8 @@ class LavalinkManagerWrapper extends EventEmitter {
             if (!player?.queue?.current || !player.voiceChannelId) return false;
 
             const previousPosition = Math.max(0, Math.floor(Number(player.position || 0)));
-            console.warn(`[Lavalink] Recuperando sessao de voz invalida para guild ${guildId} (code ${payload?.code}).`);
+            const detail = this.shortPayload(payload);
+            this.log("warn", `Recuperando sessao de voz invalida${detail ? ` (${detail})` : ""}.`);
 
             const refreshed = await this.refreshVoiceSession(guildId, 14000);
             if (!refreshed) return false;
@@ -380,69 +484,94 @@ class LavalinkManagerWrapper extends EventEmitter {
             return this.manager;
         }
 
-        const nodeOptions = this.getNodeOptions();
         const debugEnabled = this.parseBoolean(process.env.LAVALINK_DEBUG, false);
-
-        this.manager = new LavalinkManager({
-            nodes: [nodeOptions],
-            sendToShard: (guildId, payload) => {
-                const guild = this.client.guilds.cache.get(guildId);
-                if (guild?.shard) {
-                    guild.shard.send(payload);
-                }
-            },
-            client: {
-                id: this.client.user.id,
-                username: this.client.user.username,
-            },
-            autoSkip: true,
-            playerOptions: {
-                defaultSearchPlatform: "ytsearch",
-                onEmptyQueue: {
-                    destroyAfterMs: 120000,
-                },
-            },
-            advancedOptions: {
-                enableDebugEvents: debugEnabled,
-                debugOptions: {
-                    noAudio: debugEnabled,
-                },
-            },
-        });
-
-        this.applyApiVersionCompatibility();
-        this.attachEvents();
-
-        if (this.rawListener) {
-            this.client.off("raw", this.rawListener);
+        const nodeOptionsList = this.getNodeOptionsList();
+        if (!nodeOptionsList.length) {
+            throw new Error("Nenhum node Lavalink configurado.");
         }
 
-        this.rawListener = async (packet) => {
-            if (!this.manager) return;
-            this.cacheVoicePacket(packet);
-            try {
-                await this.manager.sendRawData(packet);
-                if (packet?.t === "VOICE_STATE_UPDATE" || packet?.t === "VOICE_SERVER_UPDATE") {
-                    const guildId = packet?.d?.guild_id;
-                    if (guildId) {
-                        await this.syncCachedVoiceToPlayer(guildId);
+        if (!this.rawListener) {
+            this.rawListener = async (packet) => {
+                if (!this.manager) return;
+                this.cacheVoicePacket(packet);
+                try {
+                    await this.manager.sendRawData(packet);
+                    if (packet?.t === "VOICE_STATE_UPDATE" || packet?.t === "VOICE_SERVER_UPDATE") {
+                        const guildId = packet?.d?.guild_id;
+                        if (guildId) {
+                            await this.syncCachedVoiceToPlayer(guildId);
+                        }
                     }
+                } catch (error) {
+                    this.log("warn", "Falha ao enviar pacote raw.", error);
                 }
+            };
+            this.client.on("raw", this.rawListener);
+        }
+
+        let lastError = null;
+
+        for (const nodeOptions of nodeOptionsList) {
+            try {
+                this.manager = new LavalinkManager({
+                    nodes: [nodeOptions],
+                    sendToShard: (guildId, payload) => {
+                        const guild = this.client.guilds.cache.get(guildId);
+                        if (guild?.shard) {
+                            guild.shard.send(payload);
+                        }
+                    },
+                    client: {
+                        id: this.client.user.id,
+                        username: this.client.user.username,
+                    },
+                    autoSkip: true,
+                    playerOptions: {
+                        defaultSearchPlatform: "ytsearch",
+                        onEmptyQueue: {
+                            destroyAfterMs: 120000,
+                        },
+                    },
+                    advancedOptions: {
+                        enableDebugEvents: debugEnabled,
+                        debugOptions: {
+                            noAudio: debugEnabled,
+                        },
+                    },
+                });
+
+                this.applyApiVersionCompatibility();
+                this.attachEvents();
+
+                await this.manager.init({
+                    id: this.client.user.id,
+                    username: this.client.user.username,
+                });
+
+                await this.waitForUsableNode(20000, true);
+
+                this.log("info", `Usando node ${nodeOptions.id}`);
+                return this.manager;
             } catch (error) {
-                console.error("[Lavalink] Falha ao enviar pacote raw:", error);
+                lastError = error;
+                this.log("warn", `Falha ao conectar no node ${nodeOptions.id}. Tentando o proximo...`, error);
+
+                try {
+                    await this.manager?.nodeManager?.disconnectAll(true, true);
+                } catch {
+                    // ignore cleanup errors
+                }
+                try {
+                    this.manager?.removeAllListeners();
+                    this.manager?.nodeManager?.removeAllListeners();
+                } catch {
+                    // ignore cleanup errors
+                }
+                this.manager = null;
             }
-        };
+        }
 
-        this.client.on("raw", this.rawListener);
-
-        await this.manager.init({
-            id: this.client.user.id,
-            username: this.client.user.username,
-        });
-
-        await this.waitForUsableNode(20000);
-
-        return this.manager;
+        throw lastError || new Error("Nao foi possivel conectar a nenhum node Lavalink.");
     }
 
     normalizeRequester(requester) {
@@ -567,7 +696,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             attempts.push({ query: cleanQuery, source: "scsearch" });
         }
 
-        const apiVersion = this.getApiVersion();
+        const apiVersion = this.normalizeApiVersion(player?.node?.options?.apiVersion, "v4");
         let lastError = null;
 
         for (const attempt of attempts) {
@@ -661,7 +790,7 @@ class LavalinkManagerWrapper extends EventEmitter {
 
         const voiceReady = await this.waitForVoiceSession(guildId, 12000, connectRequestedAt);
         if (!voiceReady) {
-            console.warn(`[Lavalink] Handshake de voz pendente para guild ${guildId}. Continuando com tentativa de reproducao.`);
+            this.log("warn", "Handshake de voz pendente. Tentando reproduzir.");
         }
 
         if (createdNow) {
@@ -741,23 +870,16 @@ class LavalinkManagerWrapper extends EventEmitter {
                         }
                     }
 
-                    const details = {
-                        playing: Boolean(player?.playing),
-                        paused: Boolean(player?.paused),
-                        position: Number(player?.position || 0),
-                        connected: Boolean(player?.connected),
-                        hasCurrent: Boolean(player?.queue?.current),
-                        queueSize: Array.isArray(player?.queue?.tracks) ? player.queue.tracks.length : 0,
-                        voice: {
-                            sessionId: Boolean(voice.sessionId),
-                            token: Boolean(voice.token),
-                            endpoint: Boolean(voice.endpoint),
-                            channelId: voice.channelId || player?.voiceChannelId || null,
-                        },
-                        socketClosed: socketClosed?.payload || null,
-                        trackStuck: stuck?.payload || null,
-                    };
-                    rejectOnce(new Error(`A musica foi carregada, mas o Lavalink nao iniciou a reproducao. Diagnostico: ${JSON.stringify(details)}`));
+                    const voiceOk = Boolean(voice.sessionId && voice.token && voice.endpoint);
+                    const details = [
+                        `playing=${Boolean(player?.playing)}`,
+                        `connected=${Boolean(player?.connected)}`,
+                        `queue=${Array.isArray(player?.queue?.tracks) ? player.queue.tracks.length : 0}`,
+                        `voice=${voiceOk}`,
+                        socketClosed?.payload ? `socket=${this.shortPayload(socketClosed.payload)}` : null,
+                        stuck?.payload ? `stuck=${this.shortPayload(stuck.payload)}` : null,
+                    ].filter(Boolean).join(" ");
+                    rejectOnce(new Error(`Lavalink nao iniciou a reproducao (${details}).`));
                 } catch (error) {
                     rejectOnce(error);
                 }
@@ -778,7 +900,8 @@ class LavalinkManagerWrapper extends EventEmitter {
 
             const onTrackStuck = (player, track, payload) => {
                 if (player.guildId !== guildId) return;
-                rejectOnce(new Error(`Track presa no Lavalink: ${JSON.stringify(payload || {})}`));
+                const detail = this.shortPayload(payload);
+                rejectOnce(new Error(`Track presa no Lavalink${detail ? ` (${detail})` : ""}.`));
             };
 
             const onSocketClosed = (player, payload) => {
@@ -791,12 +914,14 @@ class LavalinkManagerWrapper extends EventEmitter {
                                 resolveOnce(recoveredPlayer?.queue?.current || null);
                                 return;
                             }
-                            rejectOnce(new Error(`Conexao de voz fechada pelo Lavalink/Discord: ${JSON.stringify(payload || {})}`));
+                            const detail = this.shortPayload(payload);
+                            rejectOnce(new Error(`Conexao de voz fechada pelo Lavalink/Discord${detail ? ` (${detail})` : ""}.`));
                         })
                         .catch((error) => rejectOnce(error));
                     return;
                 }
-                rejectOnce(new Error(`Conexao de voz fechada pelo Lavalink/Discord: ${JSON.stringify(payload || {})}`));
+                const detail = this.shortPayload(payload);
+                rejectOnce(new Error(`Conexao de voz fechada pelo Lavalink/Discord${detail ? ` (${detail})` : ""}.`));
             };
 
             this.manager.on("trackStart", onStart);
@@ -931,7 +1056,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         const fallback = {
             defaultvolume: 50,
             defaultautoplay: false,
-            defaultfilters: ["bassboost6", "clear"],
+            defaultfilters: [],
         };
 
         if (!this.client?.settings) return fallback;
@@ -1087,7 +1212,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             try {
                 await executor();
             } catch (error) {
-                console.warn(`[Lavalink] Falha ao aplicar filtro "${label}" em ${guildId}: ${error?.message || error}`);
+                this.log("warn", `Falha ao aplicar filtro "${label}".`, error);
             }
         };
 
