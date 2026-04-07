@@ -701,6 +701,15 @@ module.exports = client => {
 
     // Queue Dash
     app.get("/queue/:guildID", async (req,res) => {
+      try {
+        const guildId = String(req.params.guildID || "");
+        const queue = client.distube.getQueue(guildId);
+        if (queue?.songs?.[0] && client.lavalink?.ensureSongStats) {
+          await client.lavalink.ensureSongStats(queue.songs[0]).catch(() => {});
+        }
+      } catch {
+        // ignore stats errors
+      }
       res.render("queue", {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
