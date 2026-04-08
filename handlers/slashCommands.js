@@ -22,6 +22,9 @@ const dirSetup = [{
 	},{
 		"Folder": "Utilidade", "CmdName": "utilidade",
 		"CmdDescription": "Comandos de utilidade do bot"
+	},{
+		"Folder": "Moderation", "CmdName": "moderacao",
+		"CmdDescription": "Comandos de moderacao"
 	}];
 module.exports = (client) => {
     try {
@@ -69,14 +72,26 @@ module.exports = (client) => {
 												op.setName(String(option.Role.name).replace(/\s+/g, '_').toLowerCase()).setDescription(option.Role.description).setRequired(option.Role.required)
 											)
 										} else if(option.StringChoices && option.StringChoices.name && option.StringChoices.description && option.StringChoices.choices && option.StringChoices.choices.length > 0){
+											const stringChoices = option.StringChoices.choices.map((c) => ({
+												name: String(c[0]).replace(/\s+/g, "_").toLowerCase(),
+												value: String(c[1])
+											}));
 											subcommand.addStringOption((op) =>
-												op.setName(String(option.StringChoices.name).replace(/\s+/g, '_').toLowerCase()).setDescription(option.StringChoices.description).setRequired(option.StringChoices.required)
-												.addChoices(option.StringChoices.choices.map(c=> [String(c[0]).replace(/\s+/g, '_').toLowerCase(),String(c[1])] )),
+												op.setName(String(option.StringChoices.name).replace(/\s+/g, '_').toLowerCase())
+													.setDescription(option.StringChoices.description)
+													.setRequired(option.StringChoices.required)
+													.addChoices(...stringChoices),
 											)
 										} else if(option.IntChoices && option.IntChoices.name && option.IntChoices.description && option.IntChoices.choices && option.IntChoices.choices.length > 0){
-											subcommand.addStringOption((op) =>
-												op.setName(String(option.IntChoices.name).replace(/\s+/g, '_').toLowerCase()).setDescription(option.IntChoices.description).setRequired(option.IntChoices.required)
-												.addChoices(option.IntChoices.choices.map(c=> [String(c[0]).replace(/\s+/g, '_').toLowerCase(),parseInt(c[1])] )),
+											const intChoices = option.IntChoices.choices.map((c) => ({
+												name: String(c[0]).replace(/\s+/g, "_").toLowerCase(),
+												value: parseInt(c[1])
+											}));
+											subcommand.addIntegerOption((op) =>
+												op.setName(String(option.IntChoices.name).replace(/\s+/g, '_').toLowerCase())
+													.setDescription(option.IntChoices.description)
+													.setRequired(option.IntChoices.required)
+													.addChoices(...intChoices),
 											)
 										} else {
 											console.log(`A Option is missing the Name or/and the Description of ${pull.name}`)
@@ -124,14 +139,26 @@ module.exports = (client) => {
 										op.setName(String(option.Role.name).replace(/\s+/g, '_').toLowerCase()).setDescription(option.Role.description).setRequired(option.Role.required)
 									)
 								} else if(option.StringChoices && option.StringChoices.name && option.StringChoices.description && option.StringChoices.choices && option.StringChoices.choices.length > 0){
+									const stringChoices = option.StringChoices.choices.map((c) => ({
+										name: String(c[0]).replace(/\s+/g, "_").toLowerCase(),
+										value: String(c[1])
+									}));
 									Command.addStringOption((op) =>
-										op.setName(String(option.StringChoices.name).replace(/\s+/g, '_').toLowerCase()).setDescription(option.StringChoices.description).setRequired(option.StringChoices.required)
-										.addChoices(option.StringChoices.choices.map(c=> [String(c[0]).replace(/\s+/g, '_').toLowerCase(),String(c[1])] )),
+										op.setName(String(option.StringChoices.name).replace(/\s+/g, '_').toLowerCase())
+											.setDescription(option.StringChoices.description)
+											.setRequired(option.StringChoices.required)
+											.addChoices(...stringChoices),
 									)
 								} else if(option.IntChoices && option.IntChoices.name && option.IntChoices.description && option.IntChoices.choices && option.IntChoices.choices.length > 0){
-									Command.addStringOption((op) =>
-										op.setName(String(option.IntChoices.name).replace(/\s+/g, '_').toLowerCase()).setDescription(option.IntChoices.description).setRequired(option.IntChoices.required)
-										.addChoices(option.IntChoices.choices.map(c=> [String(c[0]).replace(/\s+/g, '_').toLowerCase(),parseInt(c[1])] )),
+									const intChoices = option.IntChoices.choices.map((c) => ({
+										name: String(c[0]).replace(/\s+/g, "_").toLowerCase(),
+										value: parseInt(c[1])
+									}));
+									Command.addIntegerOption((op) =>
+										op.setName(String(option.IntChoices.name).replace(/\s+/g, '_').toLowerCase())
+											.setDescription(option.IntChoices.description)
+											.setRequired(option.IntChoices.required)
+											.addChoices(...intChoices),
 									)
 								} else {
 									console.log(`A Option is missing the Name or/and the Description of ${pull.name}`)
@@ -159,7 +186,6 @@ module.exports = (client) => {
 			} else {
 				client.guilds.cache.map(g => g).forEach(async (guild) => {
 					try{
-						await guild.commands.set([]).catch((e)=>{});
 						guild.commands.set(allCommands)
 						.then(slashCommandsData => {
 							client.slashCommandsData = slashCommandsData;
@@ -175,7 +201,6 @@ module.exports = (client) => {
 		client.on("guildCreate", async (guild) => {
 			try{
 				if(!config.loadSlashsGlobal){
-					await guild.commands.set([]).catch((e)=>{});
 					guild.commands.set(allCommands)
 						.then(slashCommandsData => {
 							console.log(`${slashCommandsData.size} slashCommands ${`(With ${slashCommandsData.map(d => d.options).flat().length} Subcommands)`.green} Loaded for: ${`${guild.name}`.underline}`.brightGreen); 

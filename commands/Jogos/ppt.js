@@ -105,7 +105,7 @@ module.exports = {
       if (interaction.user.id !== message.author.id) {
         return interaction.reply({
           content: `${client.allEmojis.x} Apenas quem iniciou o jogo pode usar estes botoes.`,
-          ephemeral: true
+          flags: 64
         }).catch(() => {});
       }
 

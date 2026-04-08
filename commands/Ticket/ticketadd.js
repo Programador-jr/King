@@ -19,13 +19,13 @@ module.exports = {
             const channelName = channel.name;
 
             if (!channelName.startsWith("ticket-") && !channelName.startsWith("closed-")) {
-                return message.reply({ content: "❌ Este canal não é um ticket.", ephemeral: true });
+                return message.reply({ content: "❌ Este canal não é um ticket.", flags: 64 });
             }
 
             const user = message.mentions.members.first() || message.guild.members.cache.get(args[0]);
             
             if (!user) {
-                return message.reply({ content: "❌ Mencione um usuário válido.", ephemeral: true });
+                return message.reply({ content: "❌ Mencione um usuário válido.", flags: 64 });
             }
 
             await channel.permissionOverwrites.create(user, {
@@ -44,7 +44,7 @@ module.exports = {
 
         } catch (e) {
             console.log(String(e.stack).bgRed);
-            message.reply({ content: "❌ Ocorreu um erro.", ephemeral: true });
+            message.reply({ content: "❌ Ocorreu um erro.", flags: 64 });
         }
     }
 };

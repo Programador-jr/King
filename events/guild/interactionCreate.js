@@ -63,7 +63,7 @@ module.exports = async (client, interaction) => {
       if (existingTicket) {
         return interaction.reply({
           content: `❌ Você já tem um ticket aberto: <#${existingTicket.channelId}>`,
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -77,7 +77,7 @@ module.exports = async (client, interaction) => {
       if (!ticketData) {
         return interaction.reply({
           content: "❌ Não foi possível criar o ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -90,7 +90,7 @@ module.exports = async (client, interaction) => {
       if (!ticketChannel) {
         return interaction.reply({
           content: "❌ Não foi possível criar o canal do ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -137,14 +137,14 @@ module.exports = async (client, interaction) => {
 
       await interaction.reply({
         content: `✅ Ticket criado com sucesso! <#${ticketChannel.id}>`,
-        ephemeral: true
+        flags: 64
       });
 
     } catch (error) {
       console.error("[Ticket Modal Submit] Erro:", error);
       await interaction.reply({
         content: "❌ Ocorreu um erro ao criar seu ticket.",
-        ephemeral: true
+        flags: 64
       });
     }
     return;
@@ -171,7 +171,7 @@ module.exports = async (client, interaction) => {
         if (existingTicket) {
           return interaction.reply({
             content: `❌ Você já tem um ticket aberto: <#${existingTicket.channelId}>`,
-            ephemeral: true
+            flags: 64
           });
         }
 
@@ -205,7 +205,7 @@ module.exports = async (client, interaction) => {
         console.error("[Create Ticket] Erro:", error);
         await interaction.reply({
           content: "❌ Ocorreu um erro ao criar seu ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
       return;
@@ -230,7 +230,7 @@ module.exports = async (client, interaction) => {
           console.log("[Close Ticket] Erro: Canal não é um ticket");
           return interaction.reply({
             content: "❌ Este não é um canal de ticket.",
-            ephemeral: true
+            flags: 64
           });
         }
 
@@ -239,7 +239,7 @@ module.exports = async (client, interaction) => {
           console.log("[Close Ticket] Erro: Não foi possível extrair número do ticket");
           return interaction.reply({
             content: "❌ Não foi possível identificar o número do ticket.",
-            ephemeral: true
+            flags: 64
           });
         }
 
@@ -250,7 +250,7 @@ module.exports = async (client, interaction) => {
           console.log("[Close Ticket] Erro: Ticket não encontrado no banco");
           return interaction.reply({
             content: "❌ Ticket não encontrado.",
-            ephemeral: true
+            flags: 64
           });
         }
 
@@ -274,7 +274,7 @@ module.exports = async (client, interaction) => {
           console.log("[Close Ticket] Erro: Usuário sem permissão");
           return interaction.reply({
             content: "❌ Apenas o dono do ticket ou staff pode fechar o ticket.",
-            ephemeral: true
+            flags: 64
           });
         }
 
@@ -291,7 +291,7 @@ module.exports = async (client, interaction) => {
           console.log("[Close Ticket] Erro: closeTicket retornou null");
           return interaction.reply({
             content: "❌ Não foi possível fechar o ticket.",
-            ephemeral: true
+            flags: 64
           });
         }
 
@@ -344,14 +344,14 @@ module.exports = async (client, interaction) => {
 
         await interaction.reply({
           content: "✅ Ticket fechado com sucesso!",
-          ephemeral: true
+          flags: 64
         });
 
       } catch (error) {
         console.error("[Close Ticket] Erro:", error);
         await interaction.reply({
           content: "❌ Ocorreu um erro ao fechar o ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
       return;
@@ -370,7 +370,7 @@ module.exports = async (client, interaction) => {
       if (!channelName.startsWith("closed-")) {
         return interaction.reply({
           content: "❌ Este não é um ticket fechado.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -378,7 +378,7 @@ module.exports = async (client, interaction) => {
       if (!ticketNumber) {
         return interaction.reply({
           content: "❌ Não foi possível identificar o ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -418,14 +418,15 @@ module.exports = async (client, interaction) => {
 
         await interaction.reply({ 
           embeds: [embed],
-          components: [closeButton]
+          components: [closeButton],
+          flags: 64
         });
 
       } catch (error) {
         console.error("[Reopen Ticket] Erro:", error);
         await interaction.reply({
           content: "❌ Ocorreu um erro ao reabrir o ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
       return;
@@ -444,7 +445,7 @@ module.exports = async (client, interaction) => {
       if (!channelName.startsWith("closed-")) {
         return interaction.reply({
           content: "❌ Este não é um ticket fechado.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -452,7 +453,7 @@ module.exports = async (client, interaction) => {
       if (!ticketNumber) {
         return interaction.reply({
           content: "❌ Não foi possível identificar o ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -460,6 +461,7 @@ module.exports = async (client, interaction) => {
         await client.ticketHandler.deleteTicket(interaction.guild.id, ticketNumber);
         await interaction.reply({
           content: "🗑️ O ticket será deletado em 3 segundos...",
+          flags: 64
         });
         
         setTimeout(() => {
@@ -470,7 +472,7 @@ module.exports = async (client, interaction) => {
         console.error("[Delete Ticket] Erro:", error);
         await interaction.reply({
           content: "❌ Ocorreu um erro ao deletar o ticket.",
-          ephemeral: true
+          flags: 64
         });
       }
       return;
@@ -483,7 +485,7 @@ module.exports = async (client, interaction) => {
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return interaction.reply({
           content: "❌ Apenas administradores podem configurar.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -494,7 +496,7 @@ module.exports = async (client, interaction) => {
       if (!channels.length) {
         return interaction.reply({
           content: "❌ Nenhum canal de texto encontrado.",
-          ephemeral: true
+          flags: 64
         });
       }
 
@@ -513,7 +515,7 @@ module.exports = async (client, interaction) => {
       return interaction.reply({
         content: "Escolha o canal de confissões:",
         components: [row],
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -562,7 +564,7 @@ module.exports = async (client, interaction) => {
     if (!musicChannels.includes(interaction.channelId) &&
         !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
       return interaction.reply({
-        ephemeral: true,
+        flags: 64,
         embeds: [
           new EmbedBuilder()
             .setColor(client.embedColor?.wrong || "#FF0000")
@@ -580,7 +582,7 @@ module.exports = async (client, interaction) => {
     if (!botchannels.includes(interaction.channelId) &&
         !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
       return interaction.reply({
-        ephemeral: true,
+        flags: 64,
         embeds: [
           new EmbedBuilder()
             .setColor(client.embedColor?.wrong || "#FF0000")
@@ -600,7 +602,7 @@ module.exports = async (client, interaction) => {
   } catch (error) {
     console.error("[interactionCreate] Falha ao executar comando:", error);
     const payload = {
-      ephemeral: true,
+      flags: 64,
       embeds: [
         new EmbedBuilder()
           .setColor(client.embedColor?.wrong || "#FF0000")
@@ -651,7 +653,7 @@ async function createTicketDirectly(interaction, ticketHandler, reason, category
   if (!ticketData) {
     return interaction.reply({
       content: "❌ Não foi possível criar o ticket.",
-      ephemeral: true
+      flags: 64
     });
   }
 
@@ -664,7 +666,7 @@ async function createTicketDirectly(interaction, ticketHandler, reason, category
   if (!ticketChannel) {
     return interaction.reply({
       content: "❌ Não foi possível criar o canal do ticket.",
-      ephemeral: true
+      flags: 64
     });
   }
 
@@ -701,6 +703,6 @@ async function createTicketDirectly(interaction, ticketHandler, reason, category
 
   await interaction.reply({
     content: `✅ Ticket criado com sucesso! <#${ticketChannel.id}>`,
-    ephemeral: true
+    flags: 64
   });
 }

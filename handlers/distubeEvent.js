@@ -32,19 +32,46 @@ const safeSlug = (value) =>
 
 const replyAndDelete = async (interaction, payload) => {
   try {
+    const options = { ...payload };
+    if (!options.flags) {
+      options.flags = 64;
+    }
+    delete options.ephemeral;
+    delete options.fetchReply;
+    
     if (interaction.replied || interaction.deferred) {
-      const msg = await interaction.followUp(payload);
+      const msg = await interaction.followUp(options);
       setTimeout(() => {
         msg?.delete?.().catch(() => {});
       }, 4000);
     } else {
-      const msg = await interaction.reply({ ...payload, fetchReply: true });
+      const msg = await interaction.reply(options);
       setTimeout(() => {
         msg?.delete?.().catch(() => {});
       }, 4000);
     }
   } catch (e) {
     // ignore
+  }
+};
+
+const getInteractionForChannel = (client, channelId) => {
+  if (!client.slashCommandInteractions) return null;
+  for (const [_, interaction] of client.slashCommandInteractions) {
+    if (interaction.channelId === channelId && !interaction.replied) {
+      return interaction;
+    }
+  }
+  return null;
+};
+
+const clearInteractionForChannel = (client, channelId) => {
+  if (!client.slashCommandInteractions) return;
+  for (const [id, interaction] of client.slashCommandInteractions) {
+    if (interaction.channelId === channelId) {
+      client.slashCommandInteractions.delete(id);
+      break;
+    }
   }
 };
 
@@ -57,9 +84,16 @@ const resolveSendableChannel = (target) => {
   return null;
 };
 
-const sendToDistubeChannel = async (target, payload, deleteAfterMs = 0) => {
+const sendToDistubeChannel = async (client, target, payload, deleteAfterMs = 0) => {
   const channel = resolveSendableChannel(target);
   if (!channel) return null;
+  
+  const channelId = channel?.id;
+  const interaction = getInteractionForChannel(client, channelId);
+  if (interaction) {
+    return replyAndDelete(interaction, payload);
+  }
+  
   try {
     const sent = await channel.send(payload);
     if (deleteAfterMs > 0 && sent?.delete) {
@@ -88,11 +122,19 @@ module.exports = (client) => {
             var newQueue = client.distube.getQueue(queue.id)
             var newTrack = track;
             var data = receiveQueueData(newQueue, newTrack)
-            //Send message with buttons
-            let currentSongPlayMsg = await queue.textChannel.send(data).then(msg => {
-              PlayerMap.set(getPlayerMapKey(queue.id), msg.id);
-            return msg;
-          })
+            
+            const interaction = getInteractionForChannel(client, queue.textChannel?.id);
+            
+            if (interaction) {
+              clearInteractionForChannel(client, queue.textChannel?.id);
+              const msg = await replyAndDelete(interaction, data);
+              PlayerMap.set(getPlayerMapKey(queue.id), msg?.id);
+            } else {
+              let currentSongPlayMsg = await queue.textChannel.send(data).then(msg => {
+                PlayerMap.set(getPlayerMapKey(queue.id), msg.id);
+                return msg;
+              })
+            }
           //create a collector for the thinggy
           var collector = currentSongPlayMsg.createMessageComponentCollector({
             filter: (i) => i.isButton() && i.user && i.message.author.id == client.user.id,
@@ -125,7 +167,7 @@ module.exports = (client) => {
             if (!liveQueue || !Array.isArray(liveQueue.songs) || liveQueue.songs.length === 0) {
               return replyAndDelete(i, {
                 content: `${client.allEmojis.x} **Nao ha nada tocando agora.**`,
-                ephemeral: true
+                flags: 64
               });
             }
             newQueue = liveQueue;
@@ -136,7 +178,7 @@ module.exports = (client) => {
                 .setTitle(`${client.allEmojis.x} **Você não é um DJ ou não é o solicitador da música!**`)
                 .setDescription(`**CARGO-DJ:**\n${check_if_dj(client, i.member, newQueue.songs[0])}`)
               ],
-              ephemeral: true});
+              flags: 64});
             }
             lastEdited = true;
             setTimeout(() => {
@@ -151,7 +193,7 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor, junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //get the player instance
               const queue = client.distube.getQueue(i.guild.id);
@@ -159,19 +201,19 @@ module.exports = (client) => {
               if (!queue || !newQueue.songs || newQueue.songs.length == 0) {
                 return i.reply({
                   content: `${client.allEmojis.x} Nada há nada tocando ainda`,
-                  ephemeral: true
+                  flags: 64
                 })
               }
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               if (newQueue.songs.length <= 1 && !newQueue.autoplay) {
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Nao ha proxima musica na fila.**`,
-                  ephemeral: true
+                  flags: 64
                 })
               }
               try {
@@ -187,7 +229,7 @@ module.exports = (client) => {
                 if (String(e).includes("NO_UP_NEXT") || e?.errorCode === "NO_UP_NEXT") {
                   return replyAndDelete(i, {
                     content: `${client.allEmojis.x} **Nao ha proxima musica na fila.**`,
-                    ephemeral: true
+                    flags: 64
                   })
                 }
                 throw e;
@@ -202,14 +244,14 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
 
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
                 //stop the track
                 replyAndDelete(i, {
@@ -232,13 +274,13 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               try {
                 if (newQueue.paused) {
@@ -270,10 +312,10 @@ module.exports = (client) => {
                 }
               } catch (e) {
                 if (String(e).includes("PAUSED") || e?.errorCode === "PAUSED") {
-                  return replyAndDelete(i, { content: `${client.allEmojis.x} **A fila ja esta pausada.**`, ephemeral: true })
+                  return replyAndDelete(i, { content: `${client.allEmojis.x} **A fila ja esta pausada.**`, flags: 64 })
                 }
                 if (String(e).includes("RESUMED") || e?.errorCode === "RESUMED") {
-                  return replyAndDelete(i, { content: `${client.allEmojis.x} **A fila ja esta tocando.**`, ephemeral: true })
+                  return replyAndDelete(i, { content: `${client.allEmojis.x} **A fila ja esta tocando.**`, flags: 64 })
                 }
                 throw e;
               }
@@ -287,13 +329,13 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //pause the player
               await newQueue.toggleAutoplay()
@@ -326,13 +368,13 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //pause the player
               await newQueue.shuffle()
@@ -354,13 +396,13 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //Disable the Repeatmode
               if(newQueue.repeatMode == 1){
@@ -391,13 +433,13 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //Disable the Repeatmode
               if(newQueue.repeatMode == 2){
@@ -428,13 +470,13 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               let seektime = newQueue.currentTime + 10;
               if (seektime >= newQueue.songs[0].duration) seektime = newQueue.songs[0].duration - 1;
@@ -461,13 +503,13 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               let seektime = newQueue.currentTime - 10;
               if (seektime < 0) seektime = 0;
@@ -494,17 +536,17 @@ module.exports = (client) => {
               if (!channel)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`,
-                  ephemeral: true
+                  flags: 64
                 })
               //if not in the same channel as the player, return Error
               if (channel.id !== newQueue.voiceChannel.id)
                 return replyAndDelete(i, {
                   content: `${client.allEmojis.x} **Por favor entre no __meu__ canal de voz primeiro! <#${channel.id}>**`,
-                  ephemeral: true
+                  flags: 64
                 })
               try {
                 if (!i.deferred && !i.replied) {
-                  await i.deferReply({ ephemeral: true }).catch(() => {});
+                  await i.deferReply({ flags: 64 }).catch(() => {});
                 }
                 const currentSong = newQueue?.songs?.[0];
                 if (!currentSong) {
@@ -567,7 +609,7 @@ module.exports = (client) => {
                 if (i.deferred || i.replied) {
                   return i.editReply(payload).catch(() => {});
                 }
-                return replyAndDelete(i, { ...payload, ephemeral: true });
+                return replyAndDelete(i, { ...payload, flags: 64 });
               }
             }
           });
@@ -576,42 +618,68 @@ module.exports = (client) => {
         }
       })
       .on(`addSong`, (queue, song) => {
-        return queue.textChannel.send({
-        embeds: [
-          new MessageEmbed()
-          .setColor(ee.color)
-          .setThumbnail(song?.thumbnail || (song?.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : ee.footericon))
-          .setFooter(" " + song.user.tag, song.user.displayAvatarURL({
-            dynamic: true
-          }))
-          .setTitle(`${client.allEmojis.check_mark} **Musica adicionada a fila de reproducao!**`)
-          .setDescription(`<:queue:893912259535966238> Musica: [\`${song.name}\`](${song.url})  -  \`${song.formattedDuration}\``)
-          .addField(`<:duration:893938822386163723> **Tempo estimado:**`, `\`${queue.songs.length - 1} musica${queue.songs.length > 0 ? "s" : ""}\` - \`${(Math.floor((queue.duration - song.duration) / 60 * 100) / 100).toString().replace(".", ":")}\``)
-          .addField(`<:queue:893912259535966238> **Duracao da fila:**`, `\`${queue.formattedDuration}\``)
-        ]
+        const channelId = queue.textChannel?.id;
+        const interaction = getInteractionForChannel(client, channelId);
+        const payload = {
+          embeds: [
+            new MessageEmbed()
+            .setColor(ee.color)
+            .setThumbnail(song?.thumbnail || (song?.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : ee.footericon))
+            .setFooter(" " + song.user.tag, song.user.displayAvatarURL({
+              dynamic: true
+            }))
+            .setTitle(`${client.allEmojis.check_mark} **Musica adicionada a fila de reproducao!**`)
+            .setDescription(`<:queue:893912259535966238> Musica: [\`${song.name}\`](${song.url})  -  \`${song.formattedDuration}\``)
+            .addField(`<:duration:893938822386163723> **Tempo estimado:**`, `\`${queue.songs.length - 1} musica${queue.songs.length > 0 ? "s" : ""}\` - \`${(Math.floor((queue.duration - song.duration) / 60 * 100) / 100).toString().replace(".", ":")}\``)
+            .addField(`<:queue:893912259535966238> **Duracao da fila:**`, `\`${queue.formattedDuration}\``)
+          ]
+        };
+        if (interaction) {
+          return replyAndDelete(interaction, payload);
+        }
+        return queue.textChannel.send(payload);
       })
+      .on(`addList`, (queue, playlist) => {
+        const channelId = queue.textChannel?.id;
+        const interaction = getInteractionForChannel(client, channelId);
+        const payload = {
+          embeds: [
+            new MessageEmbed()
+            .setColor(ee.color)
+            .setThumbnail((playlist?.thumbnail?.url || playlist?.thumbnail) ? (playlist.thumbnail?.url || playlist.thumbnail) : `https://img.youtube.com/vi/${playlist.songs[0].id}/mqdefault.jpg`)
+            .setFooter("" + playlist.user.tag, playlist.user.displayAvatarURL({
+              dynamic: true
+            }))
+            .setTitle(`${client.allEmojis.check_mark} **Playlist adicionada a fila!**`)
+            .setDescription(`<:queue:893912259535966238> Playlist: [\`${playlist.name}\`](${playlist.url ? playlist.url : ""})  -  \`${playlist.songs.length} Musica${playlist.songs.length > 0 ? "s" : ""}\``)
+            .addField(`<:duration:893938822386163723> **Tempo estimado:**`, `\`${queue.songs.length - - playlist.songs.length} musica${queue.songs.length > 0 ? "s" : ""}\` - \`${(Math.floor((queue.duration - playlist.duration) / 60 * 100) / 100).toString().replace(".", ":")}\``)
+            .addField(`<:queue:893912259535966238> **Duracao da fila:**`, `\`${queue.formattedDuration}\``)
+          ]
+        };
+        if (interaction) {
+          return replyAndDelete(interaction, payload);
+        }
+        return queue.textChannel.send(payload);
       })
-      .on(`addList`, (queue, playlist) => queue.textChannel.send({
-        embeds: [
-          new MessageEmbed()
-          .setColor(ee.color)
-          .setThumbnail((playlist?.thumbnail?.url || playlist?.thumbnail) ? (playlist.thumbnail?.url || playlist.thumbnail) : `https://img.youtube.com/vi/${playlist.songs[0].id}/mqdefault.jpg`)
-          .setFooter("" + playlist.user.tag, playlist.user.displayAvatarURL({
-            dynamic: true
-          }))
-          .setTitle(`${client.allEmojis.check_mark} **Playlist adicionada a fila!**`)
-          .setDescription(`<:queue:893912259535966238> Playlist: [\`${playlist.name}\`](${playlist.url ? playlist.url : ""})  -  \`${playlist.songs.length} Musica${playlist.songs.length > 0 ? "s" : ""}\``)
-          .addField(`<:duration:893938822386163723> **Tempo estimado:**`, `\`${queue.songs.length - - playlist.songs.length} musica${queue.songs.length > 0 ? "s" : ""}\` - \`${(Math.floor((queue.duration - playlist.duration) / 60 * 100) / 100).toString().replace(".", ":")}\``)
-          .addField(`<:queue:893912259535966238> **Duracao da fila:**`, `\`${queue.formattedDuration}\``)
-        ]
-      }))
       // DisTubeOptions.searchSongs = true
       .on(`searchResult`, (message, result) => {
-        let i = 0
-        message.channel.send(`**Escolha uma opcao abaixo**\n${result.map((song) => `**${++i}**. ${song.name} - \`${song.formattedDuration}\``).join(`\n`)}\n*Digite qualquer outra coisa ou aguarde 60 segundos para cancelar*`)
+        const channelId = message.channel?.id;
+        const interaction = getInteractionForChannel(client, channelId);
+        const text = `**Escolha uma opcao abaixo**\n${result.map((song, i) => `**${++i}**. ${song.name} - \`${song.formattedDuration}\``).join(`\n`)}\n*Digite qualquer outra coisa ou aguarde 60 segundos para cancelar*`;
+        if (interaction) {
+          return replyAndDelete(interaction, { content: text });
+        }
+        return message.channel.send(text);
       })
       // DisTubeOptions.searchSongs = true
-      .on(`searchCancel`, message => message.channel.send(`Pesquisa cancelada`).catch((e)=>console.log(e)))
+      .on(`searchCancel`, message => {
+        const channelId = message.channel?.id;
+        const interaction = getInteractionForChannel(client, channelId);
+        if (interaction) {
+          return replyAndDelete(interaction, { content: `Pesquisa cancelada` });
+        }
+        return message.channel.send(`Pesquisa cancelada`).catch((e)=>console.log(e));
+      })
       .on(`error`, (error, queue, song) => {
         const target = queue?.textChannel || queue || song;
         const rawError = String(error?.message || error || "");
@@ -626,6 +694,7 @@ module.exports = (client) => {
           if (now - lastWarn >= 12000) {
             ytAuthWarnAt.set(queueId, now);
             sendToDistubeChannel(
+              client,
               target,
               `${client.allEmojis.x} YouTube bloqueou a reproducao. Configure cookies validos e tente novamente.`,
               4000
@@ -638,11 +707,25 @@ module.exports = (client) => {
           return;
         }
 
-        sendToDistubeChannel(target, `Um erro encontrado: ${rawError}`, 4000);
+        sendToDistubeChannel(client, target, `Um erro encontrado: ${rawError}`, 4000);
         console.error(error)
       })
-      .on(`empty`, channel => sendToDistubeChannel(channel, `O canal de voz está vazio! Saindo do canal...`))
-      .on(`searchNoResult`, message => message.channel.send(`nenhum resultado encontrado!`).catch((e)=>console.log(e)))
+      .on(`empty`, channel => {
+        const channelId = channel?.id;
+        const interaction = getInteractionForChannel(client, channelId);
+        if (interaction) {
+          return replyAndDelete(interaction, { content: `O canal de voz está vazio! Saindo do canal...` });
+        }
+        return sendToDistubeChannel(client, channel, `O canal de voz está vazio! Saindo do canal...`);
+      })
+      .on(`searchNoResult`, message => {
+        const channelId = message.channel?.id;
+        const interaction = getInteractionForChannel(client, channelId);
+        if (interaction) {
+          return replyAndDelete(interaction, { content: `nenhum resultado encontrado!` });
+        }
+        return message.channel.send(`nenhum resultado encontrado!`).catch((e)=>console.log(e));
+      })
       .on(`finishSong`, (queue, song) => {
         var embed = new MessageEmbed().setColor(ee.color)
         .setAuthor(`${song.name}`, "https://images-ext-2.discordapp.net/external/Q16BMFNhO29X2_DgKf3tJk2YOsC0jQ0yu6qPyxqwO9w/https/media.discordapp.net/attachments/883978730261860383/883978741892649000/847032838998196234.png", song.url)
