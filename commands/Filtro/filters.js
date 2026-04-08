@@ -138,7 +138,7 @@ module.exports = {
           if (interaction.user.id !== member.id) {
             return interaction.reply({
               content: `${client.allEmojis.x} Você não pode usar isso!`,
-              ephemeral: true
+              flags: 64
             }).catch(() => {});
           }
           

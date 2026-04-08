@@ -40,7 +40,7 @@ module.exports = {
                 const category = message.mentions.channels.first() || message.guild.channels.cache.get(args[1]);
                 
                 if (!category || category.type !== "GUILD_CATEGORY") {
-                    return message.reply({ content: "❌ Mencione uma categoria válida.", ephemeral: true });
+                    return message.reply({ content: "❌ Mencione uma categoria válida.", flags: 64 });
                 }
 
                 client.settings.set(message.guild.id, category.id, "ticketCategory");
@@ -58,7 +58,7 @@ module.exports = {
                 const role = message.mentions.roles.first() || message.guild.roles.cache.get(args[1]);
                 
                 if (!role) {
-                    return message.reply({ content: "❌ Mencione um cargo válido.", ephemeral: true });
+                    return message.reply({ content: "❌ Mencione um cargo válido.", flags: 64 });
                 }
 
                 const currentRoles = client.settings.get(message.guild.id, "ticketRoles") || [];
@@ -67,7 +67,7 @@ module.exports = {
                     const newRoles = currentRoles.filter(r => r !== role.id);
                     client.settings.set(message.guild.id, newRoles, "ticketRoles");
                     
-                    return message.reply({ content: `❌ Cargo ${role.name} removido da lista de suporte.`, ephemeral: true });
+                    return message.reply({ content: `❌ Cargo ${role.name} removido da lista de suporte.`, flags: 64 });
                 }
 
                 currentRoles.push(role.id);
@@ -98,7 +98,7 @@ module.exports = {
                 }
 
                 if (!webhookUrl.startsWith("https://discord.com/api/webhooks/")) {
-                    return message.reply({ content: "❌ URL de webhook inválida.", ephemeral: true });
+                    return message.reply({ content: "❌ URL de webhook inválida.", flags: 64 });
                 }
 
                 client.settings.set(message.guild.id, webhookUrl, "ticketWebhook");
@@ -149,7 +149,7 @@ module.exports = {
                 client.settings.set(message.guild.id, message.channel.id, "ticketPanelChannelId");
                 client.settings.set(message.guild.id, panelMessage.id, "ticketPanelMessageId");
 
-                return message.reply({ content: "✅ Painel de tickets recriado!", ephemeral: true });
+                return message.reply({ content: "✅ Painel de tickets recriado!", flags: 64 });
             }
 
             if (option === "status") {
@@ -170,11 +170,11 @@ module.exports = {
                 return message.reply({ embeds: [embed] });
             }
 
-            return message.reply({ content: "❌ Opção inválida. Use `ticketsettings` para ver as opções.", ephemeral: true });
+            return message.reply({ content: "❌ Opção inválida. Use `ticketsettings` para ver as opções.", flags: 64 });
 
         } catch (e) {
             console.log(String(e.stack).bgRed);
-            message.reply({ content: "❌ Ocorreu um erro.", ephemeral: true });
+            message.reply({ content: "❌ Ocorreu um erro.", flags: 64 });
         }
     }
 };

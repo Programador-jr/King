@@ -27,17 +27,17 @@ module.exports = {
             const channelName = channel.name;
 
             if (!channelName.startsWith("ticket-") && !channelName.startsWith("closed-")) {
-                return message.reply({ content: "❌ Este canal não é um ticket.", ephemeral: true });
+                return message.reply({ content: "❌ Este canal não é um ticket.", flags: 64 });
             }
 
             const ticketNumber = parseInt(channelName.replace(/[^0-9]/g, ""));
             if (!ticketNumber) {
-                return message.reply({ content: "❌ Não foi possível identificar o ticket.", ephemeral: true });
+                return message.reply({ content: "❌ Não foi possível identificar o ticket.", flags: 64 });
             }
 
             const ticketData = client.ticketHandler.getTicket(message.guild.id, ticketNumber);
             if (!ticketData) {
-                return message.reply({ content: "❌ Ticket não encontrado.", ephemeral: true });
+                return message.reply({ content: "❌ Ticket não encontrado.", flags: 64 });
             }
 
             const closedTicket = await client.ticketHandler.closeTicket(
@@ -110,7 +110,7 @@ module.exports = {
 
         } catch (e) {
             console.log(String(e.stack).bgRed);
-            message.reply({ content: "❌ Ocorreu um erro ao fechar o ticket.", ephemeral: true });
+            message.reply({ content: "❌ Ocorreu um erro ao fechar o ticket.", flags: 64 });
         }
     }
 };

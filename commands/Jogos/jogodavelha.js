@@ -368,7 +368,7 @@ module.exports = {
         return interaction
           .reply({
             content: `${client.allEmojis.x} Aguarde a acao atual terminar.`,
-            ephemeral: true
+            flags: 64
           })
           .catch(() => {});
       }
@@ -382,7 +382,7 @@ module.exports = {
         return interaction
           .reply({
             content: `${client.allEmojis.x} Apenas quem iniciou o jogo pode usar este botao.`,
-            ephemeral: true
+            flags: 64
           })
           .catch(() => {});
       }
@@ -457,7 +457,7 @@ module.exports = {
           return interaction
             .reply({
               content: `${client.allEmojis.x} Esta partida ja esta no modo 2P.`,
-              ephemeral: true
+              flags: 64
             })
             .catch(() => {});
         }
@@ -469,7 +469,7 @@ module.exports = {
           return interaction
             .reply({
               content: `${client.allEmojis.x} O 2P so pode ser iniciado antes da primeira jogada ou apos o fim da partida.`,
-              ephemeral: true
+              flags: 64
             })
             .catch(() => {});
         }
@@ -542,7 +542,7 @@ module.exports = {
         return interaction
           .reply({
             content: `${client.allEmojis.x} Essa casa ja foi usada.`,
-            ephemeral: true
+            flags: 64
           })
           .catch(() => {});
       }
@@ -553,7 +553,7 @@ module.exports = {
           return interaction
             .reply({
               content: `${client.allEmojis.x} Aguarde minha jogada.`,
-              ephemeral: true
+              flags: 64
             })
             .catch(() => {});
         }
@@ -562,7 +562,7 @@ module.exports = {
           return interaction
             .reply({
               content: `${client.allEmojis.x} Apenas quem iniciou pode jogar esta partida.`,
-              ephemeral: true
+              flags: 64
             })
             .catch(() => {});
         }
@@ -597,7 +597,7 @@ module.exports = {
         return interaction
           .reply({
             content: `${client.allEmojis.x} Nao e sua vez.`,
-            ephemeral: true
+            flags: 64
           })
           .catch(() => {});
       }

@@ -41,7 +41,7 @@ async function startConfession(client, context, user) {
       .setFooter(ee.footertext, ee.footericon);
 
     if (isInteraction) {
-      return context.reply({ embeds: [embed], ephemeral: true });
+      return context.reply({ embeds: [embed], flags: 64 });
     }
     return context.reply({ embeds: [embed] }).then(() => {
       setTimeout(() => context.delete().catch(() => {}), 3000);
@@ -70,7 +70,7 @@ async function startConfession(client, context, user) {
       .setFooter(ee.footertext, ee.footericon);
 
     if (isInteraction) {
-      return context.reply({ embeds: [embed], ephemeral: true });
+      return context.reply({ embeds: [embed], flags: 64 });
     }
     return context.reply({ embeds: [embed] }).catch(() => {});
   }
@@ -87,7 +87,7 @@ async function startConfession(client, context, user) {
       .setFooter(ee.footertext, ee.footericon);
 
     if (isInteraction) {
-      return context.reply({ embeds: [embed], ephemeral: true });
+      return context.reply({ embeds: [embed], flags: 64 });
     }
     return context.reply({ embeds: [embed] }).catch(() => {});
   }
@@ -102,7 +102,7 @@ async function startConfession(client, context, user) {
       .setFooter(ee.footertext, ee.footericon);
 
     if (isInteraction) {
-      return context.reply({ embeds: [embed], ephemeral: true });
+      return context.reply({ embeds: [embed], flags: 64 });
     }
     return context.reply({ embeds: [embed] }).then(() => {
       setTimeout(() => context.delete().catch(() => {}), 3000);
@@ -150,7 +150,7 @@ async function startConfession(client, context, user) {
     .setFooter(ee.footertext, ee.footericon);
 
   if (isInteraction) {
-    return context.reply({ embeds: [confirmEmbed], ephemeral: true });
+    return context.reply({ embeds: [confirmEmbed], flags: 64 });
   }
 
   const reply = await context.reply({ embeds: [confirmEmbed] }).catch(() => {});

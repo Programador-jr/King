@@ -133,7 +133,7 @@ module.exports = {
     collector.on("collect", async (interaction) => {
       try {
         if (interaction.user.id !== message.author.id) {
-          return interaction.reply({ content: `${client.allEmojis.x} Você não pode usar isso!`, ephemeral: true }).catch(() => null);
+          return interaction.reply({ content: `${client.allEmojis.x} Você não pode usar isso!`, flags: 64 }).catch(() => null);
         }
 
         if (interaction.customId === "botchat_menu") {

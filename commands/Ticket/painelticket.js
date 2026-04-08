@@ -61,11 +61,11 @@ module.exports = {
             client.settings.set(message.guild.id, message.channel.id, "ticketPanelChannelId");
             client.settings.set(message.guild.id, panelMessage.id, "ticketPanelMessageId");
 
-            message.reply({ content: "✅ Painel de tickets criado com sucesso!", ephemeral: true });
+            message.reply({ content: "✅ Painel de tickets criado com sucesso!", flags: 64 });
 
         } catch (e) {
             console.log(String(e.stack).bgRed);
-            message.reply({ content: "❌ Ocorreu um erro ao criar o painel.", ephemeral: true });
+            message.reply({ content: "❌ Ocorreu um erro ao criar o painel.", flags: 64 });
         }
     }
 };

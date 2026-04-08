@@ -45,13 +45,20 @@ const safeSlug = (value) =>
 
 const replyAndDelete = async (interaction, payload) => {
   try {
+    const options = { ...payload };
+    if (!options.flags) {
+      options.flags = 64;
+    }
+    delete options.ephemeral;
+    delete options.fetchReply;
+    
     if (interaction.replied || interaction.deferred) {
-      const msg = await interaction.followUp(payload);
+      const msg = await interaction.followUp(options);
       setTimeout(() => {
         msg?.delete?.().catch(() => {});
       }, 4000);
     } else {
-      const msg = await interaction.reply({ ...payload, fetchReply: true });
+      const msg = await interaction.reply(options);
       setTimeout(() => {
         msg?.delete?.().catch(() => {});
       }, 4000);
@@ -140,7 +147,7 @@ module.exports = (client) => {
           if (!liveQueue || !Array.isArray(liveQueue.songs) || liveQueue.songs.length === 0) {
             return replyAndDelete(i, {
               content: `${client.allEmojis.x} **Nao ha nada tocando agora.**`,
-              ephemeral: true
+              flags: 64
             });
           }
           newQueue = liveQueue;
@@ -151,7 +158,7 @@ module.exports = (client) => {
               .setTitle(`${client.allEmojis.x} **Voce nao e um DJ ou nao e o solicitador da musica!**`)
               .setDescription(`**CARGO-DJ:**\n${check_if_dj(client, i.member, newQueue.songs[0])}`)
             ],
-            ephemeral: true});
+            flags: 64});
           }
           lastEdited = true;
           setTimeout(() => { lastEdited = false }, 7000);
@@ -159,11 +166,11 @@ module.exports = (client) => {
           if (i.customId == `1`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor, junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor, junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             const queue = client.lavalink.getQueue(i.guildId);
             if (!queue || !newQueue.songs || newQueue.songs.length <= 1) {
-              return replyAndDelete(i, { content: `${client.allEmojis.x} **Nao ha proxima musica na fila.**`, ephemeral: true });
+              return replyAndDelete(i, { content: `${client.allEmojis.x} **Nao ha proxima musica na fila.**`, flags: 64 });
             }
             
             try {
@@ -177,7 +184,7 @@ module.exports = (client) => {
           if (i.customId == `2`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             replyAndDelete(i, { embeds: [new MessageEmbed().setColor(ee.color).setTimestamp().setTitle(`<:stop:893931070410604594> **Parou de tocar e saiu do canal!**`).setFooter(`Acao por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))] });
             clearInterval(songEditInterval);
@@ -187,7 +194,7 @@ module.exports = (client) => {
           if (i.customId == `3`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             const queue = client.lavalink.getQueue(i.guildId);
             if (queue.paused) {
@@ -202,7 +209,7 @@ module.exports = (client) => {
           if (i.customId == `4`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             const queue = client.lavalink.getQueue(i.guildId);
             queue.autoplay = !queue.autoplay;
@@ -212,7 +219,7 @@ module.exports = (client) => {
           if (i.customId == `5`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             await client.lavalink.shuffle(i.guild.id);
             replyAndDelete(i, { embeds: [new MessageEmbed().setColor(ee.color).setTimestamp().setTitle(`<:shuffle:893942706269749278> **Aleatorio!**`).setFooter(`Acao por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))] });
@@ -221,7 +228,7 @@ module.exports = (client) => {
           if (i.customId == `6`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             const queue = client.lavalink.getQueue(i.guildId);
             const newMode = queue.repeatMode === 1 ? 0 : 1;
@@ -232,7 +239,7 @@ module.exports = (client) => {
           if (i.customId == `7`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             const queue = client.lavalink.getQueue(i.guildId);
             const newMode = queue.repeatMode === 2 ? 0 : 2;
@@ -243,7 +250,7 @@ module.exports = (client) => {
           if (i.customId == `8`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             const queue = client.lavalink.getQueue(i.guildId);
             const newPosition = (queue.currentTime || 0) + 10;
@@ -254,7 +261,7 @@ module.exports = (client) => {
           if (i.customId == `9`) {
             let { member } = i;
             const { channel } = member.voice;
-            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, ephemeral: true });
+            if (!channel) return replyAndDelete(i, { content: `${client.allEmojis.x} **Por favor junte-se a um canal de voz primeiro!**`, flags: 64 });
             
             const queue = client.lavalink.getQueue(i.guildId);
             const newPosition = Math.max(0, (queue.currentTime || 0) - 10);
@@ -266,7 +273,7 @@ module.exports = (client) => {
             let { member } = i;
             try {
                 if (!i.deferred && !i.replied) {
-                    await i.deferReply({ ephemeral: true }).catch(() => {});
+                    await i.deferReply({ flags: 64 }).catch(() => {});
                 }
                 const currentSong = newQueue?.songs?.[0];
                 if (!currentSong) {
@@ -306,7 +313,7 @@ module.exports = (client) => {
                 logShort("warn", "Falha ao buscar letra.", e);
                 const payload = { content: `${client.allEmojis.x} **Falha ao buscar a letra agora.**`, embeds: [] };
                 if (i.deferred || i.replied) return i.editReply(payload).catch(() => {});
-                return replyAndDelete(i, { ...payload, ephemeral: true });
+                return replyAndDelete(i, { ...payload, flags: 64 });
             }
           }
         });

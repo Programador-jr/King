@@ -122,7 +122,7 @@ module.exports = {
 					if (interaction.user.id !== message.author.id) {
 						return interaction.reply({
 							content: `${client.allEmojis.x} Apenas quem executou o comando pode trocar a p\u00E1gina.`,
-							ephemeral: true
+							flags: 64
 						}).catch(() => {});
 					}
 
