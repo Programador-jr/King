@@ -39,7 +39,7 @@ function assertModerationPermission(client, message) {
     .setColor(ee.wrongcolor || "#ff0000")
     .setTitle(`${client?.allEmojis?.x || "❌"} **Permissão insuficiente.**`)
     .setDescription("Apenas administradores ou cargos de moderação configurados podem usar este comando.");
-  message.reply({ embeds: [embed] }).catch(() => {});
+  message.reply({ flags: 64, embeds: [embed] }).catch(() => {});
   return false;
 }
 

@@ -22,6 +22,13 @@ module.exports = {
   run: async (client, message, args) => {
     try {
       const { member, guildId, guild } = message;
+      if (!member) return message.reply({
+        flags: 64,
+        embeds: [new MessageEmbed()
+          .setColor(ee.wrongcolor)
+          .setTitle(`${client.allEmojis.x} Este comando só funciona em servidores.`)
+        ]
+      });
       const { channel } = member.voice;
       if (!channel) {
         return message.reply({
