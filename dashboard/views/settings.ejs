@@ -377,6 +377,86 @@
             </div>
           </div>
 
+          <!-- Card de Moderação -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon">
+                <i class="fas fa-gavel"></i>
+              </div>
+              <div class="settings-card-title">
+                <h3>Moderação</h3>
+                <p>Permissões e logs de comandos de moderação</p>
+              </div>
+            </div>
+            <div class="settings-card-body">
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-user-shield"></i>
+                  <h5>Cargos de Moderação</h5>
+                </div>
+                <p class="form-helper">Usuários com estes cargos podem usar comandos de moderação. Se vazio, apenas administradores.</p>
+                <% const moderationRoles = bot.settings.get(guild.id, 'moderationRoles') || []; %>
+                <select class="form-select modern-select" multiple aria-label="Moderation Roles" name="moderationRoles">
+                  <% selectableDjRoles.forEach((role) => { %>
+                    <option value="<%= role.id %>" <%= moderationRoles.includes(role.id) ? 'selected' : '' %>>
+                      @<%= role.name %>
+                    </option>
+                  <% }) %>
+                </select>
+              </div>
+
+              <div class="settings-group">
+                <div class="settings-group-header">
+                  <i class="fas fa-clipboard-list"></i>
+                  <h5>Logs de Moderação</h5>
+                </div>
+                <p class="form-helper">Envie registros das ações para um canal ou webhook.</p>
+                <% const moderationLogEnabled = bot.settings.get(guild.id, 'moderationLogEnabled'); %>
+                <% const moderationLogType = bot.settings.get(guild.id, 'moderationLogType') || 'channel'; %>
+                <% const moderationLogChannelId = bot.settings.get(guild.id, 'moderationLogChannelId') || ''; %>
+                <% const moderationLogWebhook = bot.settings.get(guild.id, 'moderationLogWebhook') || ''; %>
+                <div class="form-check form-switch modern-switch">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    name="moderationLogEnabled"
+                    id="moderationLogEnabled"
+                    <%= moderationLogEnabled ? 'checked' : '' %>
+                  >
+                  <label class="form-check-label" for="moderationLogEnabled">
+                    <%= moderationLogEnabled ? 'Ativado' : 'Desativado' %>
+                  </label>
+                </div>
+
+                <div class="mt-3">
+                  <label class="form-label">Tipo de log</label>
+                  <select class="form-select modern-select" name="moderationLogType" aria-label="Moderation Log Type">
+                    <option value="channel" <%= moderationLogType === 'channel' ? 'selected' : '' %>>Canal</option>
+                    <option value="webhook" <%= moderationLogType === 'webhook' ? 'selected' : '' %>>Webhook</option>
+                  </select>
+                </div>
+
+                <div class="mt-3">
+                  <label class="form-label">Canal de logs</label>
+                  <select class="form-select modern-select" name="moderationLogChannelId" aria-label="Moderation Log Channel">
+                    <option value="" <%= !moderationLogChannelId ? 'selected' : '' %>>Selecionar canal</option>
+                    <% selectableTextChannels.forEach((channel) => { %>
+                      <option value="<%= channel.id %>" <%= String(moderationLogChannelId) === String(channel.id) ? 'selected' : '' %>>
+                        #<%= channel.name %>
+                      </option>
+                    <% }) %>
+                  </select>
+                </div>
+
+                <div class="mt-3">
+                  <label class="form-label">Webhook de logs</label>
+                  <input type="text" class="form-control modern-input" name="moderationLogWebhook" value="<%= moderationLogWebhook %>" placeholder="https://discord.com/api/webhooks/...">
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Card de Player/Fila -->
           <div class="settings-card">
             <div class="settings-card-header">

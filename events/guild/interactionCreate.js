@@ -21,6 +21,11 @@ module.exports = async (client, interaction) => {
     botchannel: [],
     musicChannels: [],
     confessionChannel: null,
+    moderationRoles: [],
+    moderationLogEnabled: false,
+    moderationLogType: "channel",
+    moderationLogChannelId: null,
+    moderationLogWebhook: null,
     mixDefault: "youtube"
   });
 

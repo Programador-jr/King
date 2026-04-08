@@ -38,6 +38,26 @@ const guildSettingsSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  moderationRoles: [{
+    type: String
+  }],
+  moderationLogEnabled: {
+    type: Boolean,
+    default: false
+  },
+  moderationLogType: {
+    type: String,
+    enum: ["channel", "webhook"],
+    default: "channel"
+  },
+  moderationLogChannelId: {
+    type: String,
+    default: null
+  },
+  moderationLogWebhook: {
+    type: String,
+    default: null
+  },
   ticketCategory: {
     type: String,
     default: null
