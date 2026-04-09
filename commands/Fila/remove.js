@@ -9,19 +9,18 @@ const {
 	check_if_dj
 } = require("../../handlers/functions")
 module.exports = {
-	name: "remove", //the command name for the Slash Command
+	name: "remove",
 
 	category: "Fila",
 	aliases: ["delete", "del", "rem"],
-	usage: "remove <What_song> [Amount]",
+	usage: "remove <Posição> [Quantidade]",
 
-	description: "Remove uma(s) + mÃºsica(s)", //the command description for Slash Command Overview
+	description: "Remove uma(s) música(s) da fila",
 	cooldown: 10,
-	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
-	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
+	requiredroles: [],
+	alloweduserids: [],
 	run: async (client, message, args) => {
 		try {
-			//things u can directly access in an interaction!
 			const {
 				member,
 				channelId,
@@ -50,7 +49,7 @@ module.exports = {
 			} = member.voice;
 			if (!channel) return message.reply({
 				embeds: [
-					new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Por favor Junte-se ${guild.me.voice.channel ? "__ao meu__" : "a um"} Canal de Voz Primeiro!**`)
+					new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Por favor Junte-se ${guild.me.voice.channel ? "__ao meu__" : "a um"} Canal de Voz primeiro!**`)
 				],
 
 			})
@@ -68,7 +67,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu nÃ£o estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
 					],
 
 				})
@@ -77,7 +76,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **VocÃª nÃ£o Ã© um DJ e nÃ£o Ã© o Solicitante da musica!**`)
+							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Solicitante da música!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -87,8 +86,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Por favor, adicione a posiÃ§Ã£o da mÃºsica!**`)
-							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posiÃ§Ã£o-da-mÃºsica> [quantidade]\``)
+							.setTitle(`${client.allEmojis.x} **Por favor, adicione a posição da música!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posição-da-música> [quantidade]\``)
 						],
 					});
 				}
@@ -98,8 +97,8 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione a posiÃ§Ã£o da mÃºsica [NUMERO]!**`)
-							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posiÃ§Ã£o-da-mÃºsica> [quantia]\``)
+							.setTitle(`${client.allEmojis.x} **Adicione a posição da música [NÚMERO]!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}remove <posição-da-música> [quantia]\``)
 						],
 					});
 				}
@@ -107,21 +106,21 @@ module.exports = {
 				if (!amount) amount = 1;
 				if (songIndex > newQueue.songs.length - 1) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta mÃºsica nÃ£o existe!**`)
-						.setDescription(`**A Ãºltima mÃºsica da fila tem o Ã­ndice: \`${newQueue.songs.length}\`**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta música não existe!**`)
+						.setDescription(`**A última música da fila tem o índice: \`${newQueue.songs.length}\`**`)
 					],
 
 				})
 				if (songIndex <= 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **VocÃª nÃ£o pode remover a mÃºsica atual (0)!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Você não pode remover a música atual (0)!**`)
 						.setDescription(`**Use o \`${client.settings.get(guild.id, "prefix")}skip\` (Slash)Command em vez disso!**`)
 					],
 
 				})
 				if (amount <= 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **VocÃª precisa remover pelo menos 1 mÃºsica!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Você precisa remover pelo menos 1 música!**`)
 					],
 
 				})
@@ -130,8 +129,8 @@ module.exports = {
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
 					  .setTimestamp()
-					  .setTitle(`ðŸ—‘ **Removida ${amount} MÃºsica ${amount> 1? "s": ""} da fila!**`)
-					  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+					  .setTitle(`🗑️ **Removida ${amount} música${amount > 1 ? "s" : ""} da fila!**`)
+					  .setFooter(`Ação por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 				})
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
