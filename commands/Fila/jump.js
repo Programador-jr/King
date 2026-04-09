@@ -15,7 +15,7 @@ module.exports = {
 	aliases: ["jump", "skipto"],
 	usage: "jump <SongPosition>",
 
-	description: "Salta para uma mÃºsica especÃ­fica na fila", //the command description for Slash Command Overview
+	description: "Salta para uma música específica na fila", //the command description for Slash Command Overview
 	cooldown: 10,
 	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
 	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
@@ -69,7 +69,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu nÃ£o estou tocando nada!**`)
+						new MessageEmbed().setColor(ee.wrongcolor)						.setTitle(`${client.allEmojis.x} **Eu não estou tocando nada!**`)
 					],
 
 				})
@@ -78,7 +78,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **VocÃª nÃ£o Ã© um DJ e nÃ£o Ã© o Solicitante da musica!**`)
+							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Solicitante da musica!**`)
 							.setDescription(`**CARGOS-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -88,15 +88,15 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione uma posiÃ§Ã£o para a qual saltar!**`)
-							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}jump <posiÃ§Ã£o>\``)
+							.setTitle(`${client.allEmojis.x} **Adicione uma posição para a qual saltar!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(message.guild.id, "prefix")}jump <posição>\``)
 						],
 					});
 				}
 				let Position = Number(args[0])
 				if (Position > newQueue.songs.length - 1 || Position < 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **A posiÃ§Ã£o deve estar entre \`0\` e \`${newQueue.songs.length - 1}\`!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **A posição deve estar entre \`0\` e \`${newQueue.songs.length - 1}\`!**`)
 					],
 
 				})
@@ -105,8 +105,8 @@ module.exports = {
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
 					  .setTimestamp()
-					  .setTitle(`ðŸ‘Œ **Saltou para a \`${Position}Âª \` mÃºsica da fila!**`)
-					  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+					  .setTitle(`🦘 **Saltou para a \`${Position}ª \` música da fila!**`)
+					  .setFooter(`Requirido por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 				})
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)

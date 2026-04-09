@@ -69,30 +69,29 @@ module.exports = {
 			}
 			try {
 				let newQueue = client.distube.getQueue(guildId);
-
-        const currentFilters = Array.isArray(newQueue.filters) ? newQueue.filters : (Array.isArray(newQueue.filters?.names) ? newQueue.filters.names : []);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu nÃ£o estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
 					],
 
 				})
+				const currentFilters = Array.isArray(newQueue.filters) ? newQueue.filters : (Array.isArray(newQueue.filters?.names) ? newQueue.filters.names : []);
 				var djs = client.settings.get(newQueue.id, `djroles`).map(r => `<@&${r}>`);
-				if (djs.length == 0) djs = "`nÃ£o configurado`";
+				if (djs.length == 0) djs = "`não configurado`";
 				else djs.join(", ");
 				let newTrack = newQueue.songs[0];
 				let embed = new MessageEmbed().setColor(ee.color)
 					.setDescription(`Veja a [fila no **DASHBOARD** ao vivo!](${dashboardBaseUrl}/queue/${newQueue.id})`)
-					.addField(`ðŸ’¡ Requerido por:`, `>>> ${newTrack.user}`, true)
-					.addField(`â± DuraÃ§Ã£o:`, `>>> \`${newQueue.formattedCurrentTime} / ${newTrack.formattedDuration}\``, true)
-					.addField(`ðŸŒ€ Fila:`, `>>> \`${newQueue.songs.length} musica(s)\`\n\`${newQueue.formattedDuration}\``, true)
-					.addField(`ðŸ”Š Volume:`, `>>> \`${newQueue.volume} %\``, true)
-					.addField(`â™¾ Loop:`, `>>> ${newQueue.repeatMode ? newQueue.repeatMode === 2 ? `${client.allEmojis.check_mark} \`Fila\`` : `${client.allEmojis.check_mark} \`Musica\`` : `${client.allEmojis.x}`}`, true)
-					.addField(`â†ªï¸ ReproduÃ§Ã£o automÃ¡tica:`, `>>> ${newQueue.autoplay ? `${client.allEmojis.check_mark}` : `${client.allEmojis.x}`}`, true)
-					.addField(`â” Baixar mÃºsica:`, `>>> [\`Clique aqui\`](${newTrack.streamURL})`, true)
-					.addField(`â” Filtros${currentFilters.length > 0 ? "s": ""}:`, `>>> ${newQueue.filters && currentFilters.length > 0 ? `${currentFilters.map(f=>`\`${f}\``).join(`, `)}` : `${client.allEmojis.x}`}`, currentFilters.length > 1 ? false : true)
-					.addField(`ðŸŽ§ CARGOS-DJ${client.settings.get(newQueue.id, "djroles").length > 1 ? "s": ""}:`, `>>> ${djs}`, client.settings.get(newQueue.id, "djroles").length > 1 ? false : true)
-					.setAuthor(`${newTrack.name}`, `https://c.tenor.com/HJvqN2i4Zs4AAAAj/milk-and-mocha-cute.gif`, newTrack.url)
+					.addField(`💡 Requerido por:`, `>>> ${newTrack.user}`, true)
+					.addField(`⏱️ Duração:`, `>>> \`${newQueue.formattedCurrentTime} / ${newTrack.formattedDuration}\``, true)
+					.addField(`🌐 Fila:`, `>>> \`${newQueue.songs.length} música(s)\`\n\`${newQueue.formattedDuration}\``, true)
+					.addField(`🔊 Volume:`, `>>> \`${newQueue.volume} %\``, true)
+					.addField(`♾️ Loop:`, `>>> ${newQueue.repeatMode ? newQueue.repeatMode === 2 ? `${client.allEmojis.check_mark} \`Fila\`` : `${client.allEmojis.check_mark} \`Musica\`` : `${client.allEmojis.x}`}`, true)
+					.addField(`▶️ Reprodução automática:`, `>>> ${newQueue.autoplay ? `${client.allEmojis.check_mark}` : `${client.allEmojis.x}`}`, true)
+					.addField(`<:download:893912200207548507> Baixar música:`, `>>> [\`Clique aqui\`](${newTrack.streamURL})`, true)
+					.addField(`🎵 Filtros${currentFilters.length > 0 ? "s": ""}:`, `>>> ${newQueue.filters && currentFilters.length > 0 ? `${currentFilters.map(f=>`\`${f}\``).join(`, `)}` : `${client.allEmojis.x}`}`, currentFilters.length > 1 ? false : true)
+					.addField(`<:dj:893912114203332729> CARGOS-DJ${client.settings.get(newQueue.id, "djroles").length > 1 ? "s": ""}:`, `>>> ${djs}`, client.settings.get(newQueue.id, "djroles").length > 1 ? false : true)
+					.setAuthor(`${newTrack.name}`, `https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/disc2.gif`, newTrack.url)
 					.setThumbnail(`https://img.youtube.com/vi/${newTrack.id}/mqdefault.jpg`)
 					.setFooter(`${newTrack.user.tag}`, newTrack.user.displayAvatarURL({
 						dynamic: true

@@ -9,17 +9,16 @@ const {
 	check_if_dj
 } = require("../../handlers/functions")
 module.exports = {
-	name: "rewind", //the command name for the Slash Command
+	name: "rewind",
 	category: "Musica",
 	usage: "rewind <TimeInSec>",
 	aliases: ["rwd", "retroceder"],
-	description: "Retrocede por X segundos", //the command description for Slash Command Overview
+	description: "Retrocede por X segundos",
 	cooldown: 10,
-	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
-	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
+	requiredroles: [],
+	alloweduserids: [],
 	run: async (client, message, args) => {
 		try {
-			//things u can directly access in an interaction!
 			const {
 				member,
 				channelId,
@@ -66,7 +65,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu nÃ£o estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
 					],
 
 				})
@@ -76,8 +75,8 @@ module.exports = {
 							new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **Adicione uma duraÃ§Ã£o de retrocesso!**`)
-							.setDescription(`**Uso:**\n> \`${client.settings.get(guild.id, "prefix")}rewind <DuraÃ§Ã£o_em_seg>\``)
+							.setTitle(`${client.allEmojis.x} **Adicione uma duração de retrocesso!**`)
+							.setDescription(`**Uso:**\n> \`${client.settings.get(guild.id, "prefix")}rewind <Duração_em_seg>\``)
 						],
 					})
 				}
@@ -90,7 +89,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **VocÃª nÃ£o Ã© um DJ e nÃ£o Ã© o Solicitante da musica!**`)
+							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Solicitante da música!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -100,8 +99,8 @@ module.exports = {
 					embeds: [new MessageEmbed()
 					  .setColor(ee.color)
 					  .setTimestamp()
-					  .setTitle(`â© **Rebobinou a mÃºsica para \`${seekNumber} Segundos\`!**`)
-					  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+					  .setTitle(`⏪ **Rebobinou a música para \`${seekNumber} Segundos\`!**`)
+					  .setFooter(`Ação por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 				})
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)

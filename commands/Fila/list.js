@@ -69,7 +69,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu n\u00E3o estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
 					],
 
 				})
@@ -87,13 +87,13 @@ module.exports = {
 						.setDescription(`${info}`)
 					if (i < 10) {
 						embed.setTitle(`\u{1F4D1} **Top ${theSongs.length > 50 ? 50 : theSongs.length} | Fila de ${guild.name}**`)
-						embed.setDescription(`**(1) M\u00FAsica atual:**\n> [\`${theSongs[0].name.replace(/\[/igu, "{").replace(/\]/igu, "}")}\`](${theSongs[0].url})\n\n${info}`)
+						embed.setDescription(`**(1) Música atual:**\n> [\`${theSongs[0].name.replace(/\[/igu, "{").replace(/\]/igu, "}")}\`](${theSongs[0].url})\n\n${info}`)
 					}
 					embeds.push(embed);
 					k += 10; //Raise k to 10
 				}
 				embeds[embeds.length - 1] = embeds[embeds.length - 1]
-					.setFooter(ee.footertext + `\n${theSongs.length} M\u00FAsicas na fila | Dura\u00E7\u00E3o: ${newQueue.formattedDuration}`, ee.footericon)
+					.setFooter(ee.footertext + `\n${theSongs.length} Músicas na fila | Dura\u00E7\u00E3o: ${newQueue.formattedDuration}`, ee.footericon)
 				let pages = []
 				for (let i = 0; i < embeds.length; i += 2) {
 					pages.push(embeds.slice(i, i + 2));
@@ -101,13 +101,13 @@ module.exports = {
 				pages = pages.slice(0, 24)
 				const Menu = new MessageSelectMenu()
 					.setCustomId("QUEUEPAGES")
-					.setPlaceholder("Selecione uma p\u00E1gina")
+					.setPlaceholder("Selecione uma página")
 					.addOptions(
 						pages.map((page, index) => {
 							let Obj = {};
-							Obj.label = `P\u00E1gina ${index + 1}`;
+							Obj.label = `Página ${index + 1}`;
 							Obj.value = `${index}`;
-							Obj.description = `Mostra a p\u00E1gina ${index + 1}/${pages.length}`;
+							Obj.description = `Mostra a página ${index + 1}/${pages.length}`;
 							return Obj;
 						})
 					)
@@ -128,7 +128,7 @@ module.exports = {
 
 					if (interaction.user.id !== message.author.id) {
 						return interaction.reply({
-							content: `${client.allEmojis.x} Apenas quem executou o comando pode trocar a p\u00E1gina.`,
+							content: `${client.allEmojis.x} Apenas quem executou o comando pode trocar a página.`,
 							flags: 64
 						}).catch(() => {});
 					}

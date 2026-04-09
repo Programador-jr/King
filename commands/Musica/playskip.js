@@ -21,7 +21,7 @@ module.exports = {
   category: "Musica",
   aliases: ["ps"],
   usage: "playskip <Search/link>",
-  description: "Toca uma musica/lista de reproducao e pula!",
+  description: "Toca uma musica/lista de reprodução e pula!",
   cooldown: 2,
   requiredroles: [],
   alloweduserids: [],
@@ -97,7 +97,7 @@ module.exports = {
 
       const Text = args.join(" ");
       const newmsg = await message.reply({
-        content: `ðŸ” Procurando... \`\`\`${Text}\`\`\``
+        content: `${client.allEmojis.loading} Procurando... \`\`\`${Text}\`\`\``
       }).catch(() => null);
 
       try {
@@ -164,7 +164,7 @@ module.exports = {
         await playWithRetry();
         const activeQueue = client.distube.getQueue(guildId);
         newmsg?.edit({
-          content: `${activeQueue?.songs?.length > 0 ? "â­ Pulando para" : "ðŸŽ¶ Tocando Agora"}: \`\`\`css\n${resolved.title || Text}\n\`\`\``
+          content: `${activeQueue?.songs?.length > 0 ? "<:next:893930822267195453>­ Pulando para" : "<:play:893931043571249174> Tocando Agora"}: \`\`\`css\n${resolved.title || Text}\n\`\`\``
         }).catch(() => {});
       } catch (e) {
         console.log(e.stack ? e.stack : e);

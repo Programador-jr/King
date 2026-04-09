@@ -15,7 +15,7 @@ module.exports = {
 	aliases: ["vol"],
 	usage: "volume <80>",
 
-	description: "Ajusta o volume da mÃºsica", //the command description for Slash Command Overview
+	description: "Ajusta o volume da música", //the command description for Slash Command Overview
 	cooldown: 10,
 	requiredroles: [], //Only allow specific Users with a Role to execute a Command [OPTIONAL]
 	alloweduserids: [], //Only allow specific Users to execute a Command [OPTIONAL]
@@ -69,7 +69,7 @@ module.exports = {
 				let newQueue = client.distube.getQueue(guildId);
 				if (!newQueue || !newQueue.songs || newQueue.songs.length == 0) return message.reply({
 					embeds: [
-						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Eu n~so estou tocando nada agora!**`)
+						new MessageEmbed().setColor(ee.wrongcolor)						.setTitle(`${client.allEmojis.x} **Eu não estou tocando nada agora!**`)
 					],
 
 				})
@@ -78,7 +78,7 @@ module.exports = {
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
 							.setFooter(ee.footertext, ee.footericon)
-							.setTitle(`${client.allEmojis.x} **VocÃª nÃ£o Ã© um DJ e nÃ£o Ã© o Solicitante da musica!**`)
+							.setTitle(`${client.allEmojis.x} **Você não é um DJ e não é o Solicitante da música!**`)
 							.setDescription(`**CARGO-DJ:**\n> ${check_if_dj(client, member, newQueue.songs[0])}`)
 						],
 					});
@@ -106,7 +106,7 @@ module.exports = {
 					  .setColor(ee.color)
 					  .setTimestamp()
 					  .setTitle(`ðŸ”Š **Volume definido para \`${volume}\`!**`)
-					  .setFooter(`AÃ§Ã£o por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
+					  .setFooter(`Ação por: ${member.user.tag}`, member.user.displayAvatarURL({dynamic: true}))]
 				})
 			} catch (e) {
 				console.log(e.stack ? e.stack : e)
