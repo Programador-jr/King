@@ -16,7 +16,7 @@ module.exports = {
   description: "Aplica um aviso a um usuário.",
   usage: "warn @usuario [motivo]",
   cooldown: 2,
-  memberpermissions: [],
+  memberpermissions: ["MANAGE_ROLES"],
   requiredroles: [],
   alloweduserids: [],
   guildOnly: true,

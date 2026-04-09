@@ -15,7 +15,7 @@ module.exports = {
   description: "Remove todos os avisos de um usuário.",
   usage: "clearwarnings @usuario [motivo]",
   cooldown: 2,
-  memberpermissions: [],
+  memberpermissions: ["MANAGE_ROLES"],
   requiredroles: [],
   alloweduserids: [],
   guildOnly: true,
