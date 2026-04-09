@@ -18,7 +18,7 @@ module.exports = {
   description: "Silencia um usuário temporariamente.",
   usage: "mute @usuario <tempo> [motivo]",
   cooldown: 2,
-  memberpermissions: [],
+  memberpermissions: ["MODERATE_MEMBERS"],
   requiredroles: [],
   alloweduserids: [],
   guildOnly: true,
@@ -26,16 +26,6 @@ module.exports = {
     if (!assertModerationPermission(client, message)) return;
 
     const botMember = message.guild.members.me || message.guild.me;
-    if (!botMember?.permissions?.has("MANAGE_ROLES")) {
-      return message.reply({
-        flags: 64,
-        embeds: [
-          new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setTitle(`${client.allEmojis.x} **Eu não tenho permissão para gerenciar cargos.**`)
-        ]
-      });
-    }
     if (!botMember?.permissions?.has("MODERATE_MEMBERS")) {
       return message.reply({
         flags: 64,

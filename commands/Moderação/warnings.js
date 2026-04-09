@@ -13,7 +13,7 @@ module.exports = {
   description: "Lista os avisos de um usuário.",
   usage: "warnings @usuario",
   cooldown: 2,
-  memberpermissions: [],
+  memberpermissions: ["VIEW_AUDIT_LOG"],
   requiredroles: [],
   alloweduserids: [],
   guildOnly: true,

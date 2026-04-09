@@ -15,7 +15,7 @@ module.exports = {
   description: "Expulsa um usuário do servidor.",
   usage: "kick @usuario [motivo]",
   cooldown: 2,
-  memberpermissions: [],
+  memberpermissions: ["KICK_MEMBERS"],
   requiredroles: [],
   alloweduserids: [],
   guildOnly: true,
@@ -23,16 +23,6 @@ module.exports = {
     if (!assertModerationPermission(client, message)) return;
 
     const botMember = message.guild.members.me || message.guild.me;
-    if (!botMember?.permissions?.has("MANAGE_ROLES")) {
-      return message.reply({
-        flags: 64,
-        embeds: [
-          new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setTitle(`${client.allEmojis.x} **Eu não tenho permissão para gerenciar cargos.**`)
-        ]
-      });
-    }
     if (!botMember?.permissions?.has("KICK_MEMBERS")) {
       return message.reply({
         flags: 64,

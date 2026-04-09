@@ -15,7 +15,7 @@ module.exports = {
   description: "Remove um aviso de um usuário.",
   usage: "unwarn @usuario <numero> [motivo]",
   cooldown: 2,
-  memberpermissions: [],
+  memberpermissions: ["MANAGE_ROLES"],
   requiredroles: [],
   alloweduserids: [],
   guildOnly: true,

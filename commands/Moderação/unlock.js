@@ -13,7 +13,7 @@ module.exports = {
   description: "Destrava o canal atual para o @everyone.",
   usage: "unlock [motivo]",
   cooldown: 2,
-  memberpermissions: [],
+  memberpermissions: ["MANAGE_ROLES"],
   requiredroles: [],
   alloweduserids: [],
   guildOnly: true,
@@ -28,16 +28,6 @@ module.exports = {
           new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setTitle(`${client.allEmojis.x} **Eu não tenho permissão para gerenciar cargos.**`)
-        ]
-      });
-    }
-    if (!botMember?.permissions?.has("MANAGE_CHANNELS")) {
-      return message.reply({
-        flags: 64,
-        embeds: [
-          new MessageEmbed()
-            .setColor(ee.wrongcolor)
-            .setTitle(`${client.allEmojis.x} **Eu não tenho permissão para gerenciar canais.**`)
         ]
       });
     }
