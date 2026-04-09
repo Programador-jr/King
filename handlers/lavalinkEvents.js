@@ -436,7 +436,7 @@ module.exports = (client) => {
         appliedFilters.length > 1 ? false : true
       )
       .addField(`<:dj:893912114203332729> CARGO-DJ:`, `>>> ${djs}`, true)
-      .setAuthor(`${newTrack.name}`, `https://images-ext-1.discordapp.net/external/iAtXPtuThJzes9sxragLd-lwLt-oCMNsXYTSqumoenw/https/c.tenor.com/HJvqN2i4Zs4AAAAj/milk-and-mocha-cute.gif`, newTrack.url)
+      .setAuthor(`${newTrack.name}`, `https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/disc2.gif`, newTrack.url)
       .setThumbnail(newTrack.thumbnail || ee.footericon)
       .setFooter(` ${newQueue.songs[0]?.user?.tag || "Desconhecido"}`, newQueue.songs[0]?.user?.displayAvatarURL?.({ dynamic: true }) || ee.footericon);
     

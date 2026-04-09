@@ -21,6 +21,23 @@ class LavalinkManagerWrapper extends EventEmitter {
         this.voiceServerCache = new Map();
         this.voiceRecovery = new Map();
         this.trackStatsCache = new Map();
+        this.disabledNodes = new Map();
+    }
+
+    isNodeDisabled(nodeId) {
+        const disabledUntil = this.disabledNodes.get(nodeId);
+        if (!disabledUntil) return false;
+        if (Date.now() > disabledUntil) {
+            this.disabledNodes.delete(nodeId);
+            return false;
+        }
+        return true;
+    }
+
+    disableNode(nodeId, durationMs = 300000) {
+        const until = Date.now() + durationMs;
+        this.disabledNodes.set(nodeId, until);
+        this.log("warn", `Node ${nodeId} desabilitado por ${Math.round(durationMs / 1000)}s`);
     }
 
     parseBoolean(value, fallback = false) {
@@ -214,9 +231,14 @@ class LavalinkManagerWrapper extends EventEmitter {
             const host = this.resolveHost(rawHost);
             const port = Number.parseInt(entry.port, 10);
             const authorization = String(entry.password || entry.authorization || "").trim();
+            const nodeId = String(entry.id || entry.name || `node-${index + 1}`);
 
             if (!host || !Number.isFinite(port) || !authorization) {
                 this.log("warn", `Node ignorado (config incompleta) na posicao ${index + 1}.`);
+                continue;
+            }
+
+            if (this.isNodeDisabled(nodeId)) {
                 continue;
             }
 
@@ -227,7 +249,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             const apiVersion = this.normalizeApiVersion(entry.version || entry.apiVersion, "v4");
 
             nodes.push({
-                id: String(entry.id || entry.name || `node-${index + 1}`),
+                id: nodeId,
                 host,
                 port,
                 secure,
@@ -243,6 +265,179 @@ class LavalinkManagerWrapper extends EventEmitter {
         const fromConfig = this.loadNodesFromConfig();
         if (fromConfig.length) return fromConfig;
         return [this.getNodeOptions()];
+    }
+
+    async testNode(node) {
+        const timeoutMs = 5000;
+        const testQuery = "test";
+        
+        if (!node?.rest?.resolve) {
+            return false;
+        }
+        
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error("Node test timeout"));
+            }, timeoutMs);
+
+            node.rest.resolve(testQuery, "ytsearch").then((result) => {
+                clearTimeout(timer);
+                if (result?.tracks !== undefined) {
+                    resolve(true);
+                } else {
+                    reject(new Error("Invalid response"));
+                }
+            }).catch((err) => {
+                clearTimeout(timer);
+                reject(err);
+            });
+        });
+    }
+
+    async findWorkingNode(timeoutMs = 15000) {
+        const nodes = [...(this.manager?.nodeManager?.nodes?.values() || [])];
+        
+        for (const node of nodes) {
+            if (node?.connected && !this.isNodeDisabled(node.id || node.options?.id)) {
+                try {
+                    await this.testNode(node);
+                    this.log("info", `Node ${node.id || node.options?.id} esta funcional.`);
+                    return node;
+                } catch (e) {
+                    this.log("warn", `Node ${node.id || node.options?.id} falhou no teste: ${this.shortError(e)}`);
+                    this.disableNode(node.id || node.options?.id, 60000);
+                }
+            }
+        }
+
+        this.log("warn", "Nenhum node conectado funcional. Tentando reconectar...");
+        
+        try {
+            await this.reconnectManager();
+            const newNodes = [...(this.manager?.nodeManager?.nodes?.values() || [])];
+            for (const node of newNodes) {
+                if (node?.connected) {
+                    try {
+                        await this.testNode(node);
+                        this.log("info", `Node ${node.id} conectado e funcional apos reconexao.`);
+                        return node;
+                    } catch (e) {
+                        this.disableNode(node.id, 60000);
+                    }
+                }
+            }
+        } catch (e) {
+            this.log("error", `Falha ao reconectar manager: ${this.shortError(e)}`);
+        }
+
+        throw new Error("Nenhum node Lavalink funcional encontrado.");
+    }
+
+    async reconnectManager() {
+        this.log("info", "Reconectando Lavalink Manager...");
+        
+        if (this.manager) {
+            try {
+                await this.manager?.nodeManager?.disconnectAll?.(true, true);
+            } catch { }
+            try {
+                this.manager?.removeAllListeners?.();
+            } catch { }
+            this.manager = null;
+        }
+        
+        this.voiceStateCache.clear();
+        this.voiceServerCache.clear();
+        this.autoplayState.clear();
+        this.filterState.clear();
+        
+        const nodeOptionsList = this.loadNodesFromConfig();
+        const debugEnabled = this.parseBoolean(process.env.LAVALINK_DEBUG, false);
+        
+        if (!this.rawListener) {
+            this.rawListener = async (packet) => {
+                if (!this.manager) return;
+                this.cacheVoicePacket(packet);
+                try {
+                    await this.manager.sendRawData(packet);
+                    if (packet?.t === "VOICE_STATE_UPDATE" || packet?.t === "VOICE_SERVER_UPDATE") {
+                        const guildId = packet?.d?.guild_id;
+                        if (guildId) {
+                            await this.syncCachedVoiceToPlayer(guildId);
+                        }
+                    }
+                } catch (error) {
+                    this.log("warn", "Falha ao enviar pacote raw.", error);
+                }
+            };
+            this.client.on("raw", this.rawListener);
+        }
+        
+        for (const nodeOptions of nodeOptionsList) {
+            try {
+                this.manager = new LavalinkManager({
+                    nodes: [nodeOptions],
+                    sendToShard: (guildId, payload) => {
+                        const guild = this.client.guilds.cache.get(guildId);
+                        if (guild?.shard) {
+                            guild.shard.send(payload);
+                        }
+                    },
+                    client: {
+                        id: this.client.user.id,
+                        username: this.client.user.username,
+                    },
+                    autoSkip: true,
+                    playerOptions: {
+                        defaultSearchPlatform: "ytsearch",
+                        onEmptyQueue: {
+                            destroyAfterMs: 120000,
+                        },
+                    },
+                    advancedOptions: {
+                        enableDebugEvents: debugEnabled,
+                        debugOptions: {
+                            noAudio: debugEnabled,
+                        },
+                    },
+                });
+                
+                this.applyApiVersionCompatibility();
+                this.attachEvents();
+                
+                await this.manager.init({
+                    id: this.client.user.id,
+                    username: this.client.user.username,
+                });
+                
+                await this.waitForUsableNode(10000, true);
+                this.log("info", `Reconectado com sucesso ao node ${nodeOptions.id}`);
+                return true;
+            } catch (e) {
+                this.log("warn", `Falha ao reconectar no node ${nodeOptions.id}: ${this.shortError(e)}`);
+                this.disableNode(nodeOptions.id, 120000);
+            }
+        }
+        
+        throw new Error("Nao foi possivel reconectar a nenhum node.");
+    }
+
+    async ensureWorkingNode() {
+        if (!this.manager?.nodeManager?.nodes?.size) {
+            await this.connect();
+        }
+
+        const currentNode = [...(this.manager?.nodeManager?.nodes?.values() || [])][0];
+        if (currentNode?.connected && !this.isNodeDisabled(currentNode.id || currentNode.options?.id)) {
+            try {
+                await this.testNode(currentNode);
+                return currentNode;
+            } catch (e) {
+                this.log("warn", `Node atual nao esta funcional, buscando novo...`);
+            }
+        }
+
+        return await this.findWorkingNode();
     }
 
     applyApiVersionCompatibility() {
@@ -295,15 +490,55 @@ class LavalinkManagerWrapper extends EventEmitter {
             this.emit("nodeConnect", node);
         });
 
-        this.manager.nodeManager.on("disconnect", (node, reason) => {
+        this.manager.nodeManager.on("disconnect", async (node, reason) => {
             const detail = this.shortPayload(reason);
-            this.log("warn", `Node desconectado: ${node.id}${detail ? ` (${detail})` : ""}`);
+            const nodeId = node?.id || "unknown";
+            this.log("warn", `Node desconectado: ${nodeId}${detail ? ` (${detail})` : ""}`);
             this.emit("nodeDisconnect", node, reason);
+            
+            if (reason?.code === 1006 || reason?.code === 1000) {
+                this.disableNode(nodeId, 60000);
+                this.log("warn", `Node ${nodeId} caiu unexpectedly. Desabilitado por 60s e tentando failover...`);
+                try {
+                    await this.findWorkingNode();
+                } catch (e) {
+                    this.log("error", `Falha no failover de nodes: ${this.shortError(e)}`);
+                }
+            }
         });
 
-        this.manager.nodeManager.on("error", (node, error) => {
-            this.log("error", `Node error: ${node?.id || "unknown"}`, error);
+        this.manager.nodeManager.on("error", async (node, error) => {
+            const errorStr = this.shortError(error);
+            const nodeId = node?.id || "unknown";
+            if (errorStr.includes("WebSocket") || errorStr.includes("ECONNREFUSED") || errorStr.includes("ETIMEDOUT")) {
+                this.disableNode(nodeId, 60000);
+                this.log("warn", `Node ${nodeId} com erro de conexao: ${errorStr}. Desabilitado por 60s.`);
+                try {
+                    await this.findWorkingNode();
+                } catch (e) {
+                    this.log("error", `Falha no failover apos erro: ${this.shortError(e)}`);
+                }
+                return;
+            }
+            this.log("error", `Node error: ${nodeId}`, error);
             this.emit("nodeError", node, error);
+        });
+
+        this.manager.nodeManager.on("exception", async (node, exception) => {
+            const nodeId = node?.id || "unknown";
+            this.log("error", `Node exception: ${nodeId}`, exception);
+            this.emit("nodeException", node, exception);
+            
+            const errorStr = this.shortError(exception);
+            if (errorStr.includes("sourceManagers") || errorStr.includes("no sources")) {
+                this.disableNode(nodeId, 300000);
+                this.log("warn", `Node ${nodeId} sem sources. Desabilitado por 5min e tentando failover...`);
+                try {
+                    await this.findWorkingNode();
+                } catch (e) {
+                    this.log("error", `Falha no failover: ${this.shortError(e)}`);
+                }
+            }
         });
 
         this.manager.on("trackStart", (player, track, payload) => {
@@ -792,32 +1027,50 @@ class LavalinkManagerWrapper extends EventEmitter {
             attempts.push({ query: cleanQuery, source: "scsearch" });
         }
 
-        const apiVersion = this.normalizeApiVersion(player?.node?.options?.apiVersion, "v4");
+        const maxRetries = 3;
         let lastError = null;
 
-        for (const attempt of attempts) {
-            if (apiVersion === "v3") {
+        for (let retryCount = 0; retryCount < maxRetries; retryCount++) {
+            const workingNode = await this.ensureWorkingNode();
+            const apiVersion = this.normalizeApiVersion(workingNode?.options?.apiVersion, "v4");
+
+            for (const attempt of attempts) {
+                if (apiVersion === "v3") {
+                    try {
+                        const result = await this.searchTracksV3(player, attempt, requesterUser);
+                        if (Array.isArray(result?.tracks) && result.tracks.length > 0) {
+                            return result;
+                        }
+                        if (result?.exception?.message) {
+                            lastError = new Error(result.exception.message);
+                        }
+                    } catch (error) {
+                        lastError = error;
+                    }
+                    continue;
+                }
+
                 try {
-                    const result = await this.searchTracksV3(player, attempt, requesterUser);
+                    const result = await player.search(attempt, requesterUser, false);
                     if (Array.isArray(result?.tracks) && result.tracks.length > 0) {
                         return result;
                     }
-                    if (result?.exception?.message) {
-                        lastError = new Error(result.exception.message);
-                    }
                 } catch (error) {
+                    const errorMsg = String(error);
+                    if (errorMsg.includes("no sourceManagers") || errorMsg.includes("has no sourceManagers")) {
+                        this.log("warn", `Node atual nao suporta a busca. Tentando outro node...`);
+                        lastError = error;
+                        break;
+                    }
                     lastError = error;
                 }
-                continue;
             }
 
-            try {
-                const result = await player.search(attempt, requesterUser, false);
-                if (Array.isArray(result?.tracks) && result.tracks.length > 0) {
-                    return result;
+            if (lastError) {
+                const errorMsg = String(lastError);
+                if (errorMsg.includes("no sourceManagers") || errorMsg.includes("has no sourceManagers") || errorMsg.includes("Nenhuma musica")) {
+                    continue;
                 }
-            } catch (error) {
-                lastError = error;
             }
         }
 
@@ -1068,10 +1321,24 @@ class LavalinkManagerWrapper extends EventEmitter {
 
         await this.syncCachedVoiceToPlayer(player.guildId);
 
-        if (options.skip && wasPlaying) {
-            await player.skip();
-        } else if (!wasPlaying || !player.playing) {
-            await player.play();
+        try {
+            if (options.skip && wasPlaying) {
+                await player.skip();
+            } else if (!wasPlaying || !player.playing) {
+                await player.play();
+            }
+        } catch (playError) {
+            this.log("warn", `Erro ao iniciar playback: ${this.shortError(playError)}. Tentando failover...`);
+            try {
+                await this.ensureWorkingNode();
+                if (options.skip && wasPlaying) {
+                    await player.skip();
+                } else if (!wasPlaying || !player.playing) {
+                    await player.play();
+                }
+            } catch (retryError) {
+                this.log("error", `Falha no playback apos failover: ${this.shortError(retryError)}`);
+            }
         }
 
         if (shouldWaitForStart) {
@@ -1084,7 +1351,17 @@ class LavalinkManagerWrapper extends EventEmitter {
     async skip(guildId) {
         const player = this.getPlayer(guildId);
         if (player) {
-            await player.skip();
+            try {
+                await player.skip();
+            } catch (e) {
+                this.log("warn", `Erro no skip: ${this.shortError(e)}. Tentando failover...`);
+                try {
+                    await this.ensureWorkingNode();
+                    await player.skip();
+                } catch (retryError) {
+                    this.log("error", `Falha no skip apos failover: ${this.shortError(retryError)}`);
+                }
+            }
         }
     }
 
@@ -1498,11 +1775,23 @@ class LavalinkManagerWrapper extends EventEmitter {
         }
 
         if (target === 0) {
-            await player.seek(0);
+            try {
+                await player.seek(0);
+            } catch (e) {
+                this.log("warn", `Erro ao fazer seek: ${this.shortError(e)}. Tentando encontrar node funcional...`);
+                await this.ensureWorkingNode();
+                await player.seek(0);
+            }
             return;
         }
 
-        await player.skip(target);
+        try {
+            await player.skip(target);
+        } catch (e) {
+            this.log("warn", `Erro ao pular musica: ${this.shortError(e)}. Tentando encontrar node funcional...`);
+            await this.ensureWorkingNode();
+            await player.skip(target);
+        }
     }
 
     async playPrevious(player) {
@@ -1515,7 +1804,13 @@ class LavalinkManagerWrapper extends EventEmitter {
             await player.queue.splice(0, 0, player.queue.current);
         }
 
-        await player.play({ clientTrack: previousTrack });
+        try {
+            await player.play({ clientTrack: previousTrack });
+        } catch (e) {
+            this.log("warn", `Erro ao tocar musica anterior: ${this.shortError(e)}. Tentando failover...`);
+            await this.ensureWorkingNode();
+            await player.play({ clientTrack: previousTrack });
+        }
         await this.waitForTrackStart(player.guildId, 10000);
     }
 
