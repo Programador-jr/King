@@ -60,8 +60,42 @@ module.exports = async (client, oldState, newState) => {
         return;
     }
     
-    // Usuário/saiu de um canal de voz
+    // Usuário saiu de um canal de voz
     if (oldState.channelId && !newState.channelId) {
+        const oldChannel = oldState.channel;
+        const guild = oldChannel.guild;
+        const botMember = guild.me;
+        
+        if (!botMember.voice.channel || botMember.voice.channel.id !== oldChannel.id) {
+            return;
+        }
+        
+        const voiceChannel = botMember.voice.channel;
+        const membersInChannel = voiceChannel.members.filter(m => !m.user.bot);
+        
+        if (membersInChannel.size === 0) {
+            const queue = client.distube.getQueue(guild.id);
+            const textChannel = queue?.textChannel;
+            
+            if (textChannel && typeof textChannel.send === 'function') {
+                try {
+                    await textChannel.send({
+                        content: `💤 **Saindo do canal por estar sozinho...**`
+                    }).catch(() => {});
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+            
+            try {
+                await queue?.stop();
+            } catch (e) {}
+            
+            try {
+                await botMember.voice.disconnect();
+            } catch (e) {}
+        }
+        
         return;
     }
     
