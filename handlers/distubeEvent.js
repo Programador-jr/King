@@ -1,6 +1,8 @@
 console.log(`Bem-vindo ao MANIPULADOR DE SERVICO /--/`.yellow);
 const PlayerMap = new Map()
 const getPlayerMapKey = (queueId) => `currentmsg_${queueId}`;
+const emptyChannelTimers = new Map();
+const EMPTY_CHANNEL_TIMEOUT = 20000;
 const Discord = require(`discord.js`);
 const ee = require(`../botconfig/embed.json`);
 const {
@@ -132,6 +134,12 @@ module.exports = (client) => {
         try {
           addSongPlayed(queue.id, track);
           
+          const emptyTimer = emptyChannelTimers.get(queue.id);
+          if (emptyTimer) {
+            clearTimeout(emptyTimer);
+            emptyChannelTimers.delete(queue.id);
+          }
+          
           client.guilds.cache.get(queue.id).me.voice.setDeaf(true).catch((e) => {
             console.log(e.stack ? String(e.stack).grey : String(e).grey)
           })
@@ -144,45 +152,65 @@ module.exports = (client) => {
             var data = receiveQueueData(newQueue, newTrack)
             
             const interaction = getInteractionForChannel(client, queue.textChannel?.id);
+            let currentSongPlayMsg;
+            let skipCollector = false;
             
             if (interaction) {
               clearInteractionForChannel(client, queue.textChannel?.id);
               const msg = await replyAndDelete(interaction, data);
               PlayerMap.set(getPlayerMapKey(queue.id), msg?.id);
+              skipCollector = true;
             } else {
-              let currentSongPlayMsg = await queue.textChannel.send(data).then(msg => {
-                PlayerMap.set(getPlayerMapKey(queue.id), msg.id);
-                return msg;
-              })
-            }
-          //create a collector for the thinggy
-          var collector = currentSongPlayMsg.createMessageComponentCollector({
-            filter: (i) => i.isButton() && i.user && i.message.author.id == client.user.id,
-            time: track.duration > 0 ? track.duration * 1000 : 600000
-          }); //collector for 5 seconds
-          //array of all embeds, here simplified just 10 embeds with numbers 0 - 9
-          let lastEdited = false;
-
-          /**
-           * @INFORMATION - EDIT THE SONG MESSAGE EVERY 10 SECONDS!
-           */
-          try{clearInterval(songEditInterval)}catch(e){}
-          songEditInterval = setInterval(async () => {
-            if (!lastEdited) {
-              try{
-                var newQueue = client.distube.getQueue(queue.id)
-                var newTrack = newQueue.songs[0];
-                var data = receiveQueueData(newQueue, newTrack)
-                await currentSongPlayMsg.edit(data).catch((e) => {
-                  console.log(e.stack ? String(e.stack).grey : String(e).grey)
-                })
-              }catch (e){
-                clearInterval(songEditInterval)
+              const existingMsgId = PlayerMap.get(getPlayerMapKey(queue.id));
+              
+              if (existingMsgId) {
+                try {
+                  const existingMsg = await queue.textChannel.messages.fetch(existingMsgId);
+                  if (existingMsg && typeof existingMsg.edit === 'function') {
+                    await existingMsg.edit(data);
+                    currentSongPlayMsg = existingMsg;
+                  } else {
+                    throw new Error('Mensagem inválida');
+                  }
+                } catch (e) {
+                  currentSongPlayMsg = await queue.textChannel.send(data);
+                  PlayerMap.set(getPlayerMapKey(queue.id), currentSongPlayMsg.id);
+                }
+              } else {
+                currentSongPlayMsg = await queue.textChannel.send(data);
+                PlayerMap.set(getPlayerMapKey(queue.id), currentSongPlayMsg.id);
               }
             }
-          }, 10000)
+          
+          if (!skipCollector && currentSongPlayMsg) {
+            //create a collector for the thinggy
+            var collector = currentSongPlayMsg.createMessageComponentCollector({
+              filter: (i) => i.isButton() && i.user && i.message.author.id == client.user.id,
+              time: track.duration > 0 ? track.duration * 1000 : 600000
+            }); //collector for 5 seconds
+            //array of all embeds, here simplified just 10 embeds with numbers 0 - 9
+            let lastEdited = false;
 
-          collector.on('collect', async i => {
+            /**
+             * @INFORMATION - EDIT THE SONG MESSAGE EVERY 10 SECONDS!
+             */
+            try{clearInterval(songEditInterval)}catch(e){}
+            songEditInterval = setInterval(async () => {
+              if (!lastEdited) {
+                try{
+                  var newQueue = client.distube.getQueue(queue.id)
+                  var newTrack = newQueue.songs[0];
+                  var data = receiveQueueData(newQueue, newTrack)
+                  await currentSongPlayMsg.edit(data).catch((e) => {
+                    console.log(e.stack ? String(e.stack).grey : String(e).grey)
+                  })
+                }catch (e){
+                  clearInterval(songEditInterval)
+                }
+              }
+            }, 10000)
+
+            collector.on('collect', async i => {
             const liveQueue = client.distube.getQueue(i.guild.id);
             if (!liveQueue || !Array.isArray(liveQueue.songs) || liveQueue.songs.length === 0) {
               return replyAndDelete(i, {
@@ -633,11 +661,18 @@ module.exports = (client) => {
               }
             }
           });
+          }
         } catch (error) {
           console.error(error)
         }
       })
       .on(`addSong`, (queue, song) => {
+        const emptyTimer = emptyChannelTimers.get(queue.id);
+        if (emptyTimer) {
+          clearTimeout(emptyTimer);
+          emptyChannelTimers.delete(queue.id);
+        }
+        
         const channelId = queue.textChannel?.id;
         const interaction = getInteractionForChannel(client, channelId);
         const payload = {
@@ -658,6 +693,12 @@ module.exports = (client) => {
         return queue.textChannel.send(payload);
       })
       .on(`addList`, (queue, playlist) => {
+        const emptyTimer = emptyChannelTimers.get(queue.id);
+        if (emptyTimer) {
+          clearTimeout(emptyTimer);
+          emptyChannelTimers.delete(queue.id);
+        }
+        
         const channelId = queue.textChannel?.id;
         const interaction = getInteractionForChannel(client, channelId);
         const payload = {
@@ -726,13 +767,31 @@ module.exports = (client) => {
         sendToDistubeChannel(client, target, `Um erro encontrado: ${rawError}`, 4000);
         console.error(error)
       })
-      .on(`empty`, channel => {
-        const channelId = channel?.id;
-        const interaction = getInteractionForChannel(client, channelId);
-        if (interaction) {
-          return replyAndDelete(interaction, { content: `O canal de voz está vazio! Saindo do canal...` });
+      .on(`empty`, async (channel) => {
+        const guildId = channel?.guild?.id;
+        if (!guildId) return;
+        
+        const existingTimer = emptyChannelTimers.get(guildId);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          emptyChannelTimers.delete(guildId);
         }
-        return sendToDistubeChannel(client, channel, `O canal de voz está vazio! Saindo do canal...`);
+        
+        const queue = client.distube.getQueue(guildId);
+        if (queue && queue.voiceChannel?.id === channel?.id) {
+          try {
+            const textChannel = queue.textChannel;
+            if (textChannel) {
+              await textChannel.send({
+                content: `💤 **Saindo do canal por estar sozinho...**`
+              }).catch(() => {});
+            }
+            await queue.stop();
+            await channel.guild.me.voice?.disconnect().catch(() => {});
+          } catch (e) {
+            console.log(e.stack ? e.stack : e);
+          }
+        }
       })
       .on(`searchNoResult`, message => {
         const channelId = message.channel?.id;
