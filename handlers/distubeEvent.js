@@ -30,6 +30,26 @@ const safeSlug = (value) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || "lyrics";
 
+const getUserAvatar = (user) => {
+  if (!user) return null;
+  if (typeof user === 'string') return null;
+  if (typeof user.displayAvatarURL === 'function') {
+    return user.displayAvatarURL({ dynamic: true });
+  }
+  if (user.avatar && user.id) {
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
+  }
+  return null;
+};
+
+const getUserTag = (user) => {
+  if (!user) return 'Desconhecido';
+  if (typeof user === 'string') return user;
+  if (user.tag) return user.tag;
+  if (user.username) return user.username;
+  return 'Desconhecido';
+};
+
 const replyAndDelete = async (interaction, payload) => {
   try {
     const options = { ...payload };
@@ -625,9 +645,7 @@ module.exports = (client) => {
             new MessageEmbed()
             .setColor(ee.color)
             .setThumbnail(song?.thumbnail || (song?.id ? `https://img.youtube.com/vi/${song.id}/mqdefault.jpg` : ee.footericon))
-            .setFooter(" " + song.user.tag, song.user.displayAvatarURL({
-              dynamic: true
-            }))
+            .setFooter(" " + getUserTag(song.user), getUserAvatar(song.user) || ee.footericon)
             .setTitle(`${client.allEmojis.check_mark} **Musica adicionada a fila de reproducao!**`)
             .setDescription(`<:queue:893912259535966238> Musica: [\`${song.name}\`](${song.url})  -  \`${song.formattedDuration}\``)
             .addField(`<:duration:893938822386163723> **Tempo estimado:**`, `\`${queue.songs.length - 1} musica${queue.songs.length > 0 ? "s" : ""}\` - \`${(Math.floor((queue.duration - song.duration) / 60 * 100) / 100).toString().replace(".", ":")}\``)
@@ -647,9 +665,7 @@ module.exports = (client) => {
             new MessageEmbed()
             .setColor(ee.color)
             .setThumbnail((playlist?.thumbnail?.url || playlist?.thumbnail) ? (playlist.thumbnail?.url || playlist.thumbnail) : `https://img.youtube.com/vi/${playlist.songs[0].id}/mqdefault.jpg`)
-            .setFooter("" + playlist.user.tag, playlist.user.displayAvatarURL({
-              dynamic: true
-            }))
+            .setFooter("" + getUserTag(playlist.user), getUserAvatar(playlist.user) || ee.footericon)
             .setTitle(`${client.allEmojis.check_mark} **Playlist adicionada a fila!**`)
             .setDescription(`<:queue:893912259535966238> Playlist: [\`${playlist.name}\`](${playlist.url ? playlist.url : ""})  -  \`${playlist.songs.length} Musica${playlist.songs.length > 0 ? "s" : ""}\``)
             .addField(`<:duration:893938822386163723> **Tempo estimado:**`, `\`${queue.songs.length - - playlist.songs.length} musica${queue.songs.length > 0 ? "s" : ""}\` - \`${(Math.floor((queue.duration - playlist.duration) / 60 * 100) / 100).toString().replace(".", ":")}\``)
@@ -731,10 +747,8 @@ module.exports = (client) => {
         .setAuthor(`${song.name}`, "https://images-ext-2.discordapp.net/external/Q16BMFNhO29X2_DgKf3tJk2YOsC0jQ0yu6qPyxqwO9w/https/media.discordapp.net/attachments/883978730261860383/883978741892649000/847032838998196234.png", song.url)
         .setDescription(`Veja a [fila no **DASHBOARD** ao vivo!](${dashboardBaseUrl}/queue/${queue.id})`)
         .setThumbnail(`https://img.youtube.com/vi/${song.id}/mqdefault.jpg`)
-        .setFooter(` ${song.user.tag}
-A MUSICA ACABOU!`, song.user.displayAvatarURL({
-          dynamic: true
-        }));
+        .setFooter(` ${getUserTag(song.user)}
+A MUSICA ACABOU!`, getUserAvatar(song.user) || ee.footericon);
         const playerMsgId = PlayerMap.get(getPlayerMapKey(queue.id));
         if (!playerMsgId) return;
         queue.textChannel.messages.fetch(playerMsgId).then(currentSongPlayMsg=>{
@@ -797,7 +811,7 @@ A MUSICA ACABOU!`, song.user.displayAvatarURL({
     if(!newTrack) return new MessageEmbed().setColor(ee.wrongcolor).setTitle("NENHUMA MUSICA ENCONTRADA?!?!")
     var embed = new MessageEmbed().setColor(ee.color)
       .setDescription(`Veja a [fila no ** DASHBOARD ** ao vivo!](${dashboardBaseUrl}/queue/${newQueue.id})`)
-      .addField(`<:required:893938878380122122> Requerido por:`, `>>> ${newTrack.user}`, true)
+      .addField(`<:required:893938878380122122> Requerido por:`, `>>> ${getUserTag(newTrack.user)}`, true)
       .addField(`<:duration:893938822386163723> Duracao:`, `>>> \`${newQueue.formattedCurrentTime} / ${newTrack.formattedDuration}\``, true)
       .addField(`<:queue:893912259535966238> Fila:`, `>>> \`${newQueue.songs.length} musica(s)\`\n\`${newQueue.formattedDuration}\``, true)
       .addField(`<:volume:893912366905954365> Volume:`, `>>> \`${newQueue.volume} %\``, true)
@@ -808,9 +822,7 @@ A MUSICA ACABOU!`, song.user.displayAvatarURL({
 			.addField(`<:dj:893912114203332729> CARGO-DJ${client.settings.get(newQueue.id, "djroles").length > 1 ? "s": ""}:`, `>>> ${djs}`, client.settings.get(newQueue.id, "djroles").length > 1 ? false : true)
       .setAuthor(`${newTrack.name}`, `https://images-ext-1.discordapp.net/external/iAtXPtuThJzes9sxragLd-lwLt-oCMNsXYTSqumoenw/https/c.tenor.com/HJvqN2i4Zs4AAAAj/milk-and-mocha-cute.gif`, newTrack.url)
       .setThumbnail(`https://img.youtube.com/vi/${newTrack.id}/mqdefault.jpg`)
-      .setFooter(` ${newTrack.user.tag}`, newTrack.user.displayAvatarURL({
-        dynamic: true
-      }));
+      .setFooter(` ${getUserTag(newTrack.user)}`, getUserAvatar(newTrack.user) || ee.footericon);
     let skip = new MessageButton().setStyle('PRIMARY').setCustomId('1').setEmoji(`<:next:893930822267195453>`).setLabel(`Pular`)
     let stop = new MessageButton().setStyle('DANGER').setCustomId('2').setEmoji(`<:stop:893931070410604594>`).setLabel(`Parar`)
     let pause = new MessageButton().setStyle('PRIMARY').setCustomId('3').setEmoji('<:pause:893930949149097985>').setLabel(`Pausar`)
