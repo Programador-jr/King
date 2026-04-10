@@ -91,7 +91,7 @@ function lyricsEmbed(lyrics, song) {
                 .setTitle("Letra - " + song.name)
                 .setURL(song.url)
                 .setThumbnail(song.thumbnail)
-                .setFooter(`Música solicitada por: ${song.user.tag}`, song.user.displayAvatarURL({dynamic: true}))
+                .setFooter(`Música solicitada por: ${song.user?.tag || 'Desconhecido'}`, song.user?.displayAvatarURL?.({dynamic: true}) || ee.footericon)
                 .setColor(ee.color)
                 .setDescription(current)
             embeds.push(embed);
