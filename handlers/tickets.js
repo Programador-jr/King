@@ -137,14 +137,25 @@ class TicketHandler {
 
     _saveTicketsDb(guildId, data) {
         const current = this.client.settings.get(guildId) || {};
-        this.client.settings.set(guildId, {
+
+        // Converter tickets para objetoplain simples para evitar problemas com MongoDB
+        const ticketsData = {};
+        if (data.data && typeof data.data === 'object') {
+            for (const [key, value] of Object.entries(data.data)) {
+                ticketsData[key] = value;
+            }
+        }
+
+        const newData = {
             ...current,
             ticketCount: data.count,
             openTickets: data.open,
             closedTickets: data.closed,
-            tickets: data.data,
+            tickets: ticketsData,
             ticketHistory: data.history
-        });
+        };
+
+        this.client.settings.set(guildId, newData);
     }
 
     async createTicket(guildId, userId, reason = "Sem motivo especificado", userTag = "Unknown") {
@@ -200,20 +211,37 @@ class TicketHandler {
     }
 
     async createTicketChannel(guild, ticketData, categoryId, panelId = null) {
+        // Buscar cargos de suporte configurados
+        const supportRoles = this.client.settings.get(guild.id, "ticketRoles") || [];
+
+        const permissionOverwrites = [
+            {
+                id: guild.roles.everyone,
+                deny: ["ViewChannel"]
+            },
+            {
+                id: this.client.user.id,
+                allow: ["ViewChannel", "SendMessages", "ManageMessages", "EmbedLinks"]
+            },
+            {
+                id: ticketData.userId,
+                allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"]
+            }
+        ];
+
+        // Adicionar cargos de suporte
+        for (const roleId of supportRoles) {
+            permissionOverwrites.push({
+                id: roleId,
+                allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"]
+            });
+        }
+
         const ticketChannel = await guild.channels.create({
             name: `ticket-${ticketData.ticketNumber}`,
             type: 0,
             parent: categoryId ? guild.channels.cache.get(categoryId) : null,
-            permissionOverwrites: [
-                {
-                    id: guild.roles.everyone,
-                    deny: ["ViewChannel"]
-                },
-                {
-                    id: this.client.user.id,
-                    allow: ["ViewChannel", "SendMessages", "ManageMessages", "EmbedLinks"]
-                }
-            ]
+            permissionOverwrites: permissionOverwrites
         });
 
         const db = this.getTicketsDb(guild.id);
@@ -499,30 +527,21 @@ class TicketHandler {
     }
 
     async deletePanel(guildId, panelId) {
-        console.log(`[Delete Panel] Excluindo painel ${panelId} do servidor ${guildId}`);
-        
         const allData = this.client.settings.get(guildId) || {};
         const panels = Array.isArray(allData.ticketPanels) ? allData.ticketPanels : [];
-        
-        console.log(`[Delete Panel] Painéis antes da exclusão:`, panels.map(p => ({ id: p.id, messageId: p.messageId })));
-        
+
         // Tentar encontrar por panelId primeiro
         let filteredPanels = panels.filter(p => p.id !== panelId && p.panelId !== panelId);
-        
+
         // Se não encontrou por panelId, tentar por messageId
         if (filteredPanels.length === panels.length) {
-            console.log(`[Delete Panel] Não encontrado por panelId, tentando por messageId`);
             filteredPanels = panels.filter(p => p.messageId !== panelId);
         }
-        
-        console.log(`[Delete Panel] Painéis após exclusão:`, filteredPanels.map(p => ({ id: p.id, messageId: p.messageId })));
-        
+
         this.client.settings.set(guildId, {
             ...allData,
             ticketPanels: filteredPanels
         });
-        
-        console.log(`[Delete Panel] Painel excluído com sucesso`);
     }
 
     async sendWebhookNotification(webhookUrl, ticketData, guild, user, message = null) {
@@ -676,14 +695,18 @@ class TicketHandler {
 
     getUserTicket(guildId, userId) {
         try {
-            const allData = this.client.settings.get(guildId) || {};
-            const tickets = Array.isArray(allData.tickets) ? allData.tickets : [];
-            
-            return tickets.find(ticket => 
-                ticket.userId === userId && 
-                ticket.status === 'open' &&
-                ticket.channelId
-            );
+            const db = this.getTicketsDb(guildId);
+            const tickets = db.data;
+
+            // Procurar nos tickets abertos
+            for (const [key, ticket] of Object.entries(tickets)) {
+                if (ticket.userId === userId &&
+                    ticket.status === 'open' &&
+                    ticket.channelId) {
+                    return ticket;
+                }
+            }
+            return null;
         } catch (error) {
             console.error("[Ticket] Erro ao buscar ticket do usuário:", error);
             return null;

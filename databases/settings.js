@@ -92,8 +92,7 @@ const guildSettingsSchema = new mongoose.Schema({
     type: Number
   }],
   tickets: {
-    type: Map,
-    of: Object,
+    type: mongoose.Schema.Types.Mixed,
     default: {}
   },
   ticketHistory: {
