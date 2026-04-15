@@ -2024,6 +2024,23 @@ module.exports = client => {
         }
     });
 
+    app.get(`/api/status/bot`, async (req, res) => {
+        try {
+            res.json({
+                id: client.user?.id || null,
+                username: client.user?.username || null,
+                status: client.isReady() ? "operational" : "major_outage",
+                online: client.isReady(),
+                uptime_ms: client.uptime || 0,
+                ping_ms: Number.isFinite(client.ws?.ping) ? client.ws.ping : null,
+                guilds: client.guilds.cache.size,
+                users: client.users.cache.size
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
     /**
      * @START THE WEBSITE
      */

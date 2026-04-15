@@ -91,6 +91,7 @@ client.ticketHandler = new TicketHandler(client);
 
 const AutoModHandler = require("./handlers/automod");
 client.automodHandler = new AutoModHandler(client);
+const startKingApi = require("./handlers/kingApi");
 
 const automodDefaults = {
     automodEnabled: false,
@@ -117,6 +118,8 @@ const automodDefaults = {
 
 async function startBot() {
   try {
+    startKingApi(client);
+
     await connectMongoDB();
     const cachedGuildSettings = await client.settings.warmCache();
     console.log(`[MongoDBEnmap] ${cachedGuildSettings} servidor(es) com settings em cache`);
