@@ -1999,6 +1999,32 @@ module.exports = client => {
     });
 
     /**
+     * @API ENDPOINTS
+     */
+    // Status endpoint for KingStatus
+    app.get(`/api/status`, async (req, res) => {
+        try {
+            const nodes = client.lavalink?.manager?.nodeManager?.nodes || [];
+            const nodeList = Array.from(nodes.values()).map(node => ({
+                id: node.id,
+                connected: node.connected,
+                stats: node.stats
+            }));
+
+            res.json({
+                status: client.isReady() ? "online" : "offline",
+                uptime: client.uptime,
+                ping: client.ws.ping,
+                guilds: client.guilds.cache.size,
+                users: client.users.cache.size,
+                lavalink: nodeList
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    /**
      * @START THE WEBSITE
      */
     //START THE WEBSITE ON THE DEFAULT PORT (80)

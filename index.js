@@ -133,11 +133,16 @@ async function startBot() {
     //Start the Bot
     client.login(process.env.token || process.env.TOKEN || config.token);
     
+    // Load statuspage handler early
+    const statuspageHandler = require("./handlers/statuspage");
+    
     // Connect to Lavalink after bot is ready
     client.once("clientReady", async () => {
       try {
         await client.lavalink.connect();
         console.log("[Lavalink] Conectado ao servidor Lavalink");
+        
+        statuspageHandler(client).load();
       } catch (error) {
         console.error("[Lavalink] Erro ao conectar:", error);
       }
