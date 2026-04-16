@@ -29,32 +29,6 @@ module.exports = async (client, oldState, newState) => {
                 }
             }
             
-            // Envia mensagem de entrada
-            const logChannelId = process.env.LOG_CHANNEL_ID;
-            if (logChannelId) {
-                const logChannel = client.channels.cache.get(logChannelId);
-                if (logChannel) {
-                    const totalMembers = newState.guild.memberCount;
-                    const totalSongs = client.distube.getQueue(newState.guild.id)?.songs?.length || 0;
-                    
-                    const embed = new MessageEmbed()
-                        .setColor(ee.color)
-                        .setTitle("🎵 Bot entrou em um canal de voz")
-                        .setThumbnail(newState.guild.iconURL({ dynamic: true }))
-                        .addFields(
-                            { name: "Servidor", value: `**${newState.guild.name}**`, inline: true },
-                            { name: "ID do Servidor", value: `\`${newState.guild.id}\``, inline: true },
-                            { name: "Membros", value: `\`${totalMembers}\``, inline: true },
-                            { name: "Canal de Voz", value: `🔊 ${newState.channel.name}`, inline: true },
-                            { name: "Entrou por", value: `${newState.member}`, inline: true },
-                            { name: "Quantidade na Fila", value: `🎶 \`${totalSongs} músicas\``, inline: true }
-                        )
-                        .setFooter(ee.footertext, ee.footericon)
-                        .setTimestamp();
-                    
-                    logChannel.send({ embeds: [embed] }).catch(() => {});
-                }
-            }
             return;
         }
         return;
