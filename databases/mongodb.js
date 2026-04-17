@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const dns = require("node:dns");
 const GuildSettings = require("./settings");
 const GuildStats = require("./infos");
+const UserCoins = require("./kingcoin");
 
 const isProduction = process.env.NODE_ENV;
 let dnsServers = null;
@@ -336,6 +337,7 @@ module.exports = {
   connectMongoDB,
   GuildSettings,
   GuildStats,
+  UserCoins,
   MongoDBEnmap,
   addSongPlayed,
   addMusicTime,
