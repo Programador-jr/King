@@ -3,11 +3,8 @@ const mongoose = require("mongoose");
 const userCoinsSchema = new mongoose.Schema({
   userId: {
     type: String,
-    required: true
-  },
-  guildId: {
-    type: String,
-    required: true
+    required: true,
+    unique: true
   },
   coins: {
     type: Number,
@@ -25,13 +22,12 @@ const userCoinsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-userCoinsSchema.index({ userId: 1, guildId: 1 }, { unique: true });
-userCoinsSchema.index({ guildId: 1, coins: -1 });
+userCoinsSchema.index({ coins: -1 });
 
-userCoinsSchema.statics.findOneOrCreate = async function(userId, guildId) {
-  let user = await this.findOne({ userId, guildId });
+userCoinsSchema.statics.findOneOrCreate = async function(userId) {
+  let user = await this.findOne({ userId });
   if (!user) {
-    user = await this.create({ userId, guildId, coins: 0 });
+    user = await this.create({ userId, coins: 0 });
   }
   return user;
 };

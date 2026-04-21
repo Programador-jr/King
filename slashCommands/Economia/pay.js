@@ -12,7 +12,7 @@ module.exports = {
       }
     },
     {
-      "Number": {
+      "String": {
         "name": "quantia",
         "description": "Quantidade de King Coins a transferir",
         "required": true
@@ -21,9 +21,9 @@ module.exports = {
   ],
   runSlash: async (client, interaction) => {
     const user = interaction.options.getUser("usuario");
-    const amount = interaction.options.getNumber("quantia");
+    const amountStr = interaction.options.getString("quantia");
     const member = interaction.options.getMember("usuario");
-    const args = [user.id, amount.toString()];
+    const args = [user.id, amountStr];
     const mentions = buildMentions({ users: [user], members: [member] });
     return runSlashCommand(client, interaction, "pay", args, mentions);
   }

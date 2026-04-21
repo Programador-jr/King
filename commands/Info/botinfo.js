@@ -43,17 +43,23 @@ module.exports = {
                     }
                     if (connectedchannelsamount > client.guilds.cache.size) connectedchannelsamount = client.guilds.cache.size;
 
+                    // Contagem real de membros
+                    const totalMembers = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+                    
+                    // Canais de voz (Discord.js v14 usa números para tipos)
+                    const voiceChannels = client.channels.cache.filter((ch) => ch.type === 2 || ch.type === 13 || ch.type === "GUILD_VOICE" || ch.type === "GUILD_STAGE_VOICE").size;
+
                     const botinfo = new MessageEmbed()
                         .setAuthor(client.user.username, client.user.displayAvatarURL())
                         .setTitle("__**Informações Basicas:**__")
                         .setColor(ee.color)
                         .addField(`<:world:884218357304422420> Servidores`, `\`Total: ${client.guilds.cache.size} servidores\``, true)
-                        .addField(`:busts_in_silhouette: Usuarios`, `\`Total: ${client.users.cache.size}\` usuarios`, true)
+                        .addField(`:busts_in_silhouette: Usuarios`, `\`Total: ${totalMembers}\` usuarios`, true)
                         .addField("\u200b", `\u200b`, true)
                         .addField(`<:channel:884228094456627270> Canais`, `\`Total: ${client.channels.cache.size}\``, true)
                         .addField(`<:commands:884244807608827934> Comandos`, `\`Total: ${client.commands.map(cmd => cmd.name).length}\``, true)
                         .addField("\u200b", `\u200b`, true)
-                        .addField("<:voice:884221993510133822> Canais de Voz", `\`${client.channels.cache.filter((ch) => ch.type === "GUILD_VOICE" || ch.type === "GUILD_STAGE_VOICE").size}\``, true)
+                        .addField("<:voice:884221993510133822> Canais de Voz", `\`${voiceChannels}\``, true)
                         .addField("<:voice:884221993510133822> Canais de Voz Conectados", `\`${connectedchannelsamount}\``, true)
                         .addField("\u200b", `\u200b`, true)
                         .addField("<:discord:884218858108489759> Livraria", `\`v${Discord.version}\``, true)
@@ -88,13 +94,13 @@ module.exports = {
                         .setAuthor(client.user.username, client.user.displayAvatarURL())
                         .setTitle("__**Informações Basicas:**__")
                         .setColor(ee.color)
-                        .addField(`<:world:884218357304422420> Servidores`, `\`Total: ${client.guilds.cache.size}\``, true)
-                        .addField(`<:people:814336053648949268> Usuarios`, `\`Total: ${client.users.cache.size}\``, true)
+.addField(`<:world:884218357304422420> Servidores`, `\`Total: ${client.guilds.cache.size}\``, true)
+                        .addField(`<:people:814336053648949268> Usuarios`, `\`Total: ${totalMembers}\` usuarios`, true)
                         .addField("\u200b", `\u200b`, true)
                         .addField(`<:channel:884228094456627270> Canais`, `\`Total: ${client.channels.cache.size}\``, true)
                         .addField(`<:commands:884244807608827934> Comandos`, `\`Total: ${client.commands.map(cmd => cmd.name).length}\``, true)
                         .addField("\u200b", `\u200b`, true)
-                        .addField("<:voice:884221993510133822> Canais de Voz", `\`${client.channels.cache.filter((ch) => ch.type === "GUILD_VOICE" || ch.type === "GUILD_STAGE_VOICE").size}\``, true)
+                        .addField("<:voice:884221993510133822> Canais de Voz", `\`${voiceChannels}\``, true)
                         .addField("<:voice:884221993510133822> Canais de Voz Conectados", `\`${connectedchannelsamount}\``, true)
                         .addField("\u200b", `\u200b`, true)
                         .addField("<:discord:884218858108489759> Livraria", `\`v${Discord.version}\``, true)

@@ -20,6 +20,7 @@ module.exports = async (client, message) => {
     if(message.partial) await message.fetch();
     
     client.settings.ensure(message.guild.id, {
+      prefix: config.prefix,
       welcomeEnabled: false,
       welcomeChannelId: null,
       welcomeMessage: "Bem-vindo(a) {user} ao {server}!",
@@ -91,8 +92,7 @@ module.exports = async (client, message) => {
         console.error("[AutoMod] Erro ao verificar mensagem:", e);
       }
     }
-    client.settings.ensure(message.guild.id, {
-      prefix: config.prefix,
+client.settings.ensure(message.guild.id, {
       defaultvolume: 50,
       defaultautoplay: false,
       defaultfilters: [],
@@ -107,7 +107,7 @@ module.exports = async (client, message) => {
       moderationLogWebhook: null,
       mixDefault: "youtube"
     })
-    let prefix = client.settings.get(message.guild.id, `prefix`)
+    let prefix = client.settings.get(message.guild.id, "prefix") || config.prefix
     const prefixRegex = new RegExp(`^(<@!?${client.user.id}>|${escapeRegex(prefix)})`);
     if(!prefixRegex.test(message.content)) return;
     const [, mPrefix] = message.content.match(prefixRegex);
