@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");  
 const url = require(`url`);
 const path = require(`path`);
-const { Permissions } = require("discord.js");
+const { Permissions, MessageEmbed } = require("discord.js");
 const ejs = require("ejs");
 const fs = require("fs")
 const passport = require(`passport`);
@@ -2040,6 +2040,58 @@ module.exports = client => {
             res.status(500).json({ error: error.message });
         }
     });
+
+    /**
+     * @TOP.GG WEBHOOK
+     */
+    const Topgg = require("@top-gg/sdk");
+    const { handleVote, sendVoteLog, BASE_REWARD } = require("../handlers/voteReward");
+
+    const topggWebhookAuth = process.env.TOPGG_WEBHOOK_AUTH;
+    if (topggWebhookAuth) {
+      const topggWebhook = new Topgg.Webhook(topggWebhookAuth);
+      
+      app.post("/webhooks/topgg", topggWebhook.listener(async (vote) => {
+        console.log(`[TopGG] Voto recebido de usuário: ${vote.user} | bot: ${vote.bot} | isWeekend: ${vote.isWeekend}`);
+        
+        if (vote.type === "test") {
+          console.log("[TopGG] Teste de webhook recebido!");
+          return;
+        }
+
+        try {
+          const result = await handleVote(vote);
+          
+          if (result.success) {
+            console.log(`[TopGG] Recompensa de ${result.reward} KC dada ao usuário ${vote.user} (weekend: ${result.isWeekend})`);
+            
+            await sendVoteLog(client, result);
+            
+            const discordUser = await client.users.fetch(vote.user).catch(() => null);
+            if (discordUser) {
+              try {
+                const dmEmbed = new MessageEmbed()
+                  .setImage("https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/Happy_So_Excited.gif")
+                  .setColor(0x00BFFF)
+                  .setTitle("Obrigado por votar! 🎉")
+                  .setDescription(`Você recebeu **${result.reward}** King Coins como recompensa!${result.weekendBonus > 0 ? `\n\n🎉 Bônus de fim de semana: +${result.weekendBonus} KC!` : ""}\n\nObrigado pelo seu apoio!`)
+                  .setFooter({ text: "King Bot" });
+                await discordUser.send({ embeds: [dmEmbed] });
+              } catch (dmError) {
+                console.log(`[TopGG] Erro ao enviar DM para ${vote.user}: ${dmError.message}`);
+              }
+            }
+          } else if (result.reason === "cooldown") {
+            console.log(`[TopGG] Usuário ${vote.user} ainda está em cooldown (${result.remainingHours}h restantes)`);
+          }
+        } catch (error) {
+          console.error("[TopGG] Erro ao processar voto:", error);
+        }
+      }));
+      console.log("[TopGG] Webhook configurado em /webhooks/topgg");
+    } else {
+      console.log("[TopGG] WEBHOOK DESATIVADO: TOPGG_WEBHOOK_AUTH não configurado no .env");
+    }
 
     /**
      * @START THE WEBSITE

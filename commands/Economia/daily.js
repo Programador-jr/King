@@ -12,13 +12,12 @@ module.exports = {
   description: "Receba sua recompensa diária de King Coins.",
   aliases: ["diario", "daily", "claim"],
   run: async (client, message, args, default_prefix) => {
-    const guildId = message.guildId;
     const userId = message.author.id;
 
-    let userData = await UserCoins.findOne({ userId, guildId });
+    let userData = await UserCoins.findOne({ userId });
 
     if (!userData) {
-      userData = await UserCoins.create({ userId, guildId, coins: DAILY_AMOUNT, lastDaily: new Date(), totalEarned: DAILY_AMOUNT });
+      userData = await UserCoins.create({ userId, coins: DAILY_AMOUNT, lastDaily: new Date(), totalEarned: DAILY_AMOUNT });
       
       const embed = new Discord.MessageEmbed()
         .setColor(ee.color)
@@ -50,7 +49,7 @@ module.exports = {
     }
 
     await UserCoins.findOneAndUpdate(
-      { userId, guildId },
+      { userId },
       {
         $inc: { coins: DAILY_AMOUNT, totalEarned: DAILY_AMOUNT },
         $set: { lastDaily: now }
@@ -63,7 +62,7 @@ module.exports = {
     const embed = new Discord.MessageEmbed()
       .setColor(ee.color)
       .setAuthor(`${message.author.tag}`, message.author.displayAvatarURL({ dynamic: true, size: 2048 }))
-      .setTitle(`${emojis.King_Coin} Recompensa Diária!`)
+      .setTitle(`Recompensa Diária!`)
       .setDescription(`Você recebeu **${DAILY_AMOUNT}** ${emojis.King_Coin}!`)
       .addField("Novo Saldo", `**${newBalance.toLocaleString()}** ${emojis.King_Coin}`, true)
       .setFooter(ee.footertext, ee.footericon);

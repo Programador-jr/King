@@ -13,7 +13,7 @@ const {
 
 module.exports = async (client, interaction) => {
   client.settings.ensure(interaction.guildId, {
-    prefix: client.config?.prefix || "!",
+    prefix: client.config?.prefix,
     defaultvolume: 50,
     defaultautoplay: false,
     defaultfilters: [],

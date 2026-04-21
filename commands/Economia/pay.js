@@ -9,7 +9,6 @@ module.exports = {
   description: "Transfira King Coins para outro usuário.",
   aliases: ["transferir", "give", "enviar", "transfer"],
   run: async (client, message, args, default_prefix) => {
-    const guildId = message.guildId;
     const senderId = message.author.id;
 
     const targetUser = message.mentions.users.first();
@@ -52,7 +51,7 @@ module.exports = {
 
     const amount = parseInt(amountStr);
 
-    const senderData = await UserCoins.findOne({ userId: senderId, guildId });
+    const senderData = await UserCoins.findOne({ userId: senderId });
     const senderBalance = senderData?.coins || 0;
 
     if (senderBalance < amount) {
@@ -65,20 +64,19 @@ module.exports = {
     }
 
     await UserCoins.findOneAndUpdate(
-      { userId: senderId, guildId },
+      { userId: senderId },
       { $inc: { coins: -amount } }
     );
 
-    const targetData = await UserCoins.findOne({ userId: targetUser.id, guildId });
+    const targetData = await UserCoins.findOne({ userId: targetUser.id });
     if (targetData) {
       await UserCoins.findOneAndUpdate(
-        { userId: targetUser.id, guildId },
+        { userId: targetUser.id },
         { $inc: { coins: amount } }
       );
     } else {
       await UserCoins.create({
         userId: targetUser.id,
-        guildId,
         coins: amount,
         totalEarned: amount
       });

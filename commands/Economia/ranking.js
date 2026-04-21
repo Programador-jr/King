@@ -9,17 +9,25 @@ module.exports = {
   description: "Veja o ranking dos maiores detentores de King Coins.",
   aliases: ["lb", "leaderboard", "top", "rank"],
   run: async (client, message, args, default_prefix) => {
-    const guildId = message.guildId;
+    const guild = message.guild;
 
-    const topUsers = await UserCoins.find({ guildId })
+    const globalTop = await UserCoins.find()
       .sort({ coins: -1 })
       .limit(10)
       .lean();
 
-    if (topUsers.length === 0) {
+    const guildMembers = await guild.members.fetch();
+    const memberIds = [...guildMembers.keys()];
+    
+    const localUsers = await UserCoins.find({ userId: { $in: memberIds } })
+      .sort({ coins: -1 })
+      .limit(10)
+      .lean();
+
+    if (globalTop.length === 0 && localUsers.length === 0) {
       const embed = new Discord.MessageEmbed()
         .setColor(ee.color)
-        .setTitle(`${emojis.King_Coin} Leaderboard de King Coins`)
+        .setTitle(`${emojis.King_Coin} Ranking de King Coins`)
         .setDescription("Nenhum usuário registrado ainda!\nUse `!daily` para começar a ganhar!")
         .setFooter(ee.footertext, ee.footericon);
       return message.reply({ embeds: [embed] });
@@ -27,22 +35,37 @@ module.exports = {
 
     const medals = ["🥇", "🥈", "🥉"];
 
-    let description = "";
-    for (let i = 0; i < topUsers.length; i++) {
-      const user = topUsers[i];
+    let globalDescription = "";
+    for (let i = 0; i < globalTop.length; i++) {
+      const user = globalTop[i];
       const rank = medals[i] || `#${i + 1}`;
       const discordUser = await client.users.fetch(user.userId).catch(() => null);
       const username = discordUser ? discordUser.tag : `Unknown (${user.userId})`;
-      description += `${rank} **${username}** — ${user.coins.toLocaleString()} ${emojis.King_Coin}\n`;
+      globalDescription += `${rank} **${username}** — ${user.coins.toLocaleString()} ${emojis.King_Coin}\n`;
     }
 
-    const currentUserData = await UserCoins.findOne({ userId: message.author.id, guildId });
+    let localDescription = "";
+    for (let i = 0; i < localUsers.length; i++) {
+      const user = localUsers[i];
+      const rank = medals[i] || `#${i + 1}`;
+      const discordUser = await client.users.fetch(user.userId).catch(() => null);
+      const username = discordUser ? discordUser.tag : `Unknown (${user.userId})`;
+      localDescription += `${rank} **${username}** — ${user.coins.toLocaleString()} ${emojis.King_Coin}\n`;
+    }
+
+    const currentUserData = await UserCoins.findOne({ userId: message.author.id });
+    const globalPos = globalTop.findIndex(u => u.userId === message.author.id) + 1;
+    const localPos = localUsers.findIndex(u => u.userId === message.author.id) + 1;
 
     const embed = new Discord.MessageEmbed()
       .setColor(ee.color)
-      .setAuthor(`${emojis.King_Coin} Leaderboard de King Coins`, message.guild.iconURL({ dynamic: true }))
-      .setDescription(description)
-      .addField("Sua posição", currentUserData ? `**${topUsers.findIndex(u => u.userId === message.author.id) + 1 || "N/A"}º** com **${currentUserData.coins.toLocaleString()}** ${emojis.King_Coin}` : "Você ainda não tem coins", true)
+      .setTitle(`Ranking de King Coins`)
+      .setDescription(`🌍 **Top 10 Global**\n${globalDescription || "Nenhum usuário"}\n🏠 **Top 10 do Servidor**\n${localDescription || "Nenhum usuário deste servidor"}`)
+      .addField("Sua posição", 
+        `${currentUserData ? 
+          `Global: **#${globalPos || "N/A"}** | Servidor: **#${localPos || "N/A"}**` : 
+          "Você ainda não tem coins"}`, 
+        false)
       .setFooter(ee.footertext, ee.footericon);
 
     message.reply({ embeds: [embed] });

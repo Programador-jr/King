@@ -10,15 +10,14 @@ module.exports = {
   aliases: ["bal", "saldo", "coins"],
   run: async (client, message, args, default_prefix) => {
     const user = message.mentions.users.first() || client.users.cache.get(args[0]) || message.author;
-    const guildId = message.guildId;
     const userId = user.id;
 
-    const userData = await UserCoins.findOneOrCreate(userId, guildId);
+    const userData = await UserCoins.findOneOrCreate(userId);
 
     const embed = new Discord.MessageEmbed()
       .setColor(ee.color)
       .setAuthor(`${user.tag}`, user.displayAvatarURL({ dynamic: true, size: 2048 }))
-      .setTitle(`${emojis.King_Coin} Saldo de King Coins`)
+      .setTitle(`Saldo de King Coins`)
       .addField("Saldo Atual", `**${userData.coins.toLocaleString()}** ${emojis.King_Coin}`, true)
       .addField("Total Ganho", `**${userData.totalEarned.toLocaleString()}** ${emojis.King_Coin}`, true)
       .setFooter(ee.footertext, ee.footericon);

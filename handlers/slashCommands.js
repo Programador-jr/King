@@ -22,9 +22,12 @@ const dirSetup = [{
 	},{
 		"Folder": "Utilidade", "CmdName": "utilidade",
 		"CmdDescription": "Comandos de utilidade do bot"
+},{
+			"Folder": "Moderation", "CmdName": "moderacao",
+			"CmdDescription": "Comandos de moderacao"
 	},{
-		"Folder": "Moderation", "CmdName": "moderacao",
-		"CmdDescription": "Comandos de moderacao"
+			"Folder": "Economia", "CmdName": "economia",
+			"CmdDescription": "Comandos de economia do bot"
 	}];
 module.exports = (client) => {
     try {

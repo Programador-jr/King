@@ -296,7 +296,7 @@ module.exports = (client) => {
                 const embed = new MessageEmbed()
                     .setColor(ee.color)
                     .setTitle(`Letra - ${result.title || query.title || currentSong.name}`)
-                    .setURL(currentSong.url || "https://www.vagalume.com.br/")
+                    .setURL(currentSong.url)
                     .setThumbnail(currentSong.thumbnail || ee.footericon)
                     .setFooter(`Musica solicitada por: ${currentSong.user?.tag || member.user.tag}`);
 
@@ -336,7 +336,7 @@ module.exports = (client) => {
         
         var embed = new MessageEmbed()
             .setColor(ee.color)
-            .setAuthor(`${currentSong.info?.title || "Musica"}`, "https://images-ext-2.discordapp.net/external/Q16BMFNhO29X2_DgKf3tJk2YOsC0jQ0yu6qPyxqwO9w/https/media.discordapp.net/attachments/883978730261860383/883978741892649000/847032838998196234.png", currentSong.info?.uri)
+            .setAuthor(`${currentSong.info?.title || "Musica"}`, "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/disc2.gif", currentSong.info?.uri)
             .setDescription(`Veja a [fila no **DASHBOARD** ao vivo!](${dashboardBaseUrl}/queue/${player.guildId})`)
             .setThumbnail(currentSong.info?.artworkUrl || currentSong.info?.thumbnail || ee.footericon)
             .setFooter(` ${currentSong.info?.requester?.tag || "Desconhecido"}\nA MUSICA ACABOU!`, currentSong.info?.requester?.displayAvatarURL?.({ dynamic: true }) || ee.footericon);
