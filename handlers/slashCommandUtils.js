@@ -42,7 +42,6 @@ const createMessageFromInteraction = (client, interaction, commandName, args, me
       const options = typeof payload === "string" ? { content: payload } : { ...payload };
       options.flags = options.flags || (options.ephemeral ? 64 : 0);
       delete options.ephemeral;
-      delete options.fetchReply;
       if (interaction.deferred || interaction.replied) {
         return interaction.followUp(options);
       }
@@ -72,7 +71,6 @@ const createMessageFromInteraction = (client, interaction, commandName, args, me
       const options = typeof payload === "string" ? { content: payload } : { ...payload };
       options.flags = options.flags || (options.ephemeral ? 64 : 0);
       delete options.ephemeral;
-      delete options.fetchReply;
       if (interaction.deferred || interaction.replied) {
         return interaction.followUp(options);
       }
