@@ -5,6 +5,7 @@ const {
   getDashboardBaseUrl,
   getDashboardSupportUrl,
 } = require("../../handlers/dashboardConfig");
+const { isDeveloper } = require("../../handlers/devUtils");
 
 const CATEGORY_ICON = {
   musica: "🎵",
@@ -151,10 +152,12 @@ const truncateField = (text, max = 1024) => {
   return value.length > max ? `${value.slice(0, max - 3)}...` : value;
 };
 
-const collectCategories = (client) => {
+const collectCategories = (client, viewerId = null) => {
+  const canSeeDev = isDeveloper(viewerId);
   const map = new Map();
   client.commands.forEach((command) => {
     const category = command.category || "Outros";
+    if (!canSeeDev && normalize(category) === "dev") return;
     const key = normalize(category);
     if (!map.has(key)) map.set(key, { name: category, commands: [] });
     map.get(key).commands.push(command);
@@ -331,7 +334,7 @@ module.exports = {
   alloweduserids: [],
   run: async (client, message, args) => {
     const prefix = message.guild ? client.settings.get(message.guild.id, "prefix") : config.prefix;
-    const categories = collectCategories(client);
+    const categories = collectCategories(client, message.author.id);
     const query = String(args.join(" ") || "").trim();
     const dashboardCommandsUrl = getDashboardCommandsUrl();
     const supportUrl = getSupportUrl();
@@ -340,7 +343,7 @@ module.exports = {
       const lowered = query.toLowerCase();
       const command = client.commands.get(lowered) || client.commands.get(client.aliases.get(lowered));
 
-      if (command) {
+      if (command && (normalize(command.category) !== "dev" || isDeveloper(message.author.id))) {
         return message.reply({
           embeds: [
             buildCommandEmbed({

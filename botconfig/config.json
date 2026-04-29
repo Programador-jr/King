@@ -1,6 +1,7 @@
 {
   "prefix": "k",
   "version": "6.0.0",
+  "devIds": [],
   "loadSlashsGlobal": false,
   "music": {
     "relatedCount": 3

@@ -10,8 +10,24 @@ const {
   ChannelType,
   PermissionFlagsBits
 } = require("discord.js");
+const { getBotBan, createBotBanEmbed } = require("../../handlers/devUtils");
 
 module.exports = async (client, interaction) => {
+  if (interaction.user?.bot) return;
+  const botBan = await getBotBan(interaction.user?.id);
+  if (botBan) {
+    const payload = {
+      embeds: [createBotBanEmbed(client, botBan)],
+      flags: 64
+    };
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload).catch(() => {});
+    } else if (typeof interaction.reply === "function") {
+      await interaction.reply(payload).catch(() => {});
+    }
+    return;
+  }
+
   client.settings.ensure(interaction.guildId, {
     prefix: client.config?.prefix,
     defaultvolume: 50,
@@ -25,9 +41,14 @@ module.exports = async (client, interaction) => {
     moderationLogEnabled: false,
     moderationLogType: "channel",
     moderationLogChannelId: null,
-    moderationLogWebhook: null,
-    mixDefault: "youtube"
-  });
+      moderationLogWebhook: null,
+      mixDefault: "youtube",
+      casinoMinBet: 50,
+      casinoMaxBet: 250000,
+      casinoCooldownSeconds: 5,
+      casinoLogChannelId: null,
+      casinoSuspiciousBetThreshold: 100000
+    });
 
   // ===============================
   // MODAL SUBMIT (TICKETS COM PERGUNTAS)

@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const http = require("http");  
 const url = require(`url`);
 const path = require(`path`);
@@ -13,6 +13,10 @@ const BotEmojis = require("../botconfig/emojis.json");
 const BotEmbed = require("../botconfig/embed.json");
 const { YT_MIXES, SPOTIFY_MIXES } = require("../handlers/customMixes");
 const { getSongSearchData, getLyricsWithFallback } = require("../handlers/lyricsService");
+const { isDeveloper, applyBotBan, revokeBotBan, addKingCoins, removeKingCoins, formatBanDuration } = require("../handlers/devUtils");
+const BotBan = require("../databases/botBan");
+const UserCoins = require("../databases/kingcoin");
+const GuildAudit = require("../databases/guildAudit");
 const {
   getDashboardPort,
   getDashboardBaseUrl,
@@ -44,6 +48,8 @@ const getQueueBotData = (client) => {
  * @param {*} client THE DISCORD BOT CLIENT 
  */
 module.exports = client => {
+    const getPublicCommands = () => client.commands.filter((cmd) => String(cmd.category || "").toLowerCase() !== "dev");
+    const getPublicCategories = () => client.categories.filter((category) => String(category || "").toLowerCase() !== "dev");
     //Start teh website
     console.log("Loading DashBoard settings")
     const settings = require("./settings.json");
@@ -187,14 +193,14 @@ module.exports = client => {
           try { ch = await guild.channels.fetch(entry.channelId); } catch (e) {}
         }
         if (!ch || typeof ch.isTextBased !== "function" || !ch.isTextBased()) {
-          return { ok: false, message: `Canal de log de ${label} inválido.` };
+          return { ok: false, message: `Canal de log de ${label} invÃ¡lido.` };
         }
         normalized.channelId = entry.channelId;
         return { ok: true, value: normalized };
       }
 
       if (!entry.webhookUrl || !entry.webhookUrl.startsWith("https://discord.com/api/webhooks/")) {
-        return { ok: false, message: `Webhook de log de ${label} inválido.` };
+        return { ok: false, message: `Webhook de log de ${label} invÃ¡lido.` };
       }
       normalized.webhookUrl = entry.webhookUrl;
       return { ok: true, value: normalized };
@@ -275,6 +281,10 @@ module.exports = client => {
     app.use(express.urlencoded({
       extended: true
     }));
+    app.use((req, res, next) => {
+      res.locals.isDevUser = Boolean(req?.isAuthenticated?.() && req?.user?.id && isDeveloper(req.user.id));
+      next();
+    });
 
     //LOAD THE ASSETS
     app.use(express.static(path.join(__dirname, './public')));
@@ -290,6 +300,20 @@ module.exports = client => {
         prompt: "consent",
         callbackURL
       })(req, res, next);
+    };
+    const checkDevAuth = (req, res, next) => {
+      if (!req.isAuthenticated()) {
+        req.session.backURL = req.originalUrl || req.url || "/dev";
+        const callbackURL = setOAuthCallbackInSession(req);
+        return passport.authenticate("discord", {
+          prompt: "consent",
+          callbackURL
+        })(req, res, next);
+      }
+      if (!req.user?.id || !isDeveloper(req.user.id)) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Acesso restrito aos desenvolvedores."));
+      }
+      return next();
     };
 
     //Login endpoint
@@ -366,7 +390,7 @@ module.exports = client => {
         let banned = false // req.user.id
         if(banned) {
                 req.session.destroy(() => {
-                res.json({ login: false, message: `Você foi bloqueado no painel.`, logout: true })
+                res.json({ login: false, message: `VocÃª foi bloqueado no painel.`, logout: true })
                 req.logout();
             });
         } else {
@@ -435,8 +459,8 @@ module.exports = client => {
         Permissions: Permissions,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
-        categories: client.categories, 
-        commands: client.commands, 
+        categories: getPublicCategories(), 
+        commands: getPublicCommands(), 
         BotConfig: BotConfig,
         BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -477,6 +501,129 @@ module.exports = client => {
           BotEmojis: BotEmojis,
         });
     })
+
+    app.get("/dev", checkDevAuth, async (req, res) => {
+      const recentBans = await BotBan.find().sort({ updatedAt: -1 }).limit(20).lean();
+      const recentBalances = await UserCoins.find().sort({ updatedAt: -1 }).limit(20).lean();
+      const topBalances = await UserCoins.find().sort({ coins: -1 }).limit(25).lean();
+      const recentGuildEvents = await GuildAudit.find().sort({ createdAt: -1 }).limit(20).lean();
+      const currentGuilds = client.guilds.cache
+        .map((guild) => ({
+          id: guild.id,
+          name: guild.name,
+          memberCount: guild.memberCount || 0,
+          createdTimestamp: guild.createdTimestamp || 0,
+          joinedTimestamp: guild.joinedTimestamp || 0,
+          iconURL: guild.iconURL({ dynamic: true, size: 64 })
+        }))
+        .sort((a, b) => b.memberCount - a.memberCount);
+
+      const bannedUsers = await Promise.all(recentBans.map(async (entry) => {
+        const user = await client.users.fetch(entry.userId).catch(() => null);
+        const bannedBy = await client.users.fetch(entry.bannedBy).catch(() => null);
+        return {
+          ...entry,
+          userTag: user?.tag || entry.userId,
+          bannedByTag: bannedBy?.tag || entry.bannedBy,
+          durationLabel: entry.durationLabel || (entry.expiresAt ? new Date(entry.expiresAt).toLocaleString('pt-BR') : 'Permanente')
+        };
+      }));
+
+      const balanceUsers = await Promise.all(recentBalances.map(async (entry) => {
+        const user = await client.users.fetch(entry.userId).catch(() => null);
+        return {
+          ...entry,
+          userTag: user?.tag || entry.userId
+        };
+      }));
+
+      const topBalanceUsers = await Promise.all(topBalances.map(async (entry) => {
+        const user = await client.users.fetch(entry.userId).catch(() => null);
+        return {
+          ...entry,
+          userTag: user?.tag || entry.userId
+        };
+      }));
+
+      const stats = {
+        guildCount: client.guilds.cache.size,
+        userCacheCount: client.users.cache.size,
+        commandCount: client.commands.filter((cmd) => String(cmd.category || "").toLowerCase() !== "dev").size,
+        bannedCount: await BotBan.countDocuments(),
+        totalCoins: topBalances.reduce((sum, entry) => sum + Number(entry.coins || 0), 0)
+      };
+
+      res.render("dev", {
+        req,
+        user: req.isAuthenticated() ? req.user : null,
+        bot: getBotData(client),
+        Permissions: Permissions,
+        websiteInfo: websiteInfo,
+        callback: resolveCallbackForRequest(req),
+        categories: client.categories,
+        commands: client.commands,
+        BotConfig: BotConfig,
+        BotFilters: BotFilters,
+        SPOTIFY_MIXES: SPOTIFY_MIXES,
+        YT_MIXES: YT_MIXES,
+        BotEmojis: BotEmojis,
+        stats,
+        bannedUsers,
+        balanceUsers,
+        topBalanceUsers,
+        recentGuildEvents,
+        currentGuilds
+      });
+    });
+
+    app.post("/dev/action", checkDevAuth, async (req, res) => {
+      const action = String(req.body.action || "").trim().toLowerCase();
+      const targetId = String(req.body.targetId || "").trim();
+      const reason = String(req.body.reason || "").trim() || "Sem motivo informado.";
+      const duration = String(req.body.duration || "").trim() || undefined;
+      const amount = parseInt(req.body.amount, 10);
+
+      if (!targetId) {
+        return res.redirect("/dev?error=" + encodeURIComponent("Informe um ID de usuario valido."));
+      }
+
+      try {
+        if (action === "ban") {
+          if (isDeveloper(targetId)) {
+            return res.redirect("/dev?error=" + encodeURIComponent("Nao e permitido banir outro desenvolvedor."));
+          }
+          await applyBotBan({ client, targetId, executorId: req.user.id, reason, durationInput: duration });
+          return res.redirect("/dev?success=" + encodeURIComponent(`Usuario ${targetId} banido do bot.`));
+        }
+
+        if (action === "unban") {
+          await revokeBotBan({ client, targetId, executorId: req.user.id });
+          return res.redirect("/dev?success=" + encodeURIComponent(`Usuario ${targetId} desbanido do bot.`));
+        }
+
+        if (!Number.isInteger(amount) || amount <= 0) {
+          return res.redirect("/dev?error=" + encodeURIComponent("Informe uma quantia inteira maior que zero."));
+        }
+
+        if (action === "addkc") {
+          await addKingCoins({ client, targetId, amount, executorId: req.user.id });
+          return res.redirect("/dev?success=" + encodeURIComponent(`Adicionadas ${amount} KC ao usuario ${targetId}.`));
+        }
+
+        if (action === "removekc") {
+          const result = await removeKingCoins({ client, targetId, amount, executorId: req.user.id });
+          if (!result.ok) {
+            return res.redirect("/dev?error=" + encodeURIComponent("O usuario nao possui KC suficiente para essa remocao."));
+          }
+          return res.redirect("/dev?success=" + encodeURIComponent(`Removidas ${amount} KC do usuario ${targetId}.`));
+        }
+
+        return res.redirect("/dev?error=" + encodeURIComponent("Acao de desenvolvedor invalida."));
+      } catch (error) {
+        console.error("[dev-panel] erro:", error);
+        return res.redirect("/dev?error=" + encodeURIComponent("Falha ao executar a acao de desenvolvedor."));
+      }
+    });
 
     // Settings endpoint.
     app.get("/dashboard/:guildID", checkAuth, async (req, res) => {
@@ -563,15 +710,15 @@ module.exports = client => {
         return res.redirect("/dashboard?error=" + encodeURIComponent("You are not allowed to do that!"));
       }
       
-      // Verificação de segurança para req.body
+      // VerificaÃ§Ã£o de seguranÃ§a para req.body
       if (!req.body) {
         console.error('[ERROR] req.body is undefined - Headers:', req.headers);
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Erro ao processar formulário"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Erro ao processar formulÃ¡rio"));
       }
       
       if(req.body.prefix) client.settings.set(guild.id, String(req.body.prefix).split(" ")[0], "prefix")
       if(req.body.defaultvolume) client.settings.set(guild.id, Number(req.body.defaultvolume), "defaultvolume")
-      // Corrigir lógica do autoplay - só salvar se vier no formulário
+      // Corrigir lÃ³gica do autoplay - sÃ³ salvar se vier no formulÃ¡rio
       if(req.body.defaultautoplay !== undefined) {
         const autoplayValue = req.body.defaultautoplay === 'on' || req.body.defaultautoplay === 'true';
         client.settings.set(guild.id, autoplayValue, "defaultautoplay");
@@ -692,30 +839,30 @@ module.exports = client => {
       );
     });
 
-    // Endpoint AJAX para atualização do autoplay
+    // Endpoint AJAX para atualizaÃ§Ã£o do autoplay
     app.post("/dashboard/:guildID/settings/autoplay", checkAuth, async (req, res) => {
       try {
         const guild = client.guilds.cache.get(req.params.guildID);
         if (!guild) {
-          return res.json({ success: false, message: "Servidor não encontrado" });
+          return res.json({ success: false, message: "Servidor nÃ£o encontrado" });
         }
 
         const member = guild.members.cache.get(req.user.id);
         if (!member || !member.permissions.has("MANAGE_GUILD")) {
-          return res.json({ success: false, message: "Você não tem permissão para isso" });
+          return res.json({ success: false, message: "VocÃª nÃ£o tem permissÃ£o para isso" });
         }
 
         const { defaultautoplay } = req.body;
         
         // Validar o valor
         if (typeof defaultautoplay !== 'boolean') {
-          return res.json({ success: false, message: "Valor inválido" });
+          return res.json({ success: false, message: "Valor invÃ¡lido" });
         }
 
         // Salvar no banco de dados
         client.settings.set(guild.id, defaultautoplay, "defaultautoplay");
 
-        // Aplicar à fila ativa se existir
+        // Aplicar Ã  fila ativa se existir
         const activeQueue = client.distube.getQueue(guild.id);
         if (activeQueue && typeof activeQueue.toggleAutoplay === 'function') {
           try {
@@ -729,13 +876,13 @@ module.exports = client => {
 
         res.json({ 
           success: true, 
-          message: `Reprodução automática ${defaultautoplay ? 'ativada' : 'desativada'} com sucesso.`
+          message: `ReproduÃ§Ã£o automÃ¡tica ${defaultautoplay ? 'ativada' : 'desativada'} com sucesso.`
         });
       } catch (error) {
         console.error('Erro no endpoint de autoplay:', error);
         res.json({ 
           success: false, 
-          message: 'Erro ao salvar configuração.' 
+          message: 'Erro ao salvar configuraÃ§Ã£o.' 
         });
       }
     });
@@ -970,16 +1117,16 @@ module.exports = client => {
     // ===============================
     app.get("/dashboard/:guildID/tickets", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       client.settings.ensure(guild.id, {
@@ -1044,15 +1191,15 @@ module.exports = client => {
 
     app.post("/dashboard/:guildID/tickets/settings", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       const supportRoles = req.body.ticketRoles;
@@ -1113,16 +1260,16 @@ module.exports = client => {
     // Embed Editor Page
     app.get("/dashboard/:guildID/tickets/embed", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       const welcomeEmbed = client.settings.get(guild.id, "ticketWelcomeEmbed") || null;
@@ -1153,7 +1300,7 @@ module.exports = client => {
 
     app.post("/dashboard/:guildID/tickets/embed", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       const returnTo = resolveEmbedReturnTo(guild.id, req.body.returnTo || req.query.returnTo || req?.session?.ticketEmbedReturnTo);
       if (req?.session) req.session.ticketEmbedReturnTo = returnTo;
       
@@ -1162,9 +1309,9 @@ module.exports = client => {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       try {
@@ -1187,20 +1334,20 @@ module.exports = client => {
 
     app.get("/tickets/:guildID/:ticketNumber", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       const ticketNumber = parseInt(req.params.ticketNumber);
-      if (!ticketNumber) return res.redirect("/dashboard?error=" + encodeURIComponent("Ticket inválido"));
+      if (!ticketNumber) return res.redirect("/dashboard?error=" + encodeURIComponent("Ticket invÃ¡lido"));
 
       const TicketHandler = require("../handlers/tickets");
       if (!client.ticketHandler) {
@@ -1208,7 +1355,7 @@ module.exports = client => {
       }
 
       const ticket = client.ticketHandler.getTicket(guild.id, ticketNumber);
-      if (!ticket) return res.redirect(`/dashboard/${guild.id}/tickets?error=` + encodeURIComponent("Ticket não encontrado"));
+      if (!ticket) return res.redirect(`/dashboard/${guild.id}/tickets?error=` + encodeURIComponent("Ticket nÃ£o encontrado"));
 
       res.render("ticket-view", {
         req: req,
@@ -1229,11 +1376,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const TicketHandler = require("../handlers/tickets");
@@ -1259,11 +1406,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const TicketHandler = require("../handlers/tickets");
@@ -1288,11 +1435,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const channel = guild.channels.cache.get(channelId);
@@ -1303,22 +1450,22 @@ module.exports = client => {
           (typeof channel.isTextBased === "function" && channel.isTextBased())
         );
         if (!isTextChannel) {
-          return res.status(400).json({ ok: false, message: "Canal de texto inválido" });
+          return res.status(400).json({ ok: false, message: "Canal de texto invÃ¡lido" });
         }
 
         const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 
         const embed = new MessageEmbed()
           .setColor("#00BFFF")
-          .setTitle(title || "🎫 Central de Tickets")
-          .setDescription(description || "Precisa de ajuda? Clique no botão abaixo para criar um ticket.")
+          .setTitle(title || "ðŸŽ« Central de Tickets")
+          .setDescription(description || "Precisa de ajuda? Clique no botÃ£o abaixo para criar um ticket.")
           .setFooter({ text: "Sistema de Tickets" });
 
         const row = new MessageActionRow()
           .addComponents(
             new MessageButton()
               .setCustomId("create_ticket")
-              .setLabel(buttonLabel || "🎫 Criar Ticket")
+              .setLabel(buttonLabel || "ðŸŽ« Criar Ticket")
               .setStyle("PRIMARY")
           );
 
@@ -1355,11 +1502,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const TicketHandler = require("../handlers/tickets");
@@ -1380,13 +1527,13 @@ module.exports = client => {
               }
             }
           } catch (e) {
-            console.log("[Delete Panel] Não foi possível deletar a mensagem:", e.message);
+            console.log("[Delete Panel] NÃ£o foi possÃ­vel deletar a mensagem:", e.message);
           }
 
           await client.ticketHandler.deletePanel(guildId, panel.id);
         }
 
-        return res.json({ ok: true, message: "Painel excluído com sucesso" });
+        return res.json({ ok: true, message: "Painel excluÃ­do com sucesso" });
       } catch (err) {
         console.error("[Delete Panel] Erro:", err);
         return res.status(500).json({ ok: false, message: "Erro ao excluir painel" });
@@ -1401,11 +1548,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const TicketHandler = require("../handlers/tickets");
@@ -1417,12 +1564,12 @@ module.exports = client => {
         const panel = panels.find(p => p.id === panelId);
         
         if (!panel) {
-          return res.status(404).json({ ok: false, message: "Painel não encontrado" });
+          return res.status(404).json({ ok: false, message: "Painel nÃ£o encontrado" });
         }
 
         const channel = guild.channels.cache.get(panel.channelId);
         if (!channel) {
-          return res.status(400).json({ ok: false, message: "Canal do painel não encontrado" });
+          return res.status(400).json({ ok: false, message: "Canal do painel nÃ£o encontrado" });
         }
 
         const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
@@ -1487,11 +1634,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const TicketHandler = require("../handlers/tickets");
@@ -1501,11 +1648,11 @@ module.exports = client => {
 
         const ticket = client.ticketHandler.getTicket(guildId, ticketNumber);
         if (!ticket) {
-          return res.status(404).json({ ok: false, message: "Ticket não encontrado" });
+          return res.status(404).json({ ok: false, message: "Ticket nÃ£o encontrado" });
         }
 
         if (ticket.status === "closed") {
-          return res.status(400).json({ ok: false, message: "Ticket já está fechado" });
+          return res.status(400).json({ ok: false, message: "Ticket jÃ¡ estÃ¡ fechado" });
         }
 
         const closedTicket = await client.ticketHandler.closeTicket(
@@ -1543,13 +1690,13 @@ module.exports = client => {
             if (customCloseEmbed.thumbnail) embed.setThumbnail(customCloseEmbed.thumbnail);
             if (customCloseEmbed.author?.name) embed.setAuthor({ name: customCloseEmbed.author.name, url: customCloseEmbed.author.url || null, iconURL: customCloseEmbed.author.icon_url || null });
             if (customCloseEmbed.fields?.length) customCloseEmbed.fields.forEach(f => { if (f.name) embed.addField(f.name, f.value || '\u200b', f.inline || false); });
-            embed.addField("🎫 Ticket", `#${ticketNumber}`, true);
-            embed.addField("👤 Fechado por", req.user.tag, true);
+            embed.addField("ðŸŽ« Ticket", `#${ticketNumber}`, true);
+            embed.addField("ðŸ‘¤ Fechado por", req.user.tag, true);
             embed.setTimestamp();
           } else {
             embed = new MessageEmbed()
               .setColor("#ed4245")
-              .setTitle("🎫 Ticket Fechado")
+              .setTitle("ðŸŽ« Ticket Fechado")
               .setDescription(`Ticket fechado por ${req.user.tag}.`)
               .addField("Ticket", `#${ticketNumber}`, true)
               .setTimestamp();
@@ -1561,16 +1708,16 @@ module.exports = client => {
             .addComponents(
               new MessageButton()
                 .setCustomId("reopen_ticket")
-                .setLabel("🔓 Reabrir")
+                .setLabel("ðŸ”“ Reabrir")
                 .setStyle("SECONDARY"),
               new MessageButton()
                 .setCustomId("delete_ticket")
-                .setLabel("🗑️ Deletar")
+                .setLabel("ðŸ—‘ï¸ Deletar")
                 .setStyle("DANGER")
             );
 
           await channel.send({
-            content: "Ticket fechado. Escolha uma opção:",
+            content: "Ticket fechado. Escolha uma opÃ§Ã£o:",
             components: [row]
           });
         }
@@ -1582,19 +1729,19 @@ module.exports = client => {
       }
     });
 
-    // Page para criar painel avançado
+    // Page para criar painel avanÃ§ado
     app.get("/dashboard/:guildID/tickets/create", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       res.render("create-panel", {
@@ -1619,16 +1766,16 @@ module.exports = client => {
     // Page para editar painel
     app.get("/dashboard/:guildID/tickets/edit/:panelId", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       const TicketHandler = require("../handlers/tickets");
@@ -1640,7 +1787,7 @@ module.exports = client => {
       const panel = panels.find(p => p.id === req.params.panelId);
       
       if (!panel) {
-        return res.redirect("/dashboard/" + guild.id + "/tickets?error=" + encodeURIComponent("Painel não encontrado"));
+        return res.redirect("/dashboard/" + guild.id + "/tickets?error=" + encodeURIComponent("Painel nÃ£o encontrado"));
       }
 
       res.render("create-panel", {
@@ -1662,7 +1809,7 @@ module.exports = client => {
       });
     });
 
-    // API para criar painel avançado
+    // API para criar painel avanÃ§ado
     app.post("/api/tickets/:guildID/create-panel-advanced", checkApiAuth, async (req, res) => {
       try {
         const guildId = req.params.guildID;
@@ -1670,11 +1817,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const channel = guild.channels.cache.get(channelId);
@@ -1685,7 +1832,7 @@ module.exports = client => {
           (typeof channel.isTextBased === "function" && channel.isTextBased())
         );
         if (!isTextChannel) {
-          return res.status(400).json({ ok: false, message: "Canal de texto inválido" });
+          return res.status(400).json({ ok: false, message: "Canal de texto invÃ¡lido" });
         }
 
         const useCategory = Boolean(categoryEnabled);
@@ -1806,11 +1953,11 @@ module.exports = client => {
         
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, message: "Servidor não encontrado" });
+          return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
         if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "Você não tem permissão" });
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
         }
 
         const TicketHandler = require("../handlers/tickets");
@@ -1822,7 +1969,7 @@ module.exports = client => {
         const panelIndex = panels.findIndex(p => p.id === panelId);
         
         if (panelIndex === -1) {
-          return res.status(404).json({ ok: false, message: "Painel não encontrado" });
+          return res.status(404).json({ ok: false, message: "Painel nÃ£o encontrado" });
         }
 
         if (channelId) {
@@ -1834,7 +1981,7 @@ module.exports = client => {
             (typeof targetChannel.isTextBased === "function" && targetChannel.isTextBased())
           );
           if (!isTextChannel) {
-            return res.status(400).json({ ok: false, message: "Canal de texto inválido" });
+            return res.status(400).json({ ok: false, message: "Canal de texto invÃ¡lido" });
           }
         }
 
@@ -1855,7 +2002,7 @@ module.exports = client => {
               category.type === "category"
             );
             if (!isCategory) {
-              return res.status(400).json({ ok: false, message: "Categoria inválida" });
+              return res.status(400).json({ ok: false, message: "Categoria invÃ¡lida" });
             }
             updatedCategoryId = categoryId;
           }
@@ -1882,7 +2029,7 @@ module.exports = client => {
           updatedAt: Date.now()
         };
 
-        // Usar a função updatePanel do handler para consistência
+        // Usar a funÃ§Ã£o updatePanel do handler para consistÃªncia
         await client.ticketHandler.updatePanel(guildId, panelId, {
           channelId: channelId || panels[panelIndex].channelId,
           useCategory: nextUseCategory,
@@ -1905,16 +2052,16 @@ module.exports = client => {
     // ===============================
     app.get("/dashboard/:guildID/automod", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       const settings = client.settings.get(guild.id);
@@ -1930,16 +2077,16 @@ module.exports = client => {
 
     app.post("/dashboard/:guildID/automod", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
-      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor não encontrado"));
+      if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } 
         catch (err) { console.error(err); }
       }
-      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Não foi possível obter seus dados"));
+      if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
       if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Você não tem permissão para isso"));
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
       const {
@@ -1980,7 +2127,7 @@ module.exports = client => {
 
       client.settings.set(guild.id, !!automodAntiWordsEnabled, "automodAntiWordsEnabled");
       
-      client.settings.set(guild.id, automodAntiWordsWarnMessage || "Você usou palavras proibidas neste servidor.", "automodAntiWordsWarnMessage");
+      client.settings.set(guild.id, automodAntiWordsWarnMessage || "VocÃª usou palavras proibidas neste servidor.", "automodAntiWordsWarnMessage");
       
       let wordsList = [];
       if (automodAntiWordsList) {
@@ -1995,7 +2142,7 @@ module.exports = client => {
       client.settings.set(guild.id, !!automodAntiNewAccountsEnabled, "automodAntiNewAccountsEnabled");
       client.settings.set(guild.id, parseInt(automodAntiNewAccountsMinDays) || 1, "automodAntiNewAccountsMinDays");
 
-      res.redirect("/dashboard/" + guild.id + "/automod?success=" + encodeURIComponent("Configurações do Auto-Mod salvas com sucesso!"));
+      res.redirect("/dashboard/" + guild.id + "/automod?success=" + encodeURIComponent("ConfiguraÃ§Ãµes do Auto-Mod salvas com sucesso!"));
     });
 
     /**
@@ -2052,7 +2199,7 @@ module.exports = client => {
       const topggWebhook = new Topgg.Webhook(topggWebhookAuth);
       
       app.post("/webhooks/topgg", topggWebhook.listener(async (vote) => {
-        console.log(`[TopGG] Voto recebido de usuário: ${vote.user} | bot: ${vote.bot} | isWeekend: ${vote.isWeekend}`);
+        console.log(`[TopGG] Voto recebido de usuÃ¡rio: ${vote.user} | bot: ${vote.bot} | isWeekend: ${vote.isWeekend}`);
         
         if (vote.type === "test") {
           console.log("[TopGG] Teste de webhook recebido!");
@@ -2063,7 +2210,7 @@ module.exports = client => {
           const result = await handleVote(vote);
           
           if (result.success) {
-            console.log(`[TopGG] Recompensa de ${result.reward} KC dada ao usuário ${vote.user} (weekend: ${result.isWeekend})`);
+            console.log(`[TopGG] Recompensa de ${result.reward} KC dada ao usuÃ¡rio ${vote.user} (weekend: ${result.isWeekend})`);
             
             await sendVoteLog(client, result);
             
@@ -2073,8 +2220,8 @@ module.exports = client => {
                 const dmEmbed = new MessageEmbed()
                   .setImage("https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/Happy_So_Excited.gif")
                   .setColor(0x00BFFF)
-                  .setTitle("Obrigado por votar! 🎉")
-                  .setDescription(`Você recebeu **${result.reward}** King Coins como recompensa!${result.weekendBonus > 0 ? `\n\n🎉 Bônus de fim de semana: +${result.weekendBonus} KC!` : ""}\n\nObrigado pelo seu apoio!`)
+                  .setTitle("Obrigado por votar! ðŸŽ‰")
+                  .setDescription(`VocÃª recebeu **${result.reward}** King Coins como recompensa!${result.weekendBonus > 0 ? `\n\nðŸŽ‰ BÃ´nus de fim de semana: +${result.weekendBonus} KC!` : ""}\n\nObrigado pelo seu apoio!`)
                   .setFooter({ text: "King Bot" });
                 await discordUser.send({ embeds: [dmEmbed] });
               } catch (dmError) {
@@ -2082,7 +2229,7 @@ module.exports = client => {
               }
             }
           } else if (result.reason === "cooldown") {
-            console.log(`[TopGG] Usuário ${vote.user} ainda está em cooldown (${result.remainingHours}h restantes)`);
+            console.log(`[TopGG] UsuÃ¡rio ${vote.user} ainda estÃ¡ em cooldown (${result.remainingHours}h restantes)`);
           }
         } catch (error) {
           console.error("[TopGG] Erro ao processar voto:", error);
@@ -2090,7 +2237,7 @@ module.exports = client => {
       }));
       console.log("[TopGG] Webhook configurado em /webhooks/topgg");
     } else {
-      console.log("[TopGG] WEBHOOK DESATIVADO: TOPGG_WEBHOOK_AUTH não configurado no .env");
+      console.log("[TopGG] WEBHOOK DESATIVADO: TOPGG_WEBHOOK_AUTH nÃ£o configurado no .env");
     }
 
     /**

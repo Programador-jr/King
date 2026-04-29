@@ -72,7 +72,7 @@ module.exports = {
       const doc = await Warnings.findOneAndUpdate(
         { guildId: message.guild.id, userId: targetMember.id },
         { $push: { warnings: warningEntry } },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
 
       const totalWarnings = doc?.warnings?.length || 1;

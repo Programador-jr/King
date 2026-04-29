@@ -5,6 +5,7 @@ const settings = require(`../../botconfig/settings.json`);
 const { onCoolDown, replacemsg } = require(`../../handlers/functions`);
 const { addCommandUsed } = require(`../../databases/mongodb`);
 const Discord = require(`discord.js`);
+const { getBotBan, createBotBanEmbed } = require("../../handlers/devUtils");
 
 function escapeRegex(str) {
     try {
@@ -18,6 +19,13 @@ module.exports = async (client, message) => {
     if(!message.guild || !message.channel || message.author.bot) return;
     if(message.channel.partial) await message.channel.fetch();
     if(message.partial) await message.fetch();
+
+    const botBan = await getBotBan(message.author.id);
+    if (botBan) {
+      return message.reply({
+        embeds: [createBotBanEmbed(client, botBan)]
+      }).catch(() => {});
+    }
     
     client.settings.ensure(message.guild.id, {
       prefix: config.prefix,
@@ -46,8 +54,13 @@ module.exports = async (client, message) => {
       automodAntiWordsEnabled: false,
       automodAntiWordsList: [],
       automodAntiWordsWarnMessage: "Você usou palavras proibidas neste servidor.",
-      automodAntiNewAccountsEnabled: false,
-      automodAntiNewAccountsMinDays: 1
+        automodAntiNewAccountsEnabled: false,
+        automodAntiNewAccountsMinDays: 1,
+        casinoMinBet: 50,
+        casinoMaxBet: 250000,
+        casinoCooldownSeconds: 5,
+        casinoLogChannelId: null,
+        casinoSuspiciousBetThreshold: 100000
     });
     
     if (client.automodHandler) {
@@ -104,9 +117,14 @@ client.settings.ensure(message.guild.id, {
       moderationLogEnabled: false,
       moderationLogType: "channel",
       moderationLogChannelId: null,
-      moderationLogWebhook: null,
-      mixDefault: "youtube"
-    })
+        moderationLogWebhook: null,
+        mixDefault: "youtube",
+        casinoMinBet: 50,
+        casinoMaxBet: 250000,
+        casinoCooldownSeconds: 5,
+        casinoLogChannelId: null,
+        casinoSuspiciousBetThreshold: 100000
+      })
     let prefix = client.settings.get(message.guild.id, "prefix") || config.prefix
     const prefixRegex = new RegExp(`^(<@!?${client.user.id}>|${escapeRegex(prefix)})`);
     if(!prefixRegex.test(message.content)) return;
