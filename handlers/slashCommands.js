@@ -26,8 +26,14 @@ const dirSetup = [{
 			"Folder": "Moderation", "CmdName": "moderacao",
 			"CmdDescription": "Comandos de moderacao"
 	},{
-			"Folder": "Economia", "CmdName": "economia",
-			"CmdDescription": "Comandos de economia do bot"
+		"Folder": "Economia", "CmdName": "economia",
+		"CmdDescription": "Comandos de economia do bot"
+	},{
+		"Folder": "Cassino", "CmdName": "cassino",
+		"CmdDescription": "Jogos de cassino do bot"
+	},{
+		"Folder": "Dev", "CmdName": "dev",
+		"CmdDescription": "Comandos internos de desenvolvedor"
 	}];
 module.exports = (client) => {
     try {
@@ -38,6 +44,14 @@ module.exports = (client) => {
 		let allCommands = [];
         readdirSync("./slashCommands/").forEach((dir) => {
 			if(lstatSync(`./slashCommands/${dir}`).isDirectory()) {
+				let slashCommands = [];
+				try {
+					slashCommands = readdirSync(`./slashCommands/${dir}/`).filter((file) => file.endsWith(".js"));
+				} catch (readError) {
+					console.log(`[slashCommands] Pasta ./slashCommands/${dir} inacessivel. Ignorando carregamento desse grupo.`);
+					console.log(String(readError.message || readError).grey);
+					return;
+				}
 				const groupName = dir;
 				const cmdSetup = dirSetup.find(d=>d.Folder == dir);
 				//If its a valid cmdsetup
@@ -45,7 +59,6 @@ module.exports = (client) => {
 					//Set the SubCommand as a Slash Builder
 					const subCommand = new SlashCommandBuilder().setName(String(cmdSetup.CmdName).replace(/\s+/g, '_').toLowerCase()).setDescription(String(cmdSetup.CmdDescription));
 					//Now for each file in that subcommand, add a command!
-					const slashCommands = readdirSync(`./slashCommands/${dir}/`).filter((file) => file.endsWith(".js"));
 					for (let file of slashCommands) {
 						let pull = require(`../slashCommands/${dir}/${file}`);
 						if (pull.name && pull.description) {

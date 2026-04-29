@@ -1,19 +1,27 @@
 const { MessageEmbed } = require("discord.js");
 const { addUserJoined } = require("../../databases/mongodb");
 const ee = require("../../botconfig/embed.json");
+const GuildAudit = require("../../databases/guildAudit");
 
 module.exports = async (client, guild) => {
   try {
     addUserJoined(guild.id);
     console.log("Bot entrou em um servidor.");
+    const owner = await guild.fetchOwner().catch(() => null);
+    await GuildAudit.create({
+      guildId: guild.id,
+      guildName: guild.name,
+      ownerId: owner?.user?.id || guild.ownerId || null,
+      ownerTag: owner?.user?.tag || null,
+      memberCount: guild.memberCount || 0,
+      action: "join"
+    }).catch(() => null);
     
     // Envia mensagem de entrada em um novo servidor
     const logChannelId = process.env.LOG_CHANNEL_ID;
     if (logChannelId) {
       const logChannel = client.channels.cache.get(logChannelId);
       if (logChannel) {
-        const owner = await guild.fetchOwner();
-        
         const embed = new MessageEmbed()
           .setColor(ee.color)
           .setTitle("🎉 Novo Servidor!")

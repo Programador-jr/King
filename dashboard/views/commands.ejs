@@ -223,7 +223,7 @@
         <div class="row g-3">
           <div class="col-lg-3" id="category">
             <div class="list-group" id="myList" role="tablist">
-              <% categories.forEach((category, i) => { %>
+              <% categories.filter((category) => String(category).toLowerCase() !== 'dev').forEach((category, i) => { %>
                 <a class="list-group-item list-group-item-action <%= i === 0 ? 'active' : '' %>" data-bs-toggle="list" href="#<%= category %>" role="tab" aria-controls="<%= category %>">
                   <i class="fas fa-folder"></i>
                   <%= category %>
@@ -234,10 +234,10 @@
 
           <div class="col-lg-9">
             <div class="tab-content">
-              <% categories.forEach((category, k) => { %>
+              <% categories.filter((category) => String(category).toLowerCase() !== 'dev').forEach((category, k) => { %>
                 <div class="tab-pane fade show <%= k === 0 ? 'active' : '' %>" id="<%= category %>" role="tabpanel">
                   <div class="accordion" id="acc_<%= category %>">
-                    <% commands.filter((cmd) => cmd.category === category).forEach((cmd, i) => { %>
+                    <% commands.filter((cmd) => cmd.category === category && String(cmd.category).toLowerCase() !== 'dev').forEach((cmd, i) => { %>
                       <div class="accordion-item">
                         <h2 class="accordion-header" id="h_<%= cmd.name %>">
                           <button

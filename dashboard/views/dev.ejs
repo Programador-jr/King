@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="/public/alerts.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="/index.css">
+    <title>Dev Panel | <%= websiteInfo.name %></title>
+    <style>
+      .dev-hero, .dev-card { background: var(--card-bg); border: 1px solid var(--theme-border); border-radius: 20px; box-shadow: var(--shadow-lg); }
+      .dev-hero { padding: 26px; position: relative; overflow: hidden; }
+      .dev-title { color: var(--text-main); font-size: clamp(1.7rem, 2.3vw, 2.5rem); margin: 0 0 8px; position: relative; z-index: 1; }
+      .dev-subtitle { color: var(--text-soft); margin: 0; position: relative; z-index: 1; max-width: 840px; }
+      .metric-card { background: var(--bg-elevated); border: 1px solid var(--theme-border-soft); border-radius: 18px; padding: 18px; height: 100%; }
+      .metric-label { color: var(--text-muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+      .metric-value { color: var(--text-main); font-size: clamp(1.3rem, 2vw, 2rem); font-weight: 800; }
+      .metric-meta { color: var(--accent-soft); font-size: .82rem; margin-top: 8px; }
+      .dev-card { padding: 18px; height: 100%; }
+      .dev-card h3 { color: var(--text-main); font-size: 1.05rem; margin: 0 0 14px; display:flex; align-items:center; gap:10px; }
+      .dev-form label { color: var(--text-soft); font-weight: 600; font-size: .92rem; }
+      .dev-form input, .dev-form textarea, .dev-form select { width: 100%; background: var(--bg-700); color: var(--text-main); border: 1px solid var(--theme-border-soft); border-radius: 10px; padding: 10px 12px; }
+      .dev-form textarea { min-height: 90px; resize: vertical; }
+      .dev-btn { border: 0; border-radius: 10px; margin-top:15px!important; padding: 10px 14px!important; font-weight: 700; color: var(--btn-text-on-accent); background: var(--nav-btn-bg); cursor: pointer; }
+      .dev-btn.danger { color: var(--btn-text-on-accent); background: linear-gradient(180deg, var(--danger-500), var(--danger-500)); }
+      .dev-table { width: 100%; border-collapse: collapse; }
+      .dev-table th, .dev-table td { padding: 10px 12px; border-bottom: 1px solid var(--theme-border); color: var(--text-main); vertical-align: top; }
+      .dev-table th { color: var(--accent-400); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+      .dev-pill { display:inline-block; padding: 4px 10px; border-radius: 999px; background: var(--accent-ghost); color: var(--accent-soft); font-size: .8rem; }
+      .event-join { color: var(--ok); font-weight: 700; }
+      .event-leave { color: var(--danger-500); font-weight: 700; }
+      .guild-item { display:flex; gap:12px; align-items:center; padding:12px; border-radius:14px; background: var(--bg-elevated); border:1px solid var(--theme-border-soft); height: 100%; }
+      .guild-item img { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; }
+      .guild-item strong { color:var(--text-main); display:block; }
+      .guild-item span { color:var(--text-muted); font-size: .85rem; display:block; }
+      code { background: var(--bg-700); padding: 2px 6px; border-radius: 4px; font-size: .78rem; }
+      .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .mobile-card { background: var(--bg-elevated); border: 1px solid var(--theme-border-soft); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+      .mobile-card-header { color: var(--text-main); font-weight: 600; font-size: .95rem; margin-bottom: 8px; }
+      .mobile-card-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--theme-border-soft); font-size: .85rem; }
+      .mobile-card-label { color: var(--text-muted); }
+      .mobile-card-value { color: var(--text-main); text-align: right; }
+      
+      @media (max-width: 768px) {
+        .dev-hero { padding: 16px; }
+        .dev-title { font-size: clamp(1.3rem, 5vw, 1.8rem); }
+        .dev-subtitle { font-size: .9rem; }
+        .metric-card { padding: 14px; }
+        .metric-value { font-size: clamp(1.1rem, 4vw, 1.5rem); }
+        .dev-card { padding: 14px; }
+        .dev-card h3 { font-size: .95rem; margin-bottom: 10px; }
+        .dev-form input, .dev-form textarea, .dev-form select { padding: 8px 10px; font-size: .9rem; }
+        .dev-btn { padding: 8px 12px; font-size: .9rem; }
+        .guild-item { padding: 10px; }
+        .guild-item img { width: 40px; height: 40px; }
+      }
+      @media (max-width: 480px) {
+        .dev-hero { padding: 14px; border-radius: 16px; }
+        .dev-card { padding: 12px; border-radius: 16px; }
+        .metric-card { border-radius: 14px; padding: 12px; }
+        .dev-pill { padding: 3px 8px; font-size: .75rem; }
+        code { font-size: .7rem; padding: 1px 4px; }
+        .dev-btn { padding: 6px 10px; font-size: .85rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <%- include('header'); -%>
+    <div class="container-fluid" style="max-width: 1320px; margin: 24px auto 40px; padding: 0 13px;">
+      <div class="dev-hero mb-4">
+        <h1 class="dev-title">Dev Control Center</h1>
+        <p class="dev-subtitle">Painel de controle avançado</p>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-xl-2 col-lg-4 col-md-6 col-12">
+          <div class="metric-card"><div class="metric-label">Servidores</div><div class="metric-value"><%= Number(stats.guildCount || 0).toLocaleString('pt-BR') %></div><div class="metric-meta">Conectados agora</div></div>
+        </div>
+        <div class="col-xl-2 col-lg-4 col-md-6 col-12">
+          <div class="metric-card"><div class="metric-label">Usuários em cache</div><div class="metric-value"><%= Number(stats.userCacheCount || 0).toLocaleString('pt-BR') %></div><div class="metric-meta">Cache atual do cliente</div></div>
+        </div>
+        <div class="col-xl-2 col-lg-4 col-md-6 col-12">
+          <div class="metric-card"><div class="metric-label">Comandos públicos</div><div class="metric-value"><%= Number(stats.commandCount || 0).toLocaleString('pt-BR') %></div><div class="metric-meta">Exclui comandos Dev</div></div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 col-12">
+          <div class="metric-card"><div class="metric-label">Banidos do bot</div><div class="metric-value"><%= Number(stats.bannedCount || 0).toLocaleString('pt-BR') %></div><div class="metric-meta">Bloqueio global</div></div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 col-12">
+          <div class="metric-card"><div class="metric-label">KC rastreadas</div><div class="metric-value"><%= Number(stats.totalCoins || 0).toLocaleString('pt-BR') %></div><div class="metric-meta">Somatorio do top carregado</div></div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-6 col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-user-slash"></i> Banir do Bot</h3>
+            <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="action" value="ban">
+              <div><label for="ban-target">ID do usuario</label><input id="ban-target" name="targetId" type="text" required></div>
+              <div><label for="ban-reason">Motivo</label><textarea id="ban-reason" name="reason" placeholder="Motivo do banimento global"></textarea></div>
+              <div><label for="ban-duration">Duração</label>
+                <select id="ban-duration" name="duration" class="form-select modern-select">
+                  <option value="">Permanente</option>
+                  <option value="30m">30 minutos</option>
+                  <option value="1h">1 hora</option>
+                  <option value="12h">12 horas</option>
+                  <option value="1d">1 dia</option>
+                  <option value="7d">7 dias</option>
+                  <option value="14d">14 dias</option>
+                  <option value="30d">30 dias</option>
+                  <option value="2w">2 semanas</option>
+                </select>
+              </div>
+              <button class="dev-btn danger" type="submit">Banir do King</button>
+            </form>
+          </div>
+        </div>
+        <div class="col-lg-6 col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-user-check"></i> Desbanir do Bot</h3>
+            <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="action" value="unban">
+              <div><label for="unban-target">ID do usuario</label><input id="unban-target" name="targetId" type="text" required></div>
+              <button class="dev-btn" type="submit">Remover ban global</button>
+            </form>
+          </div>
+        </div>
+        <div class="col-lg-6 col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-coins"></i> Adicionar KC</h3>
+            <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="action" value="addkc">
+              <div><label for="addkc-target">ID do usuario</label><input id="addkc-target" name="targetId" type="text" required></div>
+              <div><label for="addkc-amount">Quantia</label><input id="addkc-amount" name="amount" type="number" min="1" required></div>
+              <button class="dev-btn" type="submit">Adicionar KC</button>
+            </form>
+          </div>
+        </div>
+        <div class="col-lg-6 col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-minus-circle"></i> Remover KC</h3>
+            <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="action" value="removekc">
+              <div><label for="removekc-target">ID do usuario</label><input id="removekc-target" name="targetId" type="text" required></div>
+              <div><label for="removekc-amount">Quantia</label><input id="removekc-amount" name="amount" type="number" min="1" required></div>
+              <button class="dev-btn danger" type="submit">Remover KC</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-3">
+        <div class="col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-clock"></i> Últimos Servidores Adicionados/Removidos</h3>
+            <div class="d-none d-md-block table-responsive">
+              <table class="dev-table">
+                <thead><tr><th>Ação</th><th>Servidor</th><th>Dono</th><th>Membros</th><th>Quando</th></tr></thead>
+                <tbody>
+                  <% if (recentGuildEvents.length === 0) { %><tr><td colspan="5">Nenhum evento de guild registrado.</td></tr><% } %>
+                  <% recentGuildEvents.forEach((entry) => { %>
+                    <tr>
+                      <td><span class="<%= entry.action === 'join' ? 'event-join' : 'event-leave' %>"><%= entry.action === 'join' ? 'Adicionado' : 'Removido' %></span></td>
+                      <td><span class="dev-pill"><%= entry.guildName %></span><br><small><%= entry.guildId %></small></td>
+                      <td><%= entry.ownerTag || entry.ownerId || 'Desconhecido' %></td>
+                      <td><%= Number(entry.memberCount || 0).toLocaleString('pt-BR') %></td>
+                      <td><%= new Date(entry.createdAt).toLocaleString('pt-BR') %></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            <div class="d-md-none">
+              <% if (recentGuildEvents.length === 0) { %><div class="mobile-card"><p style="color:var(--text-muted);">Nenhum evento de guild registrado.</p></div><% } %>
+              <% recentGuildEvents.forEach((entry) => { %>
+                <div class="mobile-card">
+                  <div class="mobile-card-header">
+                    <span class="<%= entry.action === 'join' ? 'event-join' : 'event-leave' %>"><i class="fas fa-<%= entry.action === 'join' ? 'plus' : 'minus' %>"></i> <%= entry.action === 'join' ? 'Adicionado' : 'Removido' %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Servidor</span>
+                    <span class="mobile-card-value"><span class="dev-pill"><%= entry.guildName %></span></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">ID</span>
+                    <span class="mobile-card-value"><code><%= entry.guildId %></code></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Dono</span>
+                    <span class="mobile-card-value"><%= entry.ownerTag || entry.ownerId || 'Desconhecido' %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Membros</span>
+                    <span class="mobile-card-value"><%= Number(entry.memberCount || 0).toLocaleString('pt-BR') %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Quando</span>
+                    <span class="mobile-card-value"><%= new Date(entry.createdAt).toLocaleString('pt-BR') %></span>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-ban"></i> Banidos do Bot</h3>
+            <div class="d-none d-md-block table-responsive">
+              <table class="dev-table">
+                <thead><tr><th>Usuario</th><th>ID</th><th>Banido por</th><th>Motivo</th><th>Duração</th><th>Ação</th></tr></thead>
+                <tbody>
+                  <% if (bannedUsers.length === 0) { %><tr><td colspan="6">Nenhum usuario banido do bot.</td></tr><% } %>
+                  <% bannedUsers.forEach((entry) => { %>
+                    <tr>
+                      <td><span class="dev-pill"><%= entry.userTag %></span></td>
+                      <td><code style="color:var(--text-muted);font-size:.8rem;"><%= entry.userId %></code></td>
+                      <td><%= entry.bannedByTag %></td>
+                      <td><%= entry.reason %></td>
+                      <td><%= entry.durationLabel || 'Permanente' %></td>
+                      <td>
+                        <form id="unban-form-<%= entry.userId %>" method="POST" action="/dev/action" style="display:inline;">
+                          <input type="hidden" name="action" value="unban">
+                          <input type="hidden" name="targetId" value="<%= entry.userId %>">
+                          <button type="button" class="dev-btn danger" style="padding:6px 12px;font-size:.85rem;" onclick="showUnbanConfirm('<%= entry.userId %>', '<%= entry.userTag %>')">Desbanir</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            <div class="d-md-none">
+              <% if (bannedUsers.length === 0) { %><div class="mobile-card"><p style="color:var(--text-muted);">Nenhum usuario banido do bot.</p></div><% } %>
+              <% bannedUsers.forEach((entry) => { %>
+                <div class="mobile-card">
+                  <div class="mobile-card-header">
+                    <span class="dev-pill"><%= entry.userTag %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">ID</span>
+                    <span class="mobile-card-value"><code><%= entry.userId %></code></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Banido por</span>
+                    <span class="mobile-card-value"><%= entry.bannedByTag %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Motivo</span>
+                    <span class="mobile-card-value"><%= entry.reason %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Duração</span>
+                    <span class="mobile-card-value"><%= entry.durationLabel || 'Permanente' %></span>
+                  </div>
+                  <div style="margin-top:10px;">
+                    <form id="unban-form-mobile-<%= entry.userId %>" method="POST" action="/dev/action">
+                      <input type="hidden" name="action" value="unban">
+                      <input type="hidden" name="targetId" value="<%= entry.userId %>">
+                      <button type="button" class="dev-btn danger" style="width:100%;padding:8px;" onclick="showUnbanConfirm('<%= entry.userId %>', '<%= entry.userTag %>')">Desbanir</button>
+                    </form>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-server"></i> Servidores Conectados</h3>
+            <div class="row g-3 mt-2">
+              <% if (currentGuilds.length === 0) { %><div class="col-12"><div class="guild-item"><div><strong>Nenhum servidor</strong><span>O bot nao esta conectado a nenhum servidor.</span></div></div></div><% } %>
+              <% currentGuilds.forEach((guild) => { %>
+                <div class="col-xl-6 col-12">
+                  <div class="guild-item">
+                    <img src="<%= guild.iconURL || bot.avatar %>" alt="<%= guild.name %>">
+                    <div>
+                      <strong><%= guild.name %></strong>
+                      <span>ID: <%= guild.id %></span>
+                      <span>Membros: <%= Number(guild.memberCount || 0).toLocaleString('pt-BR') %></span>
+                    </div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-trophy"></i> Top Usuários por KC</h3>
+            <div class="d-none d-md-block table-responsive">
+              <table class="dev-table">
+                <thead><tr><th>Usuario</th><th>KC</th><th>Total ganho</th></tr></thead>
+                <tbody>
+                  <% if (topBalanceUsers.length === 0) { %><tr><td colspan="3">Nenhum saldo encontrado.</td></tr><% } %>
+                  <% topBalanceUsers.forEach((entry) => { %>
+                    <tr><td><span class="dev-pill"><%= entry.userTag %></span></td><td><%= Number(entry.coins || 0).toLocaleString('pt-BR') %></td><td><%= Number(entry.totalEarned || 0).toLocaleString('pt-BR') %></td></tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            <div class="d-md-none">
+              <% if (topBalanceUsers.length === 0) { %><div class="mobile-card"><p style="color:var(--text-muted);">Nenhum saldo encontrado.</p></div><% } %>
+              <% topBalanceUsers.forEach((entry) => { %>
+                <div class="mobile-card">
+                  <div class="mobile-card-header">
+                    <span class="dev-pill"><%= entry.userTag %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">KC</span>
+                    <span class="mobile-card-value"><%= Number(entry.coins || 0).toLocaleString('pt-BR') %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Total ganho</span>
+                    <span class="mobile-card-value"><%= Number(entry.totalEarned || 0).toLocaleString('pt-BR') %></span>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="dev-card">
+            <h3><i class="fas fa-history"></i> Usuários Atualizados Recentemente</h3>
+            <div class="d-none d-md-block table-responsive">
+              <table class="dev-table">
+                <thead><tr><th>Usuario</th><th>KC</th><th>Atualizado em</th></tr></thead>
+                <tbody>
+                  <% if (balanceUsers.length === 0) { %><tr><td colspan="3">Nenhum saldo recente encontrado.</td></tr><% } %>
+                  <% balanceUsers.forEach((entry) => { %>
+                    <tr><td><span class="dev-pill"><%= entry.userTag %></span></td><td><%= Number(entry.coins || 0).toLocaleString('pt-BR') %></td><td><%= new Date(entry.updatedAt).toLocaleString('pt-BR') %></td></tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            <div class="d-md-none">
+              <% if (balanceUsers.length === 0) { %><div class="mobile-card"><p style="color:var(--text-muted);">Nenhum saldo recente encontrado.</p></div><% } %>
+              <% balanceUsers.forEach((entry) => { %>
+                <div class="mobile-card">
+                  <div class="mobile-card-header">
+                    <span class="dev-pill"><%= entry.userTag %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">KC</span>
+                    <span class="mobile-card-value"><%= Number(entry.coins || 0).toLocaleString('pt-BR') %></span>
+                  </div>
+                  <div class="mobile-card-row">
+                    <span class="mobile-card-label">Atualizado em</span>
+                    <span class="mobile-card-value"><%= new Date(entry.updatedAt).toLocaleString('pt-BR') %></span>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('footer'); -%>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="/public/settings-multiselect.js"></script>
+    <script src="/public/alerts.js"></script>
+    <script>
+      // Mostrar alertas baseados nos parametros da URL
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        const success = params.get('success');
+        const error = params.get('error');
+        
+        if (success) {
+          alertSystem.success('Sucesso', decodeURIComponent(success));
+        }
+        if (error) {
+          alertSystem.error('Erro', decodeURIComponent(error));
+        }
+      })();
+
+      // Confirmacao personalizada para desbanir usuario
+      function showUnbanConfirm(userId, userTag) {
+        alertSystem.confirm(
+          'Desbanir Usuario',
+          'Tem certeza que deseja desbanir ' + (userTag || userId) + '?',
+          function() {
+            var form = document.getElementById('unban-form-' + userId) || document.getElementById('unban-form-mobile-' + userId);
+            if (form) form.submit();
+          },
+          function() {
+            // Cancelado - nao faz nada
+          },
+          'danger'
+        );
+      }
+    </script>
+  </body>
+</html>

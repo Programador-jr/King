@@ -81,6 +81,7 @@ client.slashCommands = new Discord.Collection();
 client.aliases = new Discord.Collection();
 client.categories = require("fs").readdirSync(`./commands`);
 client.allEmojis = require("./botconfig/emojis.json");
+client.devIds = require("./handlers/devUtils").getDeveloperIds();
 
 client.setMaxListeners(100); require('events').defaultMaxListeners = 100;
 

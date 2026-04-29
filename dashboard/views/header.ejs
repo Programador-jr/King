@@ -42,6 +42,14 @@
             <span>Dashboard</span>
           </a>
         </li>
+        <% if (typeof isDevUser !== 'undefined' && isDevUser) { %>
+        <li>
+          <a href="/dev" class="nav-link <%= isActive('/dev') ? 'active-link' : '' %>">
+            <i class="fas fa-user-shield"></i>
+            <span>Dev Panel</span>
+          </a>
+        </li>
+        <% } %>
         <li>
           <a href="/queuedashboard" class="nav-link <%= isActive('/queuedashboard') || isActive('/queue') ? 'active-link' : '' %>">
             <i class="fas fa-music"></i>
