@@ -25,7 +25,7 @@ function parseDurationInput(rawValue) {
   }
   var match = value.match(/^(\d+)\s*(m|min|h|d|w)$/i);
   if (!match) {
-    return { ok: false, message: "Use duracoes como 30m, 12h, 7d, 2w ou permanente." };
+    return { ok: false, message: "Use duracões como 30m, 12h, 7d, 2w ou permanente." };
   }
   var amount = parseInt(match[1], 10);
   var unit = match[2].toLowerCase();
@@ -35,7 +35,7 @@ function parseDurationInput(rawValue) {
   if (unit === "d") multiplier = 86400000;
   if (unit === "w") multiplier = 604800000;
   if (!amount || !multiplier) {
-    return { ok: false, message: "Duracao invalida." };
+    return { ok: false, message: "Duracão invalida." };
   }
   var ms = amount * multiplier;
   var labels = { m: "minuto(s)", min: "minuto(s)", h: "hora(s)", d: "dia(s)", w: "semana(s)" };
@@ -113,9 +113,9 @@ async function notifyUserBotBan(client, targetId, reason, durationLabel) {
   var MessageEmbed = require("discord.js").MessageEmbed;
   var embed = new MessageEmbed()
     .setColor(ee.wrongcolor)
-    .setTitle("Voce foi banido de usar o King")
+    .setTitle("Você foi banido do King")
     .setDescription(reason || "Sem motivo informado.")
-    .addField("Duracao", durationLabel || "Permanente", true)
+    .addField("Duracão", durationLabel || "Permanente", true)
     .setFooter(ee.footertext, ee.footericon);
   await user.send({ embeds: [embed] }).catch(function() {});
   return user;

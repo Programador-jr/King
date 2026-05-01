@@ -17,6 +17,9 @@ const { isDeveloper, applyBotBan, revokeBotBan, addKingCoins, removeKingCoins, f
 const BotBan = require("../databases/botBan");
 const UserCoins = require("../databases/kingcoin");
 const GuildAudit = require("../databases/guildAudit");
+const BotMetrics = require("../databases/botMetrics");
+const GuildStats = require("../databases/infos");
+const CasinoHistory = require("../databases/casinoHistory");
 const {
   getDashboardPort,
   getDashboardBaseUrl,
@@ -553,6 +556,92 @@ module.exports = client => {
         totalCoins: topBalances.reduce((sum, entry) => sum + Number(entry.coins || 0), 0)
       };
 
+      // Analytics data for charts
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const [
+        guildActivity,
+        allGuildStats,
+        kcDistributionRaw,
+        casinoStats,
+        latestMetrics
+      ] = await Promise.all([
+        GuildAudit.aggregate([
+          { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+          { $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            joins: { $sum: { $cond: [{ $eq: ["$action", "join"] }, 1, 0] } },
+            leaves: { $sum: { $cond: [{ $eq: ["$action", "leave"] }, 1, 0] } }
+          }},
+          { $sort: { _id: 1 } }
+        ]),
+        GuildStats.find().lean(),
+        UserCoins.aggregate([
+          {
+            $bucket: {
+              groupBy: "$coins",
+              boundaries: [0, 100, 1000, 5000, 10000, 50000, 1000000],
+              default: "Other",
+              output: { count: { $sum: 1 } }
+            }
+          }
+        ]),
+        CasinoHistory.aggregate([
+          { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+          { $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            wins: { $sum: { $cond: [{ $eq: ["$outcome", "win"] }, 1, 0] } },
+            losses: { $sum: { $cond: [{ $eq: ["$outcome", "loss"] }, 1, 0] } },
+            totalBets: { $sum: "$bet" }
+          }},
+          { $sort: { _id: 1 } }
+        ]),
+        BotMetrics.findOne().sort({ createdAt: -1 }).lean()
+      ]);
+
+      // Process top commands from guild stats
+      const commandCounts = {};
+      allGuildStats.forEach(stat => {
+        if (stat.topCommands && typeof stat.topCommands === 'object') {
+          Object.entries(stat.topCommands).forEach(([cmd, count]) => {
+            commandCounts[cmd] = (commandCounts[cmd] || 0) + count;
+          });
+        }
+      });
+      const topCommands = Object.entries(commandCounts)
+        .map(([command, count]) => ({ _id: command, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Map KC distribution bucket IDs to labels
+      const kcLabels = {
+        0: '0-100',
+        100: '100-1K',
+        1000: '1K-5K',
+        5000: '5K-10K',
+        10000: '10K-50K',
+        50000: '50K+'
+      };
+      const kcDistribution = kcDistributionRaw.map(item => ({
+        _id: typeof item._id === 'number' ? (kcLabels[item._id] || `Range ${item._id}`) : (item._id === 'Other' ? 'Outros' : item._id),
+        count: item.count
+      }));
+
+      // Performance metrics
+      const memoryUsage = process.memoryUsage();
+      const performanceMetrics = {
+        uptime: latestMetrics?.uptime || Math.floor(process.uptime()),
+        ping: latestMetrics?.ping || client.ws.ping || 0,
+        memory: {
+          heapUsed: latestMetrics?.memoryUsed || memoryUsage.heapUsed,
+          heapTotal: latestMetrics?.memoryTotal || memoryUsage.heapTotal
+        },
+        commandsPerMinute: latestMetrics?.commandsPerMinute || 0,
+        guildCount: client.guilds.cache.size,
+        userCount: client.users.cache.size
+      };
+
       res.render("dev", {
         req,
         user: req.isAuthenticated() ? req.user : null,
@@ -572,7 +661,12 @@ module.exports = client => {
         balanceUsers,
         topBalanceUsers,
         recentGuildEvents,
-        currentGuilds
+        currentGuilds,
+        guildActivity: guildActivity || [],
+        topCommands: topCommands || [],
+        kcDistribution: kcDistribution || [],
+        casinoStats: casinoStats || [],
+        performanceMetrics: performanceMetrics || {}
       });
     });
 
@@ -590,7 +684,7 @@ module.exports = client => {
       try {
         if (action === "ban") {
           if (isDeveloper(targetId)) {
-            return res.redirect("/dev?error=" + encodeURIComponent("Nao e permitido banir outro desenvolvedor."));
+            return res.redirect("/dev?error=" + encodeURIComponent("Nao é permitido banir outro desenvolvedor."));
           }
           await applyBotBan({ client, targetId, executorId: req.user.id, reason, durationInput: duration });
           return res.redirect("/dev?success=" + encodeURIComponent(`Usuario ${targetId} banido do bot.`));
@@ -2199,7 +2293,7 @@ module.exports = client => {
       const topggWebhook = new Topgg.Webhook(topggWebhookAuth);
       
       app.post("/webhooks/topgg", topggWebhook.listener(async (vote) => {
-        console.log(`[TopGG] Voto recebido de usuÃ¡rio: ${vote.user} | bot: ${vote.bot} | isWeekend: ${vote.isWeekend}`);
+        console.log(`[TopGG] Voto recebido de usuário: ${vote.user} | bot: ${vote.bot} | isWeekend: ${vote.isWeekend}`);
         
         if (vote.type === "test") {
           console.log("[TopGG] Teste de webhook recebido!");
@@ -2210,7 +2304,7 @@ module.exports = client => {
           const result = await handleVote(vote);
           
           if (result.success) {
-            console.log(`[TopGG] Recompensa de ${result.reward} KC dada ao usuÃ¡rio ${vote.user} (weekend: ${result.isWeekend})`);
+            console.log(`[TopGG] Recompensa de ${result.reward} KC dada ao usuário ${vote.user} (weekend: ${result.isWeekend})`);
             
             await sendVoteLog(client, result);
             
@@ -2220,8 +2314,8 @@ module.exports = client => {
                 const dmEmbed = new MessageEmbed()
                   .setImage("https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/Happy_So_Excited.gif")
                   .setColor(0x00BFFF)
-                  .setTitle("Obrigado por votar! ðŸŽ‰")
-                  .setDescription(`VocÃª recebeu **${result.reward}** King Coins como recompensa!${result.weekendBonus > 0 ? `\n\nðŸŽ‰ BÃ´nus de fim de semana: +${result.weekendBonus} KC!` : ""}\n\nObrigado pelo seu apoio!`)
+                  .setTitle("Obrigado por votar! <a:1220364218398806106:1499561912051171449>")
+                  .setDescription(`Você recebeu <:KC_20260417_123851_0000:1494754428572667944> **${result.reward}** King Coins como recompensa!\n\nObrigado pelo seu apoio!`)
                   .setFooter({ text: "King Bot" });
                 await discordUser.send({ embeds: [dmEmbed] });
               } catch (dmError) {
@@ -2229,7 +2323,7 @@ module.exports = client => {
               }
             }
           } else if (result.reason === "cooldown") {
-            console.log(`[TopGG] UsuÃ¡rio ${vote.user} ainda estÃ¡ em cooldown (${result.remainingHours}h restantes)`);
+            console.log(`[TopGG] Usuário ${vote.user} ainda está em cooldown (${result.remainingHours}h restantes)`);
           }
         } catch (error) {
           console.error("[TopGG] Erro ao processar voto:", error);
@@ -2237,7 +2331,7 @@ module.exports = client => {
       }));
       console.log("[TopGG] Webhook configurado em /webhooks/topgg");
     } else {
-      console.log("[TopGG] WEBHOOK DESATIVADO: TOPGG_WEBHOOK_AUTH nÃ£o configurado no .env");
+      console.log("[TopGG] WEBHOOK DESATIVADO: TOPGG_WEBHOOK_AUTH não configurado no .env");
     }
 
     /**
