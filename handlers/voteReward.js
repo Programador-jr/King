@@ -78,7 +78,7 @@ async function sendVoteLog(client, voteResult) {
       .setTitle("🗳️ Novo Voto!")
       .addField("Usuário", `${username}`, true)
       .addField("Recompensa", `**${voteResult.reward}** ${emojis.King_Coin}`, true)
-      .addField("Bônus Weekend", voteResult.isWeekend ? `✅ +${voteResult.weekendBonus} KC` : "❌ Não", true)
+     // .addField("Bônus Weekend", voteResult.isWeekend ? `✅ +${voteResult.weekendBonus} KC` : "❌ Não", true)
       .setTimestamp();
 
     await channel.send({ embeds: [embed] });
