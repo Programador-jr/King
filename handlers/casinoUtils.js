@@ -27,11 +27,13 @@ function formatAmount(amount) {
   return `**${Number(amount || 0).toLocaleString()}** ${emojis.King_Coin}`;
 }
 
-function buildCasinoEmbed(user, color = ee.color) {
-  return new Discord.MessageEmbed()
+function buildCasinoEmbed(user, color = ee.color, thumbnail = null) {
+  const embed = new Discord.MessageEmbed()
     .setColor(color)
     .setAuthor(`${user.tag}`, user.displayAvatarURL({ dynamic: true, size: 2048 }))
     .setFooter(ee.footertext, ee.footericon);
+  if (thumbnail) embed.setThumbnail(thumbnail);
+  return embed;
 }
 
 function ensureCasinoSettings(client, guildId) {
