@@ -4,6 +4,8 @@ const {
   ee,
   normalizeText,
   buildCasinoEmbed,
+  getCasinoResultColor,
+  attachReplayHandler,
   parseBet,
   getUserData,
   applyGameResult,
@@ -293,7 +295,8 @@ module.exports = {
 
       const newBalance = await applyGameResult(message.author.id, userData.coins, netChange);
 
-      const embed = buildCasinoEmbed(message.author, netChange >= 0 ? ee.color : ee.wrongcolor)
+      const outcome = netChange > 0 ? "win" : netChange === 0 ? "push" : "loss";
+      const embed = buildCasinoEmbed(message.author, getCasinoResultColor(outcome))
         .setTitle("🎡 Roleta")
         .addField("Sua aposta", `\`${preview.label}\``, true)
         .addField("Pagamento previsto", preview.payoutText, false)
@@ -309,7 +312,7 @@ module.exports = {
         bet: amount,
         payout,
         netChange,
-        outcome: netChange > 0 ? "win" : netChange === 0 ? "push" : "loss",
+        outcome,
         reason: status,
         metadata: {
           bet,
@@ -318,7 +321,10 @@ module.exports = {
         }
       });
 
-      return message.reply({ embeds: [embed] });
+      const resultMessage = await message.reply({ embeds: [embed], fetchReply: true });
+      endCasinoSession(message.author.id);
+      attachReplayHandler(client, message, resultMessage, "roleta", []);
+      return resultMessage;
     } finally {
       endCasinoSession(message.author.id);
     }

@@ -12,7 +12,7 @@ function buildMenuRows(customPrefix, disabled = false) {
   return [
     new MessageActionRow().addComponents(
       new MessageButton().setCustomId(`${customPrefix}:slots`).setLabel("Slots").setStyle("PRIMARY").setEmoji(emojis.casino_slots).setDisabled(disabled),
-      new MessageButton().setCustomId(`${customPrefix}:blackjack`).setLabel("Blackjack").setStyle("SUCCESS").setEmoji("🃏").setDisabled(disabled),
+      new MessageButton().setCustomId(`${customPrefix}:blackjack`).setLabel("Blackjack").setStyle("SUCCESS").setEmoji(emojis.blackjack).setDisabled(disabled),
       new MessageButton().setCustomId(`${customPrefix}:minas`).setLabel("Minas").setStyle("DANGER").setEmoji("💣").setDisabled(disabled),
       new MessageButton().setCustomId(`${customPrefix}:roleta`).setLabel("Roleta").setStyle("SECONDARY").setEmoji("🎡").setDisabled(disabled)
     )
@@ -37,8 +37,8 @@ module.exports = {
           `\`${prefix}slots [aposta]\``,
           "Se nao enviar aposta, o bot pergunta o valor e gira os slots.",
           "",
-          `\`${prefix}blackjack [aposta] [seguro|padrao|agressivo]\``,
-          "A mesa pode perguntar aposta e estilo antes de abrir os botoes da rodada.",
+          `\`${prefix}blackjack [aposta]\``,
+          "A mesa pode perguntar a aposta antes de abrir os botoes da rodada.",
           "",
           `\`${prefix}minas [aposta] [minas]\``,
           "Escolha aposta, numero de minas e jogue num tabuleiro 5x5 de botoes.",

@@ -14,6 +14,7 @@ const DEFAULT_CASINO_SETTINGS = {
 
 const sessionCooldowns = new Map();
 const activeCasinoSessions = new Map();
+const CASINO_WIN_COLOR = "#00FF00";
 
 function normalizeText(value) {
   return String(value || "")
@@ -34,6 +35,63 @@ function buildCasinoEmbed(user, color = ee.color, thumbnail = null) {
     .setFooter(ee.footertext, ee.footericon);
   if (thumbnail) embed.setThumbnail(thumbnail);
   return embed;
+}
+
+function getCasinoResultColor(result) {
+  if (typeof result === "number") {
+    if (result > 0) return CASINO_WIN_COLOR;
+    if (result < 0) return ee.wrongcolor;
+    return ee.color;
+  }
+
+  if (result === "win") return CASINO_WIN_COLOR;
+  if (result === "loss") return ee.wrongcolor;
+  return ee.color;
+}
+
+function buildReplayRow(customPrefix, disabled = false) {
+  return new Discord.MessageActionRow().addComponents(
+    new Discord.MessageButton()
+      .setCustomId(`${customPrefix}:replay`)
+      .setLabel("Jogar novamente")
+      .setStyle("PRIMARY")
+      .setEmoji(emojis.reload)
+      .setDisabled(disabled)
+  );
+}
+
+function attachReplayHandler(client, message, gameMessage, game, args = [], timeoutMs = 120000) {
+  if (!gameMessage?.createMessageComponentCollector) return;
+
+  const user = message.author || message.user || message.interaction?.user;
+  if (!user?.id) return;
+
+  const customPrefix = `casino-replay:${game}:${user.id}:${Date.now()}`;
+  const row = buildReplayRow(customPrefix, false);
+
+  gameMessage.edit({ components: [row] }).catch(() => null);
+
+  const collector = gameMessage.createMessageComponentCollector({
+    filter: (interaction) => interaction.customId === `${customPrefix}:replay`,
+    time: timeoutMs,
+    max: 1
+  });
+
+  collector.on("collect", async (interaction) => {
+    if (interaction.user.id !== user.id) {
+      return interaction.reply({ content: `${emojis.x} Apenas quem iniciou pode jogar novamente.`, flags: 64 }).catch(() => null);
+    }
+
+    await gameMessage.edit({ components: [buildReplayRow(customPrefix, true)] }).catch(() => null);
+    await interaction.deferUpdate().catch(() => null);
+    const { runSlashCommand } = require("./slashCommandUtils");
+    return runSlashCommand(client, interaction, game, args).catch(() => null);
+  });
+
+  collector.on("end", async (_collected, reason) => {
+    if (reason === "limit") return;
+    await gameMessage.edit({ components: [buildReplayRow(customPrefix, true)] }).catch(() => null);
+  });
 }
 
 function ensureCasinoSettings(client, guildId) {
@@ -282,10 +340,14 @@ function createSessionBusyEmbed(user, session) {
 module.exports = {
   emojis,
   ee,
+  CASINO_WIN_COLOR,
   DEFAULT_CASINO_SETTINGS,
   normalizeText,
   formatAmount,
   buildCasinoEmbed,
+  getCasinoResultColor,
+  buildReplayRow,
+  attachReplayHandler,
   ensureCasinoSettings,
   parseBet,
   getUserData,

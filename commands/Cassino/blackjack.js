@@ -2,8 +2,9 @@ const { MessageActionRow, MessageButton } = require("discord.js");
 const {
   emojis,
   ee,
-  normalizeText,
   buildCasinoEmbed,
+  getCasinoResultColor,
+  attachReplayHandler,
   parseBet,
   getUserData,
   applyGameResult,
@@ -31,19 +32,18 @@ const BLACKJACK_THUMBNAIL = (() => {
   return emojiId ? `https://cdn.discordapp.com/emojis/${emojiId}.png` : null;
 })();
 
+const DECK_VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+
 function createBlackjackEmbed(user, color = ee.color) {
   const embed = buildCasinoEmbed(user, color);
   if (BLACKJACK_THUMBNAIL) embed.setThumbnail(BLACKJACK_THUMBNAIL);
   return embed;
 }
 
-const SUITS = ["♠️", "♥️", "♦️", "♣️"];
-const DECK_VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-
 function drawCard() {
   const value = DECK_VALUES[Math.floor(Math.random() * DECK_VALUES.length)];
-  const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
-  return { value, suit };
+  const suitIndex = Math.floor(Math.random() * 4);
+  return { value, suitIndex };
 }
 
 function handValue(hand) {
@@ -70,25 +70,23 @@ function handValue(hand) {
 }
 
 function getCardEmoji(card) {
-  if (naipes[card.value]) {
-    const suitIndex = SUITS.indexOf(card.suit);
-    if (suitIndex >= 0 && naipes[card.value][suitIndex]) {
-      return naipes[card.value][suitIndex];
-    }
+  if (naipes[card.value]?.[card.suitIndex]) {
+    return naipes[card.value][card.suitIndex];
   }
-  return `${card.value}${card.suit}`;
+
+  return `${card.value}${naipes.naipes?.[card.suitIndex] || ""}`;
 }
 
 function formatHand(hand, hidden = false) {
-  if (!hidden) return hand.map(card => getCardEmoji(card)).join(" ");
+  if (!hidden) return hand.map((card) => getCardEmoji(card)).join(" ");
   return [getCardEmoji(hand[0]), "<:none:1500968452087742585>"].join(" ");
 }
 
 function buildControls(customPrefix, disabled = false) {
   return [
     new MessageActionRow().addComponents(
-      new MessageButton().setCustomId(`${customPrefix}:hit`).setLabel("Comprar").setStyle("PRIMARY").setDisabled(disabled),
-      new MessageButton().setCustomId(`${customPrefix}:stand`).setLabel("Parar").setStyle("SUCCESS").setDisabled(disabled)
+      new MessageButton().setCustomId(`${customPrefix}:hit`).setLabel("<:buy:1499564014777401434> Comprar").setStyle("SUCCESS").setDisabled(disabled),
+      new MessageButton().setCustomId(`${customPrefix}:stand`).setLabel("<:stop:1499564013346881596> Parar").setStyle("DANGER").setDisabled(disabled)
     )
   ];
 }
@@ -98,9 +96,9 @@ function createEmbed(user, state, revealDealer = false, finalText = null) {
   const dealerTotal = revealDealer ? handValue(state.dealerHand) : handValue([state.dealerHand[0]]);
 
   return createBlackjackEmbed(user, state.color || ee.color)
-    .setTitle("🃏 Blackjack")
-    .setDescription(finalText || "Controle sua mão usando os botões abaixo.")
-    .addField(`Sua mão (${playerTotal})`, formatHand(state.playerHand), true)
+    .setTitle(`${emojis.blackjack} Blackjack`)
+    .setDescription(finalText || "Controle sua mao usando os botoes abaixo.")
+    .addField(`Sua mao (${playerTotal})`, formatHand(state.playerHand), true)
     .addField(`Banca (${dealerTotal}${revealDealer ? "" : "+"})`, formatHand(state.dealerHand, !revealDealer), true)
     .addField("Aposta atual", formatAmount(state.bet), true);
 }
@@ -126,12 +124,12 @@ function settleGame(state) {
     outcome = "win";
     reason = "Blackjack natural. Pagamento 3:2.";
   } else if (playerTotal > 21) {
-    reason = "Você estourou 21.";
+    reason = "Voce estourou 21.";
   } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
     payout = state.bet * 2;
     netChange = payout - state.bet;
     outcome = "win";
-    reason = dealerTotal > 21 ? "A banca estourou." : "Sua mão venceu a banca.";
+    reason = dealerTotal > 21 ? "A banca estourou." : "Sua mao venceu a banca.";
   } else if (playerTotal === dealerTotal) {
     payout = state.bet;
     netChange = 0;
@@ -153,12 +151,12 @@ async function resolveBet(message, args, settings, userData) {
     {
       embeds: [
         createBlackjackEmbed(message.author)
-          .setTitle("🃏 Blackjack")
+          .setTitle(`${emojis.blackjack} Blackjack`)
           .setDescription(
             [
-              "Qual será o valor da aposta?",
-              `Aposta mínima: ${formatAmount(settings.casinoMinBet)}`,
-              `Aposta máxima: ${formatAmount(settings.casinoMaxBet)}`,
+              "Qual sera o valor da aposta?",
+              `Aposta minima: ${formatAmount(settings.casinoMinBet)}`,
+              `Aposta maxima: ${formatAmount(settings.casinoMaxBet)}`,
               `Seu saldo: ${formatAmount(userData.coins)}`
             ].join("\n")
           )
@@ -166,7 +164,7 @@ async function resolveBet(message, args, settings, userData) {
     },
     (content) => {
       const amount = parseBet(content, userData.coins);
-      if (!amount) return { ok: false, message: "Envie uma aposta válida usando número inteiro ou `all`." };
+      if (!amount) return { ok: false, message: "Envie uma aposta valida usando numero inteiro ou `all`." };
       return { ok: true, value: amount };
     }
   ).then((result) => result.ok ? { ok: true, amount: result.value } : result);
@@ -253,7 +251,7 @@ module.exports = {
         finished = true;
         const result = settleGame(state);
         const newBalance = await applyGameResult(message.author.id, state.balance, result.netChange);
-        state.color = result.netChange >= 0 ? ee.color : ee.wrongcolor;
+        state.color = getCasinoResultColor(result.outcome);
 
         await gameMessage.edit({
           embeds: [
@@ -261,11 +259,13 @@ module.exports = {
               message.author,
               state,
               true,
-              `${result.reason}\nPrêmio: ${result.payout > 0 ? formatAmount(result.payout) : `**0** ${emojis.King_Coin}`}\nSaldo atual: ${formatAmount(newBalance)}`
+              `${result.reason}\nPremio: ${result.payout > 0 ? formatAmount(result.payout) : `**0** ${emojis.King_Coin}`}\nSaldo atual: ${formatAmount(newBalance)}`
             )
           ],
           components: buildControls(customPrefix, true)
         }).catch(() => null);
+        endCasinoSession(message.author.id);
+        attachReplayHandler(client, message, gameMessage, "blackjack", []);
 
         await logCasinoEvent(client, message, {
           userId: message.author.id,
@@ -314,7 +314,7 @@ module.exports = {
         finished = true;
         await gameMessage.edit({
           embeds: [
-            createEmbed(message.author, state, false, "Tempo esgotado. A mesa foi encerrada sem resultado.").setColor(ee.wrongcolor)
+            createEmbed(message.author, state, false, "Tempo esgotado. A mesa foi encerrada sem resultado.").setColor(ee.color)
           ],
           components: buildControls(customPrefix, true)
         }).catch(() => null);
