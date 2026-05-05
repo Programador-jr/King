@@ -28,6 +28,14 @@ function formatAmount(amount) {
   return `**${Number(amount || 0).toLocaleString()}** ${emojis.King_Coin}`;
 }
 
+function getCustomEmojiImageUrl(emoji, size = 96) {
+  const match = String(emoji || "").match(/^<(?<animated>a?):[^:]+:(?<id>\d+)>$/);
+  if (!match?.groups?.id) return null;
+
+  const extension = match.groups.animated ? "gif" : "png";
+  return `https://cdn.discordapp.com/emojis/${match.groups.id}.${extension}?size=${size}&quality=lossless`;
+}
+
 function buildCasinoEmbed(user, color = ee.color, thumbnail = null) {
   const embed = new Discord.MessageEmbed()
     .setColor(color)
@@ -344,6 +352,7 @@ module.exports = {
   DEFAULT_CASINO_SETTINGS,
   normalizeText,
   formatAmount,
+  getCustomEmojiImageUrl,
   buildCasinoEmbed,
   getCasinoResultColor,
   buildReplayRow,
