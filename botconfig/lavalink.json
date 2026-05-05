@@ -1,11 +1,11 @@
 {
     "lavalink1": {
-        "author": "Jirayu",
-        "host": "lavalink.jirayu.net",
-        "port": 443,
-        "password": "youshallnotpass",
-        "secure": true,
-        "version": "v4"
+        "author": "AneFaiz",
+        "host": "lavalinkv4.serenetia.com",
+        "port": 80,
+        "password": "https://seretia.link/discord",
+        "secure": false,
+        "version": "v4"        
     },
     "lavalink2": {
         "author": "Amane&AjieDev",
@@ -48,11 +48,11 @@
         "version": "v3"
     },
     "lavalink7": {
-        "author": "AneFaiz",
-        "host": "lavalinkv4.serenetia.com",
-        "port": 80,
-        "password": "https://seretia.link/discord",
-        "secure": false,
+        "author": "Jirayu",
+        "host": "lavalink.jirayu.net",
+        "port": 443,
+        "password": "youshallnotpass",
+        "secure": true,
         "version": "v4"
     }
 }

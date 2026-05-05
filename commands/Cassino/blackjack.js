@@ -3,6 +3,7 @@ const {
   emojis,
   ee,
   buildCasinoEmbed,
+  getCustomEmojiImageUrl,
   getCasinoResultColor,
   attachReplayHandler,
   parseBet,
@@ -27,10 +28,7 @@ const {
 
 const naipes = require("../../botconfig/naipes.json");
 
-const BLACKJACK_THUMBNAIL = (() => {
-  const emojiId = emojis.blackjack.match(/\d+/)?.[0];
-  return emojiId ? `https://cdn.discordapp.com/emojis/${emojiId}.png` : null;
-})();
+const BLACKJACK_THUMBNAIL = getCustomEmojiImageUrl(emojis.blackjack);
 
 const DECK_VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 
@@ -79,14 +77,14 @@ function getCardEmoji(card) {
 
 function formatHand(hand, hidden = false) {
   if (!hidden) return hand.map((card) => getCardEmoji(card)).join(" ");
-  return [getCardEmoji(hand[0]), "<:none:1500968452087742585>"].join(" ");
+  return [getCardEmoji(hand[0]), emojis.none].join(" ");
 }
 
 function buildControls(customPrefix, disabled = false) {
   return [
     new MessageActionRow().addComponents(
-      new MessageButton().setCustomId(`${customPrefix}:hit`).setLabel("<:buy:1499564014777401434> Comprar").setStyle("SUCCESS").setDisabled(disabled),
-      new MessageButton().setCustomId(`${customPrefix}:stand`).setLabel("<:stop:1499564013346881596> Parar").setStyle("DANGER").setDisabled(disabled)
+      new MessageButton().setCustomId(`${customPrefix}:hit`).setLabel("Comprar").setEmoji(emojis.buy).setStyle("SUCCESS").setDisabled(disabled),
+      new MessageButton().setCustomId(`${customPrefix}:stand`).setLabel("Parar").setEmoji(emojis.stop).setStyle("DANGER").setDisabled(disabled)
     )
   ];
 }
