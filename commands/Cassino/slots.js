@@ -2,6 +2,8 @@ const {
   emojis,
   ee,
   buildCasinoEmbed,
+  getCasinoResultColor,
+  attachReplayHandler,
   parseBet,
   getUserData,
   applyGameResult,
@@ -193,13 +195,14 @@ module.exports = {
       const result = evaluateSlots(roll, amount);
       const newBalance = await applyGameResult(message.author.id, userData.coins, result.netChange);
 
-      const embed = buildCasinoEmbed(message.author, result.netChange >= 0 ? ee.color : ee.wrongcolor)
+      const outcome = result.netChange > 0 ? "win" : result.netChange === 0 ? "push" : "loss";
+      const embed = buildCasinoEmbed(message.author, getCasinoResultColor(outcome))
         .setTitle(`${emojis.casino_slots} Slots`)
         .setDescription(roll.join(" | "))
         .addField("Aposta", formatAmount(amount), true)
         .addField("Premio", result.payout > 0 ? formatAmount(result.payout) : `**0** ${emojis.King_Coin}`, true)
         .addField("Saldo atual", formatAmount(newBalance), true)
-        .addField("Resumo", result.netChange >= 0 ? `Voce ganhou **${result.multiplier}x**. ${result.reason}` : result.reason, false);
+        .addField("Resumo", outcome === "win" ? `Voce ganhou **${result.multiplier}x**. ${result.reason}` : result.reason, false);
 
       await logCasinoEvent(client, message, {
         userId: message.author.id,
@@ -207,7 +210,7 @@ module.exports = {
         bet: amount,
         payout: result.payout,
         netChange: result.netChange,
-        outcome: result.netChange > 0 ? "win" : result.netChange === 0 ? "push" : "loss",
+        outcome,
         reason: result.reason,
         metadata: {
           roll
@@ -215,6 +218,8 @@ module.exports = {
       });
 
       await animationMessage.edit({ embeds: [embed] }).catch(() => null);
+      endCasinoSession(message.author.id);
+      attachReplayHandler(client, message, animationMessage, "slots", []);
       return animationMessage;
     } finally {
       endCasinoSession(message.author.id);

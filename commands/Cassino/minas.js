@@ -3,6 +3,8 @@ const {
   emojis,
   ee,
   buildCasinoEmbed,
+  getCasinoResultColor,
+  attachReplayHandler,
   parseBet,
   getUserData,
   applyGameResult,
@@ -312,6 +314,8 @@ module.exports = {
             tile,
             false
           );
+          endCasinoSession(message.author.id);
+          attachReplayHandler(client, message, controlMessage, "minas", []);
 
           await logCasinoEvent(client, message, {
             userId: message.author.id,
@@ -385,6 +389,7 @@ module.exports = {
         const payout = Math.floor(state.bet * multiplier);
         const netChange = payout - state.bet;
         const newBalance = await applyGameResult(message.author.id, state.balance, netChange);
+        state.color = getCasinoResultColor("win");
         endCollectors("finished");
         await interaction.deferUpdate().catch(() => null);
         await closeGame(
@@ -397,6 +402,8 @@ module.exports = {
           null,
           false
         );
+        endCasinoSession(message.author.id);
+        attachReplayHandler(client, message, controlMessage, "minas", []);
 
         await logCasinoEvent(client, message, {
           userId: message.author.id,
