@@ -15,6 +15,9 @@ const DEFAULT_CASINO_SETTINGS = {
 const sessionCooldowns = new Map();
 const activeCasinoSessions = new Map();
 const CASINO_WIN_COLOR = "#00FF00";
+const CASH_ICON = emojis.cash || "";
+const WALLET_ICON = emojis.wallet || "";
+const WINNING_ICON = emojis.winning || "";
 
 function normalizeText(value) {
   return String(value || "")
@@ -35,6 +38,21 @@ function getCustomEmojiImageUrl(emoji, size = 96) {
   const extension = match.groups.animated ? "gif" : "png";
   return `https://cdn.discordapp.com/emojis/${match.groups.id}.${extension}?size=${size}&quality=lossless`;
 }
+
+function getComponentEmoji(emoji) {
+  const value = String(emoji || "").trim();
+  const custom = value.match(/^<(?<animated>a?):(?<name>[^:]+):(?<id>\d+)>$/);
+  if (custom?.groups?.id) {
+    return {
+      id: custom.groups.id,
+      name: custom.groups.name,
+      animated: Boolean(custom.groups.animated)
+    };
+  }
+  return value || null;
+}
+
+const BUTTON_REPLAY_ICON = getComponentEmoji(emojis.reload) || "\uD83D\uDD01";
 
 function buildCasinoEmbed(user, color = ee.color, thumbnail = null) {
   const embed = new Discord.MessageEmbed()
@@ -63,7 +81,7 @@ function buildReplayRow(customPrefix, disabled = false) {
       .setCustomId(`${customPrefix}:replay`)
       .setLabel("Jogar novamente")
       .setStyle("PRIMARY")
-      .setEmoji(emojis.reload)
+      .setEmoji(BUTTON_REPLAY_ICON)
       .setDisabled(disabled)
   );
 }
@@ -309,13 +327,13 @@ function createInvalidBetEmbed(user, prefix, balance, settings = null) {
     .setTitle(`${emojis.x} Aposta invalida`)
     .setDescription(`${minLine}Informe uma aposta valida maior que zero.`)
     .addField("Exemplo", `\`${prefix}slots 250\``, false)
-    .addField("Seu saldo", formatAmount(balance), true);
+    .addField(`${WALLET_ICON} Seu saldo`, formatAmount(balance), true);
 }
 
 function createInsufficientFundsEmbed(user, attemptedAmount, balance) {
   return buildCasinoEmbed(user, ee.wrongcolor)
     .setTitle(`${emojis.x} Saldo insuficiente`)
-    .setDescription(`Voce tentou apostar ${formatAmount(attemptedAmount)}, mas possui apenas ${formatAmount(balance)}.`);
+    .setDescription(`${CASH_ICON} Voce tentou apostar ${formatAmount(attemptedAmount)}, mas possui apenas ${formatAmount(balance)}.`);
 }
 
 function createBetLimitEmbed(user, prefix, settings, reasonCode, amount) {
@@ -323,13 +341,13 @@ function createBetLimitEmbed(user, prefix, settings, reasonCode, amount) {
     return buildCasinoEmbed(user, ee.wrongcolor)
       .setTitle(`${emojis.x} Aposta muito baixa`)
       .setDescription(`A aposta minima neste cassino e ${formatAmount(settings.casinoMinBet)}.`)
-      .addField("Exemplo", `\`${prefix}slots ${settings.casinoMinBet}\``, false);
+      .addField(`${CASH_ICON} Exemplo`, `\`${prefix}slots ${settings.casinoMinBet}\``, false);
   }
 
   return buildCasinoEmbed(user, ee.wrongcolor)
     .setTitle(`${emojis.x} Aposta acima do limite`)
     .setDescription(`A aposta maxima neste cassino e ${formatAmount(settings.casinoMaxBet)}.`)
-    .addField("Tentativa", formatAmount(amount), true);
+    .addField(`${CASH_ICON} Tentativa`, formatAmount(amount), true);
 }
 
 function createCooldownEmbed(user, remainingMs) {
@@ -342,7 +360,7 @@ function createCooldownEmbed(user, remainingMs) {
 function createSessionBusyEmbed(user, session) {
   return buildCasinoEmbed(user, ee.wrongcolor)
     .setTitle(`${emojis.x} Mesa ja aberta`)
-    .setDescription(`Voce ja tem uma sessao ativa de **${session.game}**. Termine ou espere ela expirar antes de abrir outra.`);
+    .setDescription(`${WINNING_ICON} Voce ja tem uma sessao ativa de **${session.game}**. Termine ou espere ela expirar antes de abrir outra.`);
 }
 
 module.exports = {
@@ -353,6 +371,7 @@ module.exports = {
   normalizeText,
   formatAmount,
   getCustomEmojiImageUrl,
+  getComponentEmoji,
   buildCasinoEmbed,
   getCasinoResultColor,
   buildReplayRow,

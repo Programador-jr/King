@@ -27,6 +27,9 @@ const {
 } = require("../../handlers/casinoUtils");
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const CASH_ICON = emojis.cash || "";
+const WALLET_ICON = emojis.wallet || "";
+const WINNING_ICON = emojis.winning || "";
 
 function describeResult(number) {
   if (number === 0) return "verde";
@@ -87,9 +90,9 @@ async function resolveBet(message, args, settings, userData) {
           .setDescription(
             [
               "Qual sera o valor da aposta?",
-              `Aposta minima: ${formatAmount(settings.casinoMinBet)}`,
-              `Aposta maxima: ${formatAmount(settings.casinoMaxBet)}`,
-              `Seu saldo: ${formatAmount(userData.coins)}`
+              `${CASH_ICON} Aposta minima: ${formatAmount(settings.casinoMinBet)}`,
+              `${CASH_ICON} Aposta maxima: ${formatAmount(settings.casinoMaxBet)}`,
+              `${WALLET_ICON} Seu saldo: ${formatAmount(userData.coins)}`
             ].join("\n")
           )
       ]
@@ -114,7 +117,7 @@ async function resolveRouletteBet(message, args) {
       buildCasinoEmbed(message.author)
         .setTitle("🎡 Roleta")
         .setDescription("Agora escolha em que voce quer apostar.")
-        .addField("Pagamentos", "Cor e paridade pagam **2x**. Numero exato paga **14x**.", false)
+        .addField(`${WINNING_ICON} Pagamentos`, "Cor e paridade pagam **2x**. Numero exato paga **14x**.", false)
     ],
     components: createTypeButtons(customId, false),
     fetchReply: true
@@ -156,7 +159,7 @@ async function resolveRouletteBet(message, args) {
         buildCasinoEmbed(message.author)
           .setTitle("🎡 Roleta")
           .setDescription(`Aposta registrada em **${selected}**.`)
-          .addField("Retorno previsto", getBetPreview(selected).payoutText, false)
+          .addField(`${WINNING_ICON} Retorno previsto`, getBetPreview(selected).payoutText, false)
       ],
       components: createTypeButtons(customId, true)
     }).catch(() => null);
@@ -168,7 +171,7 @@ async function resolveRouletteBet(message, args) {
       buildCasinoEmbed(message.author)
         .setTitle("🎡 Roleta")
         .setDescription("Envie no chat um numero entre **0** e **36**.")
-        .addField("Retorno previsto", "Numero exato paga **14x**.", false)
+        .addField(`${WINNING_ICON} Retorno previsto`, "Numero exato paga **14x**.", false)
     ],
     components: createTypeButtons(customId, true)
   }).catch(() => null);
@@ -180,7 +183,7 @@ async function resolveRouletteBet(message, args) {
         buildCasinoEmbed(message.author)
           .setTitle("🎡 Roleta")
           .setDescription("Qual numero exato entre **0** e **36** voce quer apostar?")
-          .addField("Retorno previsto", "Numero exato paga **14x**.", false)
+          .addField(`${WINNING_ICON} Retorno previsto`, "Numero exato paga **14x**.", false)
       ]
     },
     (content) => {
@@ -298,12 +301,12 @@ module.exports = {
       const outcome = netChange > 0 ? "win" : netChange === 0 ? "push" : "loss";
       const embed = buildCasinoEmbed(message.author, getCasinoResultColor(outcome))
         .setTitle("🎡 Roleta")
-        .addField("Sua aposta", `\`${preview.label}\``, true)
-        .addField("Pagamento previsto", preview.payoutText, false)
+        .addField(`${CASH_ICON} Sua aposta`, `\`${preview.label}\``, true)
+        .addField(`${WINNING_ICON} Pagamento previsto`, preview.payoutText, false)
         .addField("Numero sorteado", `**${resultNumber}**`, true)
         .addField("Cor", `**${resultColor}**`, true)
-        .addField("Premio", payout > 0 ? formatAmount(payout) : `**0** ${emojis.King_Coin}`, true)
-        .addField("Saldo atual", formatAmount(newBalance), true)
+        .addField(`${WINNING_ICON} Premio`, payout > 0 ? formatAmount(payout) : `**0** ${emojis.King_Coin}`, true)
+        .addField(`${WALLET_ICON} Saldo atual`, formatAmount(newBalance), true)
         .addField("Status", status, false);
 
       await logCasinoEvent(client, message, {

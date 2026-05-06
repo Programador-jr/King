@@ -3,18 +3,27 @@ const {
   ee,
   emojis,
   buildCasinoEmbed,
+  getComponentEmoji,
   getUserData,
   formatAmount
 } = require("../../handlers/casinoUtils");
 const { runSlashCommand } = require("../../handlers/slashCommandUtils");
 
+const SLOT_ICON = emojis.casino_slots || "🎰";
+const BOMB_ICON = emojis.bomb || "💣";
+const WALLET_ICON = emojis.wallet || "";
+const BUTTON_SLOT_ICON = getComponentEmoji(SLOT_ICON) || "\uD83C\uDFB0";
+const BUTTON_BLACKJACK_ICON = getComponentEmoji(emojis.blackjack) || "\uD83C\uDCCF";
+const BUTTON_BOMB_ICON = getComponentEmoji(emojis.bomb) || "\uD83D\uDCA3";
+const BUTTON_ROULETTE_ICON = "\uD83C\uDFA1";
+
 function buildMenuRows(customPrefix, disabled = false) {
   return [
     new MessageActionRow().addComponents(
-      new MessageButton().setCustomId(`${customPrefix}:slots`).setLabel("Slots").setStyle("PRIMARY").setEmoji(emojis.casino_slots).setDisabled(disabled),
-      new MessageButton().setCustomId(`${customPrefix}:blackjack`).setLabel("Blackjack").setStyle("SUCCESS").setEmoji(emojis.blackjack).setDisabled(disabled),
-      new MessageButton().setCustomId(`${customPrefix}:minas`).setLabel("Minas").setStyle("DANGER").setEmoji("💣").setDisabled(disabled),
-      new MessageButton().setCustomId(`${customPrefix}:roleta`).setLabel("Roleta").setStyle("SECONDARY").setEmoji("🎡").setDisabled(disabled)
+      new MessageButton().setCustomId(`${customPrefix}:slots`).setLabel("Slots").setStyle("PRIMARY").setEmoji(BUTTON_SLOT_ICON).setDisabled(disabled),
+      new MessageButton().setCustomId(`${customPrefix}:blackjack`).setLabel("Blackjack").setStyle("SUCCESS").setEmoji(BUTTON_BLACKJACK_ICON).setDisabled(disabled),
+      new MessageButton().setCustomId(`${customPrefix}:minas`).setLabel("Minas").setStyle("DANGER").setEmoji(BUTTON_BOMB_ICON).setDisabled(disabled),
+      new MessageButton().setCustomId(`${customPrefix}:roleta`).setLabel("Roleta").setStyle("SECONDARY").setEmoji(BUTTON_ROULETTE_ICON).setDisabled(disabled)
     )
   ];
 }
@@ -31,7 +40,7 @@ module.exports = {
     const customPrefix = `cassino-menu:${message.author.id}:${Date.now()}`;
 
     const embed = buildCasinoEmbed(message.author)
-      .setTitle(`${emojis.casino_slots} Cassino`)
+      .setTitle(`${SLOT_ICON} Cassino`)
       .setDescription(
         [
           `\`${prefix}slots [aposta]\``,
@@ -47,7 +56,7 @@ module.exports = {
           "A roleta pode perguntar o valor e depois a escolha da aposta."
         ].join("\n")
       )
-      .addField("Seu saldo", formatAmount(userData.coins), true)
+      .addField(`${WALLET_ICON} Seu saldo`, formatAmount(userData.coins), true)
       .addField("Painel", "Clique em um botao abaixo para iniciar um jogo imediatamente.", false)
       .addField("Dica", `Use \`${prefix}daily\` para conseguir mais moedas.`, false);
 
@@ -74,7 +83,7 @@ module.exports = {
       await interaction.update({
         embeds: [
           buildCasinoEmbed(message.author, ee.color)
-            .setTitle(`${emojis.casino_slots} Cassino`)
+            .setTitle(`${SLOT_ICON} Cassino`)
             .setDescription(`Abrindo **${game}**.`)
         ],
         components: buildMenuRows(customPrefix, true)
@@ -88,9 +97,9 @@ module.exports = {
       await menuMessage.edit({
         embeds: [
           buildCasinoEmbed(message.author, ee.wrongcolor)
-            .setTitle(`${emojis.casino_slots} Cassino`)
+            .setTitle(`${SLOT_ICON} Cassino`)
             .setDescription("O painel expirou. Use o comando novamente para abrir outro.")
-            .addField("Seu saldo", formatAmount(userData.coins), true)
+            .addField(`${WALLET_ICON} Seu saldo`, formatAmount(userData.coins), true)
         ],
         components: buildMenuRows(customPrefix, true)
       }).catch(() => null);

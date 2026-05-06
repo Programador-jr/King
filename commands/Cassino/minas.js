@@ -3,6 +3,7 @@ const {
   emojis,
   ee,
   buildCasinoEmbed,
+  getComponentEmoji,
   getCasinoResultColor,
   attachReplayHandler,
   parseBet,
@@ -25,7 +26,16 @@ const {
   createSessionBusyEmbed
 } = require("../../handlers/casinoUtils");
 
-const BOARD_SIZE = 25;
+const BOARD_SIZES = [3, 4, 5];
+const DEFAULT_BOARD_SIZE = 5;
+const BOMB_ICON = emojis.bomb || "💣";
+const SAFE_ICON = emojis.winning || emojis.check_mark || "💎";
+const CASH_ICON = emojis.cash || "";
+const WALLET_ICON = emojis.wallet || "";
+const WINNING_ICON = emojis.winning || "";
+const BUTTON_BOMB_ICON = getComponentEmoji(emojis.bomb) || "\uD83D\uDCA3";
+const BUTTON_SAFE_ICON = getComponentEmoji(emojis.winning || emojis.check_mark) || "\uD83D\uDC8E";
+const BUTTON_CASH_ICON = getComponentEmoji(emojis.cash) || "\uD83D\uDCB0";
 
 function pickUniqueRandom(total, count) {
   const available = Array.from({ length: total }, (_, index) => index + 1);
@@ -37,19 +47,24 @@ function pickUniqueRandom(total, count) {
   return picked;
 }
 
-function calculateMultiplier(mineCount, safeSelections) {
-  const safeCells = BOARD_SIZE - mineCount;
+function getBoardTileCount(boardSize) {
+  return boardSize * boardSize;
+}
+
+function calculateMultiplier(mineCount, safeSelections, boardSize = DEFAULT_BOARD_SIZE) {
+  const boardTiles = getBoardTileCount(boardSize);
+  const safeCells = boardTiles - mineCount;
   const progressFactor = safeSelections === 0 ? 1 : (safeCells / (safeCells - safeSelections));
-  const riskFactor = 1 + (mineCount / BOARD_SIZE) * 2.2;
+  const riskFactor = 1 + (mineCount / boardTiles) * 2.2;
   return Number((progressFactor * riskFactor).toFixed(2));
 }
 
-function createBoardRows(customPrefix, revealedSafe, mineTiles, explodedTile = null, disabled = false, revealAll = false) {
+function createBoardRows(customPrefix, boardSize, revealedSafe, mineTiles, explodedTile = null, disabled = false, revealAll = false) {
   const rows = [];
-  for (let row = 0; row < 5; row++) {
+  for (let row = 0; row < boardSize; row++) {
     const buttons = [];
-    for (let col = 1; col <= 5; col++) {
-      const tile = row * 5 + col;
+    for (let col = 1; col <= boardSize; col++) {
+      const tile = row * boardSize + col;
       const isSafe = revealedSafe.has(tile);
       const isMine = mineTiles.includes(tile);
       const isExploded = explodedTile === tile;
@@ -58,10 +73,10 @@ function createBoardRows(customPrefix, revealedSafe, mineTiles, explodedTile = n
       let emoji = null;
       if (isSafe) {
         style = "SUCCESS";
-        emoji = "💎";
+        emoji = BUTTON_SAFE_ICON;
       } else if (revealAll && isMine) {
         style = isExploded ? "DANGER" : "PRIMARY";
-        emoji = "💣";
+        emoji = BUTTON_BOMB_ICON;
       }
 
       buttons.push(
@@ -90,6 +105,7 @@ function createControlRow(customPrefix, canCashout, disabled = false) {
     new MessageButton()
       .setCustomId(`${customPrefix}:cashout`)
       .setLabel("Sacar")
+      .setEmoji(BUTTON_CASH_ICON)
       .setStyle("SUCCESS")
       .setDisabled(disabled || !canCashout),
     new MessageButton()
@@ -100,20 +116,33 @@ function createControlRow(customPrefix, canCashout, disabled = false) {
   );
 }
 
+function createBoardSizeRow(customId, disabled = false) {
+  return new MessageActionRow().addComponents(
+    BOARD_SIZES.map((size) =>
+      new MessageButton()
+        .setCustomId(`${customId}:size:${size}`)
+        .setLabel(`${size}x${size}`)
+        .setStyle(size === DEFAULT_BOARD_SIZE ? "PRIMARY" : "SECONDARY")
+        .setDisabled(disabled)
+    )
+  );
+}
+
 function createEmbed(user, state, text = null) {
   const safeSelections = state.revealedSafe.size;
-  const multiplier = calculateMultiplier(state.mineCount, safeSelections);
+  const multiplier = calculateMultiplier(state.mineCount, safeSelections, state.boardSize);
   const potentialPayout = safeSelections > 0 ? Math.floor(state.bet * multiplier) : state.bet;
 
   return buildCasinoEmbed(user, state.color || ee.color)
-    .setTitle("💣 Minas")
+    .setTitle(`${BOMB_ICON} Minas`)
     .setDescription(text || "Clique nas casas seguras. Quanto mais minas, maior o multiplicador.")
-    .addField("Aposta", formatAmount(state.bet), true)
-    .addField("Minas", `**${state.mineCount}**`, true)
+    .addField(`${CASH_ICON} Aposta`, formatAmount(state.bet), true)
+    .addField("Tabuleiro", `**${state.boardSize}x${state.boardSize}**`, true)
+    .addField(`${BOMB_ICON} Minas`, `**${state.mineCount}**`, true)
     .addField("Casas abertas", `**${safeSelections}**`, true)
-    .addField("Multiplicador atual", `**${safeSelections > 0 ? multiplier : 1}x**`, true)
-    .addField("Saque atual", formatAmount(potentialPayout), true)
-    .addField("Saldo base", formatAmount(state.balance), true);
+    .addField(`${WINNING_ICON} Multiplicador atual`, `**${safeSelections > 0 ? multiplier : 1}x**`, true)
+    .addField(`${CASH_ICON} Saque atual`, formatAmount(potentialPayout), true)
+    .addField(`${WALLET_ICON} Saldo base`, formatAmount(state.balance), true);
 }
 
 async function resolveBet(message, args, settings, userData) {
@@ -127,13 +156,13 @@ async function resolveBet(message, args, settings, userData) {
     {
       embeds: [
         buildCasinoEmbed(message.author)
-          .setTitle("💣 Minas")
+          .setTitle(`${BOMB_ICON} Minas`)
           .setDescription(
             [
               "Qual sera o valor da aposta?",
-              `Aposta minima: ${formatAmount(settings.casinoMinBet)}`,
-              `Aposta maxima: ${formatAmount(settings.casinoMaxBet)}`,
-              `Seu saldo: ${formatAmount(userData.coins)}`
+              `${CASH_ICON} Aposta minima: ${formatAmount(settings.casinoMinBet)}`,
+              `${CASH_ICON} Aposta maxima: ${formatAmount(settings.casinoMaxBet)}`,
+              `${WALLET_ICON} Seu saldo: ${formatAmount(userData.coins)}`
             ].join("\n")
           )
       ]
@@ -146,7 +175,55 @@ async function resolveBet(message, args, settings, userData) {
   ).then((result) => result.ok ? { ok: true, amount: result.value } : result);
 }
 
-async function resolveMineCount(message, args) {
+async function resolveBoardSize(message, args) {
+  if (args[2]) {
+    const size = parseInt(String(args[2]).toLowerCase().replace("x", ""), 10);
+    return { ok: BOARD_SIZES.includes(size), boardSize: size, reason: BOARD_SIZES.includes(size) ? null : "invalid" };
+  }
+
+  const customId = `minas-size:${message.author.id}:${Date.now()}`;
+  const chooserMessage = await message.reply({
+    embeds: [
+      buildCasinoEmbed(message.author)
+        .setTitle(`${BOMB_ICON} Minas`)
+        .setDescription("Escolha o tamanho do tabuleiro.")
+    ],
+    components: [createBoardSizeRow(customId, false)],
+    fetchReply: true
+  });
+
+  const interaction = await chooserMessage.awaitMessageComponent({
+    filter: (i) => i.user.id === message.author.id && i.customId.startsWith(`${customId}:size:`),
+    time: 60000
+  }).catch(() => null);
+
+  if (!interaction) {
+    await chooserMessage.edit({
+      embeds: [
+        buildCasinoEmbed(message.author, ee.wrongcolor)
+          .setTitle(`${emojis.x} Tempo esgotado`)
+          .setDescription("A escolha do tamanho do tabuleiro expirou.")
+      ],
+      components: [createBoardSizeRow(customId, true)]
+    }).catch(() => null);
+    return { ok: false, reason: "timeout" };
+  }
+
+  const boardSize = parseInt(interaction.customId.split(":").pop(), 10);
+  await interaction.update({
+    embeds: [
+      buildCasinoEmbed(message.author)
+        .setTitle(`${BOMB_ICON} Minas`)
+        .setDescription(`Tabuleiro selecionado: **${boardSize}x${boardSize}**.`)
+    ],
+    components: [createBoardSizeRow(customId, true)]
+  }).catch(() => null);
+
+  return { ok: true, boardSize };
+}
+
+async function resolveMineCount(message, args, boardSize) {
+  const maxMines = getBoardTileCount(boardSize) - 1;
   if (args[1]) {
     const count = parseInt(args[1], 10);
     return { ok: Number.isInteger(count), mineCount: count };
@@ -157,14 +234,14 @@ async function resolveMineCount(message, args) {
     {
       embeds: [
         buildCasinoEmbed(message.author)
-          .setTitle("💣 Minas")
-          .setDescription("Quantas minas voce quer no tabuleiro? Escolha um numero entre **1** e **24**.")
+          .setTitle(`${BOMB_ICON} Minas`)
+          .setDescription(`Quantas minas voce quer no tabuleiro **${boardSize}x${boardSize}**? Escolha um numero entre **1** e **${maxMines}**.`)
       ]
     },
     (content) => {
       const count = parseInt(content, 10);
-      if (!Number.isInteger(count) || count < 1 || count > 24) {
-        return { ok: false, message: "Envie um numero inteiro entre 1 e 24." };
+      if (!Number.isInteger(count) || count < 1 || count > maxMines) {
+        return { ok: false, message: `Envie um numero inteiro entre 1 e ${maxMines}.` };
       }
       return { ok: true, value: count };
     }
@@ -176,7 +253,7 @@ module.exports = {
   aliases: ["mina", "mines"],
   category: "Cassino",
   description: "Escolha casas interativamente e tente evitar as minas.",
-  usage: "minas [aposta] [quantidade-de-minas]",
+  usage: "minas [aposta] [quantidade-de-minas] [3|4|5]",
   cooldown: 1,
   run: async (client, message, args, _plusArgs, _member, _text, default_prefix) => {
     const prefix = default_prefix || client?.settings?.get(message.guild?.id, "prefix") || client?.config?.prefix || "!";
@@ -223,15 +300,31 @@ module.exports = {
         return message.reply({ embeds: [createCooldownEmbed(message.author, remainingCooldown)] });
       }
 
-      const mineCountResult = await resolveMineCount(message, args);
+      const boardSizeResult = await resolveBoardSize(message, args);
+      if (!boardSizeResult.ok) {
+        if (boardSizeResult.reason === "invalid") {
+          return message.reply({
+            embeds: [
+              buildCasinoEmbed(message.author, ee.wrongcolor)
+                .setTitle(`${emojis.x} Tamanho de tabuleiro invalido`)
+                .setDescription(`Use \`${prefix}minas <aposta> <minas> <3|4|5>\`.`)
+            ]
+          });
+        }
+        return;
+      }
+      const boardSize = boardSizeResult.boardSize;
+      const maxMines = getBoardTileCount(boardSize) - 1;
+
+      const mineCountResult = await resolveMineCount(message, args, boardSize);
       if (!mineCountResult.ok) return;
       const mineCount = mineCountResult.mineCount;
-      if (!Number.isInteger(mineCount) || mineCount < 1 || mineCount > 24) {
+      if (!Number.isInteger(mineCount) || mineCount < 1 || mineCount > maxMines) {
         return message.reply({
           embeds: [
             buildCasinoEmbed(message.author, ee.wrongcolor)
               .setTitle(`${emojis.x} Quantidade de minas invalida`)
-              .setDescription(`Use \`${prefix}minas <aposta> <1-24>\`.`)
+              .setDescription(`Use \`${prefix}minas <aposta> <1-${maxMines}> ${boardSize}\` para o tabuleiro **${boardSize}x${boardSize}**.`)
           ]
         });
       }
@@ -241,8 +334,9 @@ module.exports = {
       const state = {
         bet: amount,
         balance: userData.coins,
+        boardSize,
         mineCount,
-        mineTiles: pickUniqueRandom(BOARD_SIZE, mineCount),
+        mineTiles: pickUniqueRandom(getBoardTileCount(boardSize), mineCount),
         revealedSafe: new Set(),
         color: ee.color
       };
@@ -250,13 +344,13 @@ module.exports = {
       const customPrefix = `minas:${message.author.id}:${Date.now()}`;
       const boardMessage = await message.reply({
         embeds: [createEmbed(message.author, state)],
-        components: createBoardRows(customPrefix, state.revealedSafe, state.mineTiles, null, false, false)
+        components: createBoardRows(customPrefix, state.boardSize, state.revealedSafe, state.mineTiles, null, false, false)
       });
 
       const controlMessage = await message.reply({
         embeds: [
           buildCasinoEmbed(message.author)
-            .setTitle("💣 Controles de Minas")
+            .setTitle(`${BOMB_ICON} Controles de Minas`)
             .setDescription("Use `Sacar` para encerrar com lucro atual ou `Cancelar` para abortar sem resultado.")
         ],
         components: [createControlRow(customPrefix, false, false)]
@@ -275,12 +369,12 @@ module.exports = {
         finished = true;
         await boardMessage.edit({
           embeds: [finalEmbed],
-          components: createBoardRows(customPrefix, state.revealedSafe, state.mineTiles, explodedTile, true, revealAll)
+          components: createBoardRows(customPrefix, state.boardSize, state.revealedSafe, state.mineTiles, explodedTile, true, revealAll)
         }).catch(() => null);
         await controlMessage.edit({
           embeds: [
             buildCasinoEmbed(message.author, finalEmbed.data?.color || ee.color)
-              .setTitle("💣 Controles de Minas")
+              .setTitle(`${BOMB_ICON} Controles de Minas`)
               .setDescription("Partida encerrada.")
           ],
           components: [createControlRow(customPrefix, canCashout, true)]
@@ -308,7 +402,7 @@ module.exports = {
             createEmbed(
               message.author,
               state,
-              `Voce encontrou uma mina na casa **${tile}**.\nPerda: ${formatAmount(state.bet)}\nSaldo atual: ${formatAmount(newBalance)}`
+              `Voce encontrou uma mina na casa **${tile}**.\n${CASH_ICON} Perda: ${formatAmount(state.bet)}\n${WALLET_ICON} Saldo atual: ${formatAmount(newBalance)}`
             ).setColor(ee.wrongcolor),
             true,
             tile,
@@ -326,6 +420,7 @@ module.exports = {
             outcome: "loss",
             reason: `Mina encontrada na casa ${tile}.`,
             metadata: {
+              boardSize: state.boardSize,
               mineCount: state.mineCount,
               revealedSafe: [...state.revealedSafe],
               explodedTile: tile
@@ -339,13 +434,13 @@ module.exports = {
 
         await interaction.update({
           embeds: [createEmbed(message.author, state)],
-          components: createBoardRows(customPrefix, state.revealedSafe, state.mineTiles, null, false, false)
+          components: createBoardRows(customPrefix, state.boardSize, state.revealedSafe, state.mineTiles, null, false, false)
         }).catch(() => null);
 
         await controlMessage.edit({
           embeds: [
             buildCasinoEmbed(message.author)
-              .setTitle("💣 Controles de Minas")
+              .setTitle(`${BOMB_ICON} Controles de Minas`)
               .setDescription("Abra outra casa ou saque o valor atual.")
           ],
           components: [createControlRow(customPrefix, canCashout, false)]
@@ -374,6 +469,7 @@ module.exports = {
             outcome: "cancelled",
             reason: "Partida cancelada pelo usuario.",
             metadata: {
+              boardSize: state.boardSize,
               mineCount: state.mineCount,
               revealedSafe: [...state.revealedSafe]
             }
@@ -385,7 +481,7 @@ module.exports = {
           return interaction.reply({ content: `${emojis.x} Abra pelo menos uma casa antes de sacar.`, flags: 64 }).catch(() => null);
         }
 
-        const multiplier = calculateMultiplier(state.mineCount, state.revealedSafe.size);
+        const multiplier = calculateMultiplier(state.mineCount, state.revealedSafe.size, state.boardSize);
         const payout = Math.floor(state.bet * multiplier);
         const netChange = payout - state.bet;
         const newBalance = await applyGameResult(message.author.id, state.balance, netChange);
@@ -396,7 +492,11 @@ module.exports = {
           createEmbed(
             message.author,
             state,
-            `Voce sacou a rodada com **${multiplier}x**.\nPremio: ${formatAmount(payout)}\nSaldo atual: ${formatAmount(newBalance)}`
+            [
+              `Voce sacou a rodada com **${multiplier}x**.`,
+              `${WINNING_ICON} Premio: ${formatAmount(payout)}`,
+              `${WALLET_ICON} Saldo atual: ${formatAmount(newBalance)}`
+            ].join("\n")
           ),
           true,
           null,
@@ -414,6 +514,7 @@ module.exports = {
           outcome: "win",
           reason: "Usuario sacou manualmente.",
           metadata: {
+            boardSize: state.boardSize,
             mineCount: state.mineCount,
             revealedSafe: [...state.revealedSafe],
             multiplier
@@ -438,6 +539,7 @@ module.exports = {
           outcome: "cancelled",
           reason: "Partida encerrada por tempo.",
           metadata: {
+            boardSize: state.boardSize,
             mineCount: state.mineCount,
             revealedSafe: [...state.revealedSafe]
           }

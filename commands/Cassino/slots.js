@@ -1,3 +1,5 @@
+const { AttachmentBuilder } = require("discord.js");
+const { renderSlotsResultImage, renderSlotsSpinGif } = require("../../handlers/slotImageRenderer");
 const {
   emojis,
   ee,
@@ -24,13 +26,54 @@ const {
   createSessionBusyEmbed
 } = require("../../handlers/casinoUtils");
 
+const SLOT_ICON = emojis.casino_slots || "🎰";
+const CASH_ICON = emojis.cash || "";
+const WALLET_ICON = emojis.wallet || "";
+const WINNING_ICON = emojis.winning || "";
+
 const SLOT_SYMBOLS = [
-  emojis.casino_cherry,
-  emojis.casino_lemon,
-  emojis.casino_grape,
-  emojis.casino_seven,
-  emojis.casino_clover
+  emojis.casino_cherry || "🍒",
+  emojis.casino_lemon || "🍋",
+  emojis.casino_grape || "🍇",
+  emojis.casino_seven || "7️⃣",
+  emojis.casino_clover || "🍀"
 ];
+
+const SLOT_EMOJI_MAP = {
+  cherry: SLOT_SYMBOLS[0],
+  lemon: SLOT_SYMBOLS[1],
+  grape: SLOT_SYMBOLS[2],
+  seven: SLOT_SYMBOLS[3],
+  clover: SLOT_SYMBOLS[4]
+};
+
+const SLOT_SPIN_DURATION_MS = 2600;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function randomSlotSymbol() {
+  return SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
+}
+
+function createSlotRoll() {
+  return Array.from({ length: 3 }, () => randomSlotSymbol());
+}
+
+function formatSlotWindow(reels) {
+  return [
+    "```",
+    "+-----------------------+",
+    "|     KING SLOTS        |",
+    "+-----------------------+",
+    "```",
+    `**[ ${reels[0]} ]  [ ${reels[1]} ]  [ ${reels[2]} ]**`,
+    "```",
+    "+-----------------------+",
+    "```"
+  ].join("\n");
+}
 
 function evaluateSlots(results, betAmount) {
   const counts = results.reduce((acc, symbol) => {
@@ -41,8 +84,8 @@ function evaluateSlots(results, betAmount) {
   const values = Object.values(counts).sort((a, b) => b - a);
   const hasTriple = values[0] === 3;
   const hasPair = values[0] === 2;
-  const sevenTriple = hasTriple && results.every((symbol) => symbol === emojis.casino_seven);
-  const cloverCount = counts[emojis.casino_clover] || 0;
+  const sevenTriple = hasTriple && results.every((symbol) => symbol === SLOT_EMOJI_MAP.seven);
+  const cloverCount = counts[SLOT_EMOJI_MAP.clover] || 0;
 
   let multiplier = 0;
   let reason = "Nenhuma combinacao premiada.";
@@ -77,7 +120,7 @@ async function resolveBet(message, args, settings, userData) {
     {
       embeds: [
         buildCasinoEmbed(message.author)
-          .setTitle(`${emojis.casino_slots} Slots`)
+          .setTitle(`${SLOT_ICON} Slots`)
           .setDescription(
             [
               "Qual sera o valor da aposta?",
@@ -102,37 +145,31 @@ async function resolveBet(message, args, settings, userData) {
   return { ok: true, amount: response.value };
 }
 
-async function animateSlots(message, user, amount) {
-  const frames = [
-    [emojis.casino_cherry, emojis.casino_lemon, emojis.casino_grape],
-    [emojis.casino_seven, emojis.casino_cherry, emojis.casino_clover],
-    [emojis.casino_lemon, emojis.casino_seven, emojis.casino_grape]
-  ];
+async function animateSlots(message, user, amount, finalRoll) {
+  const embed = buildCasinoEmbed(user)
+    .setTitle(`${SLOT_ICON} Slots`)
+    .setDescription(`Girando os rolos...\n${CASH_ICON} Aposta: ${formatAmount(amount)}`);
+  const files = [];
+
+  try {
+    const spinBuffer = renderSlotsSpinGif({
+      finalRoll,
+      emojiMap: SLOT_EMOJI_MAP
+    });
+    files.push(new AttachmentBuilder(spinBuffer, { name: "slots-spin.gif" }));
+    embed.setImage("attachment://slots-spin.gif");
+  } catch (error) {
+    console.warn("[Slots] Falha ao gerar GIF de giro:", error?.message || error);
+    embed.setDescription(`${formatSlotWindow(createSlotRoll())}\n\nGirando os rolos...`);
+  }
 
   const animationMessage = await message.reply({
-    embeds: [
-      buildCasinoEmbed(user)
-        .setTitle(`${emojis.casino_slots} Slots`)
-        .setDescription(frames[0].join(" | "))
-        .addField("Aposta", formatAmount(amount), true)
-        .addField("Status", "Girando os rolos...", true)
-    ],
+    embeds: [embed],
+    files,
     fetchReply: true
   });
 
-  for (let index = 1; index < frames.length; index++) {
-    await new Promise((resolve) => setTimeout(resolve, 650));
-    await animationMessage.edit({
-      embeds: [
-        buildCasinoEmbed(user)
-          .setTitle(`${emojis.casino_slots} Slots`)
-          .setDescription(frames[index].join(" | "))
-          .addField("Aposta", formatAmount(amount), true)
-          .addField("Status", "Girando os rolos...", true)
-      ]
-    }).catch(() => null);
-  }
-
+  await sleep(SLOT_SPIN_DURATION_MS);
   return animationMessage;
 }
 
@@ -190,19 +227,33 @@ module.exports = {
       }
       setCasinoCooldown(message.author.id, "slots", settings.casinoCooldownSeconds);
 
-      const animationMessage = await animateSlots(message, message.author, amount);
-      const roll = Array.from({ length: 3 }, () => SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]);
+      const roll = createSlotRoll();
+      const animationMessage = await animateSlots(message, message.author, amount, roll);
       const result = evaluateSlots(roll, amount);
       const newBalance = await applyGameResult(message.author.id, userData.coins, result.netChange);
 
       const outcome = result.netChange > 0 ? "win" : result.netChange === 0 ? "push" : "loss";
       const embed = buildCasinoEmbed(message.author, getCasinoResultColor(outcome))
-        .setTitle(`${emojis.casino_slots} Slots`)
-        .setDescription(roll.join(" | "))
-        .addField("Aposta", formatAmount(amount), true)
-        .addField("Premio", result.payout > 0 ? formatAmount(result.payout) : `**0** ${emojis.King_Coin}`, true)
-        .addField("Saldo atual", formatAmount(newBalance), true)
-        .addField("Resumo", outcome === "win" ? `Voce ganhou **${result.multiplier}x**. ${result.reason}` : result.reason, false);
+        .setTitle(`${SLOT_ICON} Slots`)
+        .setDescription(outcome === "win" ? `Voce ganhou **${result.multiplier}x**.` : "Os rolos pararam sem combinacao premiada.")
+        .addField(`${CASH_ICON} Aposta`, formatAmount(amount), true)
+        .addField(`${WINNING_ICON} Premio`, result.payout > 0 ? formatAmount(result.payout) : `**0** ${emojis.King_Coin}`, true)
+        .addField(`${WALLET_ICON} Saldo atual`, formatAmount(newBalance), true)
+        .addField(`${WINNING_ICON} Resumo`, outcome === "win" ? `Voce ganhou **${result.multiplier}x**. ${result.reason}` : result.reason, false);
+
+      const files = [];
+      try {
+        const imageBuffer = renderSlotsResultImage({
+          roll,
+          outcome,
+          multiplier: result.multiplier,
+          emojiMap: SLOT_EMOJI_MAP
+        });
+        files.push(new AttachmentBuilder(imageBuffer, { name: "slots-result.png" }));
+        embed.setImage("attachment://slots-result.png");
+      } catch (error) {
+        console.warn("[Slots] Falha ao gerar imagem do resultado:", error?.message || error);
+      }
 
       await logCasinoEvent(client, message, {
         userId: message.author.id,
@@ -217,7 +268,7 @@ module.exports = {
         }
       });
 
-      await animationMessage.edit({ embeds: [embed] }).catch(() => null);
+      await animationMessage.edit({ embeds: [embed], files }).catch(() => null);
       endCasinoSession(message.author.id);
       attachReplayHandler(client, message, animationMessage, "slots", []);
       return animationMessage;
