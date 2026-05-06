@@ -8,12 +8,9 @@
   "stop": "<:stop:1499564013346881596>",
   "none": "<:none:1500968452087742585>",
   "reload": "<:autoplay1:893938933891756073>",
-  "casino_slots": "🎰",
-  "casino_cherry": "🍒",
-  "casino_lemon": "🍋",
-  "casino_grape": "🍇",
-  "casino_seven": "7️⃣",
-  "casino_clover": "🍀",
-  "casino_heads": "👑",
-  "casino_tails": "🪙"
+  "cash": "<:money:1499564012054410240>",
+  "wallet": "<:wallet:1501355233782009986>",
+  "winning": "<:winning:1501355231617875968>",
+  "bomb": "<:black_mine:1499564008523432109>",
+  "casino_slots": "🎰"
 }

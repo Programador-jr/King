@@ -4,6 +4,7 @@ const {
   ee,
   buildCasinoEmbed,
   getCustomEmojiImageUrl,
+  getComponentEmoji,
   getCasinoResultColor,
   attachReplayHandler,
   parseBet,
@@ -29,6 +30,11 @@ const {
 const naipes = require("../../botconfig/naipes.json");
 
 const BLACKJACK_THUMBNAIL = getCustomEmojiImageUrl(emojis.blackjack);
+const CASH_ICON = emojis.cash || "";
+const WALLET_ICON = emojis.wallet || "";
+const WINNING_ICON = emojis.winning || "";
+const BUTTON_BUY_ICON = getComponentEmoji(emojis.buy) || "\uD83C\uDCCF";
+const BUTTON_STOP_ICON = getComponentEmoji(emojis.stop) || "\u270B";
 
 const DECK_VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 
@@ -83,8 +89,8 @@ function formatHand(hand, hidden = false) {
 function buildControls(customPrefix, disabled = false) {
   return [
     new MessageActionRow().addComponents(
-      new MessageButton().setCustomId(`${customPrefix}:hit`).setLabel("Comprar").setEmoji(emojis.buy).setStyle("SUCCESS").setDisabled(disabled),
-      new MessageButton().setCustomId(`${customPrefix}:stand`).setLabel("Parar").setEmoji(emojis.stop).setStyle("DANGER").setDisabled(disabled)
+      new MessageButton().setCustomId(`${customPrefix}:hit`).setLabel("Comprar").setEmoji(BUTTON_BUY_ICON).setStyle("SUCCESS").setDisabled(disabled),
+      new MessageButton().setCustomId(`${customPrefix}:stand`).setLabel("Parar").setEmoji(BUTTON_STOP_ICON).setStyle("DANGER").setDisabled(disabled)
     )
   ];
 }
@@ -98,7 +104,7 @@ function createEmbed(user, state, revealDealer = false, finalText = null) {
     .setDescription(finalText || "Controle sua mao usando os botoes abaixo.")
     .addField(`Sua mao (${playerTotal})`, formatHand(state.playerHand), true)
     .addField(`Banca (${dealerTotal}${revealDealer ? "" : "+"})`, formatHand(state.dealerHand, !revealDealer), true)
-    .addField("Aposta atual", formatAmount(state.bet), true);
+    .addField(`${CASH_ICON} Aposta atual`, formatAmount(state.bet), true);
 }
 
 function settleGame(state) {
@@ -153,9 +159,9 @@ async function resolveBet(message, args, settings, userData) {
           .setDescription(
             [
               "Qual sera o valor da aposta?",
-              `Aposta minima: ${formatAmount(settings.casinoMinBet)}`,
-              `Aposta maxima: ${formatAmount(settings.casinoMaxBet)}`,
-              `Seu saldo: ${formatAmount(userData.coins)}`
+              `${CASH_ICON} Aposta minima: ${formatAmount(settings.casinoMinBet)}`,
+              `${CASH_ICON} Aposta maxima: ${formatAmount(settings.casinoMaxBet)}`,
+              `${WALLET_ICON} Seu saldo: ${formatAmount(userData.coins)}`
             ].join("\n")
           )
       ]
@@ -257,7 +263,11 @@ module.exports = {
               message.author,
               state,
               true,
-              `${result.reason}\nPremio: ${result.payout > 0 ? formatAmount(result.payout) : `**0** ${emojis.King_Coin}`}\nSaldo atual: ${formatAmount(newBalance)}`
+              [
+                result.reason,
+                `${WINNING_ICON} Premio: ${result.payout > 0 ? formatAmount(result.payout) : `**0** ${emojis.King_Coin}`}`,
+                `${WALLET_ICON} Saldo atual: ${formatAmount(newBalance)}`
+              ].join("\n")
             )
           ],
           components: buildControls(customPrefix, true)
