@@ -1,7 +1,8 @@
-const { MessageEmbed } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { addUserJoined } = require("../../databases/mongodb");
 const ee = require("../../botconfig/embed.json");
 const GuildAudit = require("../../databases/guildAudit");
+const joinMessages = require("../../botconfig/JoinMessages.json");
 
 module.exports = async (client, guild) => {
   try {
@@ -16,13 +17,36 @@ module.exports = async (client, guild) => {
       memberCount: guild.memberCount || 0,
       action: "join"
     }).catch(() => null);
-    
-    // Envia mensagem de entrada em um novo servidor
+
+    if (owner?.user) {
+      const messages = Object.values(joinMessages.joinMessages);
+      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+      const images = joinMessages.images;
+      const randomImage = images.length > 0 ? images[Math.floor(Math.random() * images.length)] : null;
+
+      const embed = new EmbedBuilder()
+        .setColor(ee.color)
+        .setTitle(randomMsg.title)
+        .setDescription(randomMsg.description)
+        .setThumbnail(guild.iconURL({ dynamic: true }))
+        .setFooter({ text: randomMsg.footer.text, iconURL: ee.footericon })
+        .setTimestamp();
+
+      if (randomImage) embed.setImage(randomImage);
+
+      const buttons = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setLabel("<:support:1503537701637587164> Suporte").setStyle(ButtonStyle.Link).setURL("https://discord.gg/NypBbRgBJ3"),
+        new ButtonBuilder().setLabel("<:commands:1503535909499437107> Comandos").setStyle(ButtonStyle.Link).setURL("https://kingbot.shardweb.app/commands")
+      );
+
+      await owner.user.send({ embeds: [embed], components: [buttons] }).catch(() => null);
+    }
+
     const logChannelId = process.env.LOG_CHANNEL_ID;
     if (logChannelId) {
       const logChannel = client.channels.cache.get(logChannelId);
       if (logChannel) {
-        const embed = new MessageEmbed()
+        const embed = new EmbedBuilder()
           .setColor(ee.color)
           .setTitle("🎉 Novo Servidor!")
           .setThumbnail(guild.iconURL({ dynamic: true }))
@@ -33,10 +57,10 @@ module.exports = async (client, guild) => {
             { name: "Membros", value: `👥 \`${guild.memberCount}\``, inline: true },
             { name: "Criado em", value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:D>`, inline: true }
           )
-          .setFooter(ee.footertext, ee.footericon)
+          .setFooter({ text: ee.footertext, iconURL: ee.footericon })
           .setTimestamp();
-        
-        logChannel.send({ embeds: [embed] }).catch(() => {});
+
+        logChannel.send({ embeds: [embed] }).catch(() => null);
       }
     }
   } catch (e) {
