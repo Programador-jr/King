@@ -1,0 +1,46 @@
+{
+  "leaveMessages": {
+    "message1": {
+      "title": "💔 O vínculo foi encerrado",
+      "description": "O King foi removido deste reino.\n\nAs chamas azuis desapareceram lentamente e o silêncio voltou a dominar este lugar.\n\n🐺 O lobo retornou às sombras...\nMesmo assim, obrigado pelo tempo compartilhado.",
+      "footer": {
+        "text": "King • Connection closed"
+      }
+    },
+
+    "message2": {
+      "title": "🌑 O império perdeu mais um reino",
+      "description": "Os sistemas foram desligados, as entidades silenciaram e a coroa deixou este servidor para trás.\n\n🕯️ Alguns reinos permanecem na memória.\nOutros desaparecem junto da escuridão.",
+      "footer": {
+        "text": "O silêncio tomou conta do reino."
+      }
+    },
+
+    "message3": {
+      "title": "❄️ As chamas azuis se apagaram",
+      "description": "O King já não faz mais parte deste servidor.\n\nTudo o que restou foram ecos de comandos, memórias antigas e fragmentos de uma conexão perdida.\n\n👁️ As sombras desapareceram deste território.",
+      "footer": {
+        "text": "Obrigado por ter feito parte da história do King."
+      }
+    },
+
+    "message4": {
+      "title": "🕯️ O rei deixou este reino",
+      "description": "O vínculo entre o King e este servidor foi encerrado.\n\nOs sistemas foram finalizados e o império seguiu seu caminho para outros territórios.\n\n🐺 O lobo observou o último portal se fechar antes de desaparecer na escuridão.",
+      "footer": {
+        "text": "King • Offline in this server"
+      }
+    },
+
+    "message5": {
+      "title": "⚔️ Uma aliança chegou ao fim",
+      "description": "O King foi removido deste servidor e todas as conexões foram desfeitas.\n\n🌌 As entidades retornaram ao vazio enquanto o reino mergulhava novamente no silêncio.\n\nTalvez nossos caminhos se cruzem novamente algum dia.",
+      "footer": {
+        "text": "Fim da conexão com o reino."
+      }
+    }
+  },
+  "images": [
+
+  ]
+}

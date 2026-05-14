@@ -1,0 +1,51 @@
+{
+  "joinMessages": {
+    "message1": {
+      "title": "<:crown:1504619698648645652> Obrigado por adicionar o King",
+      "description": "As chamas azuis responderam ao chamado deste reino e, a partir de agora, o King estará disponível para auxiliar, proteger e evoluir junto da comunidade.\n\n<a:destaque:1504623111121801246> **Destaques do King:**\n• <:casino:1503540058819661864> **Cassino** — Teste sua sorte no blackjack, slots, roleta e minas\n• <:dj:893912114203332729> **Música** — Toque suas músicas favoritas no servidor\n• <:anonymous:1503541127809204306> **Confissões** — Sistema anônimo de confissões para interagir\n• <:vote:1504621058068709497> **Votos** — Ganhe moedas extras votando no bot\n• <:game:1504621997555056770> **Diversão** — Jogos, economia e muito mais\n\n<:config:1504623439808434267> **Personalização:** Configure o canal de músicas e o canal de confissões usando `botchat`!\n\n<:wolf:1503714324055593040> O lobo já está observando este território...\nEsperamos que esta aliança dure por muito tempo.",
+      "footer": {
+        "text": "Obrigado pela confiança no King."
+      }
+    },
+
+    "message2": {
+      "title": "<:fire:1503525692506112011> O King atravessou os portões do servidor",
+      "description": "Obrigado por convidar o King para este reino.\n\nTodos os módulos principais já estão operacionais e prontos para uso.\n\n<:casino:1503540058819661864> **Cassino** — Aposte e ganhe moedas nos jogos de blackjack, slots e muito mais\n<:dj:893912114203332729> **Música** — Sistema completo de música para animar o servidor\n<:anonymous:1503541127809204306> **Confissões** — Envie confissões anônimas e veja o que o servidor tem a dizer\n<:vote:1504621058068709497> **Vote no King** — Ganhe moedas extras ajudando o bot a crescer\n\n<:KC_20260417_123851_0000:1494754428572667944> **Como ganhar moedas:** Jogue no cassino, vote diariamente e participe dos eventos!\n\n<:vigia:1503527175482118144> As entidades já despertaram neste lugar.",
+      "footer": {
+        "text": "O império continua crescendo."
+      }
+    },
+
+    "message3": {
+      "title": "<:portal:1503526732924456990> Uma nova conexão foi estabelecida",
+      "description": "O King agradece por ter sido adicionado ao servidor.\n\nCada novo reino fortalece ainda mais o império construído entre sombras, chamas e lealdade.\n\n<:casino:1503540058819661864> **Cassino** — Blackjack, slots, roleta e minas esperam por você\n<:dj:893912114203332729> **Música** — Toque músicas, crie playlists e defina DJs para gerenciar\n<:anonymous:1503541127809204306> **Confissões** — Configure um canal de confissões e deixe o povo falar\n<:vote:1504621058068709497> **Votos** — Vote no bot diariamente e ganhe recompensas em moedas\n\n<:fire:1503525692506112011> Esperamos que o King faça parte da história deste servidor.",
+      "footer": {
+        "text": "Sistema sincronizado com sucesso."
+      }
+    },
+
+    "message4": {
+      "title": "<:sword:1503523309734858942> Um novo reino se uniu ao império",
+      "description": "O King foi conectado com sucesso a este servidor.\n\nTodos os sistemas essenciais já estão disponíveis para administração, utilidades, economia e diversão.\n\n<:casino:1503540058819661864> **Cassino** — Entre no cassino real e multiplique suas moedas\n<:dj:893912114203332729> **Música** — Sistema de áudio de alta qualidade com fila e controles\n<:anonymous:1503541127809204306> **Confissões** — Ative o canal de confissões para interação anônima\n<:vote:1504621058068709497> **Vote e Ganhe** — Ajude o King votando e seja recompensado com moedas\n\n<:config:1504623439808434267> Use `khelp` para explorar todos os comandos e configurar seu servidor!\n\n<:fire:1503525692506112011> Que este servidor prospere sob a proteção da coroa.",
+      "footer": {
+        "text": "King • Ready to serve"
+      }
+    },
+
+    "message5": {
+      "title": "<:vigia:1503527175482118144> As sombras responderam ao chamado",
+      "description": "Obrigado por permitir que o King faça parte deste servidor.\n\nOs sistemas foram carregados com sucesso e o reino agora possui acesso aos recursos do império.\n\n<:casino:1503540058819661864> **Cassino Real** — Moedas, apostas e multiplicadores esperam por você\n<:dj:893912114203332729> **Música sem limites** — Configure DJs e controle a fila de músicas\n<:anonymous:1503541127809204306> **Confissões anônimas** — Crie um canal secreto para o servidor\n<:vote:1504621058068709497> **Ganhe moedas** — Vote no bot todos os dias e acumule riquezas\n\n<:wolf:1503714324055593040> O lobo permanecerá atento a tudo que acontecer neste território.",
+      "footer": {
+        "text": "Uma nova aliança foi formada."
+      }
+    }
+  },
+  "images": [
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/join0.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/join1.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/join2.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/join3.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/join4.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/join5.png"
+  ]
+}
