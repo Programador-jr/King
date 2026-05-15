@@ -87,21 +87,40 @@ class AlertSystem {
     };
 
     // Estrutura HTML
+    const icon = icons[type] || 'i';
     alert.innerHTML = `
-      <div class="alert-icon">${icons[type] || 'i'}</div>
+      <div class="alert-icon"></div>
       <div class="alert-content">
-        <div class="alert-title">${this.escapeHtml(title)}</div>
-        ${message ? `<div class="alert-message">${this.escapeHtml(message)}</div>` : ''}
+        <div class="alert-title"></div>
+        <div class="alert-message"></div>
       </div>
-      ${settings.dismissible ? `
-        <button class="alert-close" onclick="alertSystem.hide(${id})" aria-label="Fechar">
-          <i class="fas fa-times"></i>
-        </button>
-      ` : ''}
-      ${settings.progressBar && settings.duration > 0 ? `
-        <div class="alert-progress" style="width: 0%"></div>
-      ` : ''}
     `;
+
+    alert.querySelector('.alert-icon').textContent = icon;
+    alert.querySelector('.alert-title').textContent = title;
+    
+    const messageElement = alert.querySelector('.alert-message');
+    if (message) {
+      messageElement.textContent = message;
+    } else {
+      messageElement.remove();
+    }
+
+    if (settings.dismissible) {
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'alert-close';
+      closeBtn.setAttribute('aria-label', 'Fechar');
+      closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+      closeBtn.onclick = () => this.hide(id);
+      alert.appendChild(closeBtn);
+    }
+
+    if (settings.progressBar && settings.duration > 0) {
+      const progress = document.createElement('div');
+      progress.className = 'alert-progress';
+      progress.style.width = '0%';
+      alert.appendChild(progress);
+    }
 
     return alert;
   }
@@ -175,27 +194,31 @@ class AlertSystem {
       // Criar overlay do modal
       const overlay = document.createElement('div');
       overlay.className = 'confirm-modal-overlay';
+      
+      const icon = type === 'danger' ? '✕' : type === 'warning' ? '!' : 'i';
+      
       overlay.innerHTML = `
-        <div class="confirm-modal ${type}">
+        <div class="confirm-modal">
           <div class="confirm-modal-header">
-            <div class="confirm-modal-icon">
-              ${type === 'danger' ? '✕' : type === 'warning' ? '!' : 'i'}
-            </div>
-            <h3 class="confirm-modal-title">${this.escapeHtml(title)}</h3>
+            <div class="confirm-modal-icon"></div>
+            <h3 class="confirm-modal-title"></h3>
           </div>
           <div class="confirm-modal-body">
-            <p class="confirm-modal-message">${this.escapeHtml(message)}</p>
+            <p class="confirm-modal-message"></p>
           </div>
           <div class="confirm-modal-footer">
-            <button type="button" class="confirm-modal-btn confirm-modal-btn-cancel">
-              Cancelar
-            </button>
-            <button type="button" class="confirm-modal-btn confirm-modal-btn-confirm">
-              Confirmar
-            </button>
+            <button type="button" class="confirm-modal-btn confirm-modal-btn-cancel">Cancelar</button>
+            <button type="button" class="confirm-modal-btn confirm-modal-btn-confirm">Confirmar</button>
           </div>
         </div>
       `;
+
+      const modal = overlay.querySelector('.confirm-modal');
+      modal.classList.add(type);
+      
+      overlay.querySelector('.confirm-modal-icon').textContent = icon;
+      overlay.querySelector('.confirm-modal-title').textContent = title;
+      overlay.querySelector('.confirm-modal-message').textContent = message;
       
       // Adicionar ao DOM
       document.body.appendChild(overlay);
