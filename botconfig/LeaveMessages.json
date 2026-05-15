@@ -1,46 +1,49 @@
 {
   "leaveMessages": {
     "message1": {
-      "title": "💔 O vínculo foi encerrado",
-      "description": "O King foi removido deste reino.\n\nAs chamas azuis desapareceram lentamente e o silêncio voltou a dominar este lugar.\n\n🐺 O lobo retornou às sombras...\nMesmo assim, obrigado pelo tempo compartilhado.",
+      "title": "<:broken_crown:1504648441261850824> O vínculo foi encerrado",
+      "description": "O King foi removido deste reino.\n\nAs chamas azuis desapareceram lentamente e o silêncio voltou a dominar este lugar.\n\n<:wolf:1503714324055593040> O lobo retornou às sombras...\nMesmo assim, obrigado pelo tempo compartilhado.",
       "footer": {
         "text": "King • Connection closed"
       }
     },
 
     "message2": {
-      "title": "🌑 O império perdeu mais um reino",
-      "description": "Os sistemas foram desligados, as entidades silenciaram e a coroa deixou este servidor para trás.\n\n🕯️ Alguns reinos permanecem na memória.\nOutros desaparecem junto da escuridão.",
+      "title": "<:portal:1503526732924456990> O império perdeu mais um reino",
+      "description": "Os sistemas foram desligados, as entidades silenciaram e a coroa deixou este servidor para trás.\n\n<:fire:1503525692506112011> Alguns reinos permanecem na memória.\nOutros desaparecem junto da escuridão.",
       "footer": {
         "text": "O silêncio tomou conta do reino."
       }
     },
 
     "message3": {
-      "title": "❄️ As chamas azuis se apagaram",
-      "description": "O King já não faz mais parte deste servidor.\n\nTudo o que restou foram ecos de comandos, memórias antigas e fragmentos de uma conexão perdida.\n\n👁️ As sombras desapareceram deste território.",
+      "title": "<:fire:1503525692506112011><:fire:1503525692506112011> As chamas azuis se apagaram",
+      "description": "O King já não faz mais parte deste servidor.\n\nTudo o que restou foram ecos de comandos, memórias antigas e fragmentos de uma conexão perdida.\n\n<:vigia:1503527175482118144> As sombras desapareceram deste território.",
       "footer": {
         "text": "Obrigado por ter feito parte da história do King."
       }
     },
 
     "message4": {
-      "title": "🕯️ O rei deixou este reino",
-      "description": "O vínculo entre o King e este servidor foi encerrado.\n\nOs sistemas foram finalizados e o império seguiu seu caminho para outros territórios.\n\n🐺 O lobo observou o último portal se fechar antes de desaparecer na escuridão.",
+      "title": "<:fire:1503525692506112011> O rei deixou este reino",
+      "description": "O vínculo entre o King e este servidor foi encerrado.\n\nOs sistemas foram finalizados e o império seguiu seu caminho para outros territórios.\n\n<:wolf:1503714324055593040> O lobo observou o último portal se fechar antes de desaparecer na escuridão.",
       "footer": {
         "text": "King • Offline in this server"
       }
     },
 
     "message5": {
-      "title": "⚔️ Uma aliança chegou ao fim",
-      "description": "O King foi removido deste servidor e todas as conexões foram desfeitas.\n\n🌌 As entidades retornaram ao vazio enquanto o reino mergulhava novamente no silêncio.\n\nTalvez nossos caminhos se cruzem novamente algum dia.",
+      "title": "<:sword:1503523309734858942> Uma aliança chegou ao fim",
+      "description": "O King foi removido deste servidor e todas as conexões foram desfeitas.\n\n<:portal:1503526732924456990> As entidades retornaram ao vazio enquanto o reino mergulhava novamente no silêncio.\n\nTalvez nossos caminhos se cruzem novamente algum dia.",
       "footer": {
         "text": "Fim da conexão com o reino."
       }
     }
   },
   "images": [
-
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/leave0.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/leave2.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/leave3.png",
+    "https://cdn.shardcloud.app/4d7d8031-4b99-4759-afbc-1e01575b29d6/leave4.png"
   ]
 }
