@@ -51,8 +51,8 @@ module.exports = {
 
     if (isJoin) {
       const buttons = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel("🆘 Suporte").setStyle(ButtonStyle.Link).setURL("https://example.com"),
-        new ButtonBuilder().setLabel("📋 Comandos").setStyle(ButtonStyle.Link).setURL("https://example.com")
+        new ButtonBuilder().setLabel("<:support:1503537701637587164> Suporte").setStyle(ButtonStyle.Link).setURL("https://example.com"),
+        new ButtonBuilder().setLabel("<:commands:1503535909499437107> Comandos").setStyle(ButtonStyle.Link).setURL("https://example.com")
       );
       components.push(buttons);
     }
