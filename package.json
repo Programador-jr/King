@@ -23,7 +23,7 @@
     "lavalink-client": "^2.10.1",
     "libsodium-wrappers": "^0.8.4",
     "memorystore": "^1.6.7",
-    "mongoose": "^9.5.0",
+    "mongoose": "^9.7.2",
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4",
     "play-dl": "^1.9.7",
