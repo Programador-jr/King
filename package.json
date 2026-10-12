@@ -2,7 +2,8 @@
   "scripts": {
     "postinstall": "node scripts/fix-sift.js",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@discordjs/builders": "^1.14.1",
