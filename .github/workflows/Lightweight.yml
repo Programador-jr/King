@@ -34,6 +34,9 @@ jobs:
         node --check index.js
         find . -name "*.js" -not -path "./node_modules/*" -exec node --check {} \;
 
+    - name: Tests
+      run: npm test
+
     - name: Lint (optional)
       run: |
         if [ -f package.json ] && grep -q "\"lint\"" package.json; then
