@@ -51,19 +51,31 @@ module.exports = (client) => {
 
   const app = express();
   const apiKey = String(process.env.KING_API_KEY || "").trim();
+  const isProduction = process.env.NODE_ENV === "production";
   const rawPort = String(process.env.KING_API_PORT || "").trim();
   const parsedPort = Number.parseInt(rawPort, 10);
   const port = Number.isInteger(parsedPort) && parsedPort >= 0 && parsedPort < 65536
     ? parsedPort
     : 3002;
 
-  const requireApiKey = (req, res, next) => {
-    if (!apiKey) return next();
+  if (isProduction && !apiKey) {
+    throw new Error("[KingAPI] KING_API_KEY is required in production.");
+  }
 
-    const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
+  const requireApiKey = (req, res, next) => {
+    if (!apiKey) {
+      return res.status(503).json({
+        ok: false,
+        error: "service_unavailable",
+        message: "API authentication is not configured.",
+      });
+    }
+
+    const authorization = String(req.headers.authorization || "");
+    const bearerMatch = authorization.match(/^Bearer\s+(.+)$/i);
+    const bearer = bearerMatch ? bearerMatch[1].trim() : "";
     const headerKey = String(req.headers["x-api-key"] || "").trim();
-    const queryKey = String(req.query.key || "").trim();
-    const provided = bearer || headerKey || queryKey;
+    const provided = bearer || headerKey;
 
     if (provided && provided === apiKey) return next();
 
@@ -78,19 +90,19 @@ module.exports = (client) => {
     res.json({ ok: true, service: "king-api", timestamp: new Date().toISOString() });
   });
 
-  app.get("/api/status", requireApiKey, (req, res) => {
+  app.get("/api/status", requireApiKey, (_req, res) => {
     res.json(buildStatusPayload(client));
   });
 
-  app.get("/api/status/bot", requireApiKey, (req, res) => {
+  app.get("/api/status/bot", requireApiKey, (_req, res) => {
     res.json(buildStatusPayload(client).bot);
   });
 
-  app.get("/api/status/lavalink", requireApiKey, (req, res) => {
+  app.get("/api/status/lavalink", requireApiKey, (_req, res) => {
     res.json(buildStatusPayload(client).lavalink);
   });
 
-  app.get("/api/status/mongodb", requireApiKey, (req, res) => {
+  app.get("/api/status/mongodb", requireApiKey, (_req, res) => {
     res.json(buildStatusPayload(client).mongodb);
   });
 
