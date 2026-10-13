@@ -18,6 +18,9 @@ afterEach(async () => {
 });
 
 test("dashboard serves public assets but does not expose internal files", async () => {
+  const dashboardSource = await fs.readFile(path.join(__dirname, "../dashboard/index.js"), "utf8");
+  assert.match(dashboardSource, /require\(["']\.\/staticAssets["']\)\(app, express, __dirname\)/);
+  assert.doesNotMatch(dashboardSource, /express\.static\(path\.join\(__dirname, ['"]\/['"]\),\s*\{\s*dotfiles:\s*['"]allow['"]\s*\}\)/);
   const dashboardDir = await fs.mkdtemp(path.join(os.tmpdir(), "king-dashboard-static-"));
   tempDirs.push(dashboardDir);
 
