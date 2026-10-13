@@ -12,6 +12,7 @@ const {
 } = require("discord.js");
 const { getBotBan, createBotBanEmbed } = require("../../handlers/devUtils");
 const { assertTicketAuthorization } = require("../../handlers/ticketAuthorization");
+const { getTicketReason } = require("../../handlers/ticketPanelIdentity");
 
 module.exports = async (client, interaction) => {
   if (interaction.user?.bot) return;
@@ -54,38 +55,32 @@ module.exports = async (client, interaction) => {
   // ===============================
   // MODAL SUBMIT (TICKETS COM PERGUNTAS)
   // ===============================
-  if (interaction.isModalSubmit() && interaction.customId.startsWith("ticket_modal_")) {
+  if (interaction.isModalSubmit() && (interaction.customId.startsWith("ticket-modal:") || interaction.customId.startsWith("ticket_modal_"))) {
     if (!client.ticketHandler) {
       const TicketHandler = require("../../handlers/tickets");
       client.ticketHandler = new TicketHandler(client);
     }
 
     try {
-      console.log("[Ticket Modal Submit] Processando respostas do modal...");
-      
-      const modalParts = interaction.customId.split('_');
-      const categoryId = modalParts.length > 3 ? (modalParts[3] === 'null' ? null : modalParts[3]) : null;
-      
-      console.log("[Ticket Modal Submit] Categoria extraída:", categoryId);
-      
+      if (!interaction.customId.startsWith("ticket-modal:")) {
+        return interaction.reply({ content: "Este formulario pertence a um painel antigo. Abra um novo ticket pelo painel.", flags: 64 });
+      }
+      const [, panelId, rawCategoryId] = interaction.customId.split(":");
+      const categoryId = rawCategoryId && rawCategoryId !== "-" ? rawCategoryId : null;
+      const panel = client.ticketHandler.getGuildPanels(interaction.guild.id)
+        .find((item) => String(item.id || item.panelId) === panelId);
+      if (!panel) {
+        return interaction.reply({ content: "Painel invalido ou removido. Peca a equipe para reenvia-lo.", flags: 64 });
+      }
+
       const answers = {};
-      let reason = "Ticket criado via painel";
-      
-      interaction.fields.fields.forEach((field) => {
-        const customId = field.customId;
-        answers[customId] = field.value;
-        if (customId === 'reason' || field.value.length > 0) {
-          reason = field.value;
-        }
-      });
-
-      console.log("[Ticket Modal Submit] Respostas coletadas:", Object.keys(answers).length);
-
+      interaction.fields.fields.forEach((field) => { answers[field.customId] = field.value; });
+      const reason = getTicketReason(panel, answers);
       const existingTicket = client.ticketHandler.getUserTicket(interaction.guild.id, interaction.user.id);
       if (existingTicket) {
         return interaction.reply({
-          content: `❌ Você já tem um ticket aberto: <#${existingTicket.channelId}>`,
-          flags: 64
+          content: `Voce ja tem um ticket aberto: <#${existingTicket.channelId}>`,
+          flags: 64,
         });
       }
 
@@ -95,25 +90,18 @@ module.exports = async (client, interaction) => {
         reason,
         interaction.user.tag
       );
-
       if (!ticketData) {
-        return interaction.reply({
-          content: "❌ Não foi possível criar o ticket.",
-          flags: 64
-        });
+        return interaction.reply({ content: "Nao foi possivel criar o ticket.", flags: 64 });
       }
 
       const ticketChannel = await client.ticketHandler.createTicketChannel(
         interaction.guild,
         ticketData,
-        categoryId
+        categoryId,
+        panel.id || panel.panelId
       );
-
       if (!ticketChannel) {
-        return interaction.reply({
-          content: "❌ Não foi possível criar o canal do ticket.",
-          flags: 64
-        });
+        return interaction.reply({ content: "Nao foi possivel criar o canal do ticket.", flags: 64 });
       }
 
       try {
@@ -121,66 +109,46 @@ module.exports = async (client, interaction) => {
       } catch (logError) {
         console.error("[Ticket Modal Submit] Erro ao enviar log de abertura:", logError);
       }
-      
+      const questionLabels = new Map((panel.questions || []).map((question) => [question.id, question.label]));
       const embed = new EmbedBuilder()
         .setColor("#5865F2")
-        .setTitle("🎫 Ticket Criado")
-        .setDescription(`Olá ${interaction.user}!\n\nSeu ticket foi criado com sucesso.\nA equipe irá responder assim que possível.`)
+        .setTitle("Ticket criado")
+        .setDescription(`Ola ${interaction.user}!\n\nSeu ticket foi criado com sucesso. A equipe respondera assim que possivel.`)
         .addFields(
           { name: "Ticket", value: `#${ticketData.ticketNumber}`, inline: true },
-          { name: "Criado por", value: interaction.user.tag, inline: true }
+          { name: "Criado por", value: interaction.user.tag, inline: true },
+          ...Object.entries(answers).filter(([, answer]) => answer && answer.trim()).map(([id, answer]) => ({
+            name: questionLabels.get(id) || id,
+            value: answer.length > 1024 ? `${answer.slice(0, 1021)}...` : answer,
+            inline: false,
+          }))
         )
         .setTimestamp()
-        .setFooter({ text: "Atendimento • Suporte" });
-
-      Object.entries(answers).forEach(([customId, answer], index) => {
-        if (answer && answer.trim()) {
-          embed.addFields({
-            name: `Resposta ${index + 1}`,
-            value: answer.length > 1024 ? answer.substring(0, 1021) + "..." : answer,
-            inline: false
-          });
-        }
-      });
-
-      const closeButton = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId("close_ticket")
-            .setLabel("🔒 Fechar Ticket")
-            .setStyle(ButtonStyle.Danger)
-        );
-
-      await ticketChannel.send({
-        content: `${interaction.user}`,
-        embeds: [embed],
-        components: [closeButton]
-      });
-
-      await interaction.reply({
-        content: `✅ Ticket criado com sucesso! <#${ticketChannel.id}>`,
-        flags: 64
-      });
-
+        .setFooter({ text: "Atendimento - Suporte" });
+      const closeButton = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("close_ticket").setLabel("Fechar Ticket").setStyle(ButtonStyle.Danger)
+      );
+      await ticketChannel.send({ content: `${interaction.user}`, embeds: [embed], components: [closeButton] });
+      await interaction.reply({ content: `Ticket criado com sucesso! <#${ticketChannel.id}>`, flags: 64 });
     } catch (error) {
       console.error("[Ticket Modal Submit] Erro:", error);
-      await interaction.reply({
-        content: "❌ Ocorreu um erro ao criar seu ticket.",
-        flags: 64
-      });
+      const payload = { content: "Ocorreu um erro ao criar seu ticket.", flags: 64 };
+      if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => {});
+      else await interaction.reply(payload).catch(() => {});
     }
     return;
   }
 
   // ===============================
-  // BOTÕES / SELECT MENU
+  // BUTTONS / SELECT MENUS
   // ===============================
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
 
     // ===============================
     // BOTÕES DE TICKETS
     // ===============================
-    if (interaction.customId === "create_ticket" || interaction.customId.startsWith("create_ticket_")) {
+    if (interaction.customId === "create_ticket" || interaction.customId.startsWith("create_ticket_")
+      || interaction.customId.startsWith("ticket-panel:")) {
       if (!client.ticketHandler) {
         const TicketHandler = require("../../handlers/tickets");
         client.ticketHandler = new TicketHandler(client);
@@ -199,11 +167,13 @@ module.exports = async (client, interaction) => {
 
         console.log("[Create Ticket] Buscando painel para verificar perguntas...");
         
-        const panel = client.ticketHandler.findPanelByCustomId(interaction.guild.id, interaction.customId);
+        const panel = client.ticketHandler.findPanelByButtonId(interaction.guild.id, interaction.customId, interaction.message?.id);
         
         if (!panel) {
-          console.log("[Create Ticket] Painel não encontrado, criando ticket diretamente...");
-          return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel", null);
+          return interaction.reply({
+            content: "Este painel de tickets nao e mais valido. Peca a equipe para reenvia-lo.",
+            flags: 64,
+          });
         }
 
         console.log("[Create Ticket] Painel encontrado:", panel.panelId);
@@ -217,10 +187,10 @@ module.exports = async (client, interaction) => {
 
         if (panel.questions && panel.questions.length > 0) {
           console.log("[Create Ticket] Abrindo modal com perguntas...");
-          return createTicketModal(interaction, panel.questions, categoryId);
+          return createTicketModal(interaction, panel.questions, categoryId, panel.id || panel.panelId);
         } else {
           console.log("[Create Ticket] Sem perguntas, criando ticket diretamente...");
-          return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel", categoryId);
+          return createTicketDirectly(interaction, client.ticketHandler, "Ticket criado via painel", categoryId, panel.id || panel.panelId);
         }
 
       } catch (error) {
@@ -641,28 +611,25 @@ module.exports = async (client, interaction) => {
 // ===============================
 // FUNÇÕES AUXILIARES
 // ===============================
-async function createTicketModal(interaction, questions, categoryId = null) {
+async function createTicketModal(interaction, questions, categoryId = null, panelId) {
   const modal = new ModalBuilder()
-    .setCustomId(`ticket_modal_${Date.now()}_${categoryId || 'null'}`)
+    .setCustomId(`ticket-modal:${panelId}:${categoryId || "-"}`)
     .setTitle("Abrir Ticket");
 
   questions.forEach((question, index) => {
     const input = new TextInputBuilder()
       .setCustomId(question.id || `question_${index}`)
-      .setLabel(question.label || 'Pergunta')
-      .setStyle(question.type === 'textarea' ? TextInputStyle.Paragraph : TextInputStyle.Short)
-      .setPlaceholder(question.placeholder || '')
+      .setLabel(question.label || "Pergunta")
+      .setStyle(question.type === "textarea" ? TextInputStyle.Paragraph : TextInputStyle.Short)
+      .setPlaceholder(question.placeholder || "")
       .setRequired(question.required !== false)
       .setMaxLength(1000);
-
-    const actionRow = new ActionRowBuilder().addComponents(input);
-    modal.addComponents(actionRow);
+    modal.addComponents(new ActionRowBuilder().addComponents(input));
   });
-
   await interaction.showModal(modal);
 }
 
-async function createTicketDirectly(interaction, ticketHandler, reason, categoryId = null) {
+async function createTicketDirectly(interaction, ticketHandler, reason, categoryId = null, panelId = null) {
   const ticketData = await ticketHandler.createTicket(
     interaction.guild.id,
     interaction.user.id,
@@ -680,7 +647,8 @@ async function createTicketDirectly(interaction, ticketHandler, reason, category
   const ticketChannel = await ticketHandler.createTicketChannel(
     interaction.guild,
     ticketData,
-    categoryId
+    categoryId,
+    panelId
   );
 
   if (!ticketChannel) {

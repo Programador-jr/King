@@ -91,7 +91,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 
 | Componente | Tecnologia | Versão |
 |-----------|-----------|---------|
-| **Runtime** | Node.js | >= 20.11.1 |
+| **Runtime** | Node.js | >= 20.19.0 |
 | **Biblioteca Discord** | discord.js | v14 |
 | **Sistema de Música** | Lavalink Client | v2.9.7 |
 | **Framework Web** | Express | v5.2.1 |
@@ -106,7 +106,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 ## 📦 Instalação
 
 ### Pré-requisitos
-- Node.js >= 20.11.1
+- Node.js >= 20.19.0
 - npm ou yarn
 - MongoDB (local ou Atlas)
 - Discord Bot Token
@@ -146,6 +146,10 @@ PREFIX=k
 # ============================================
 MONGODB_URI=mongodb+srv://usuario:senha@cluster.mongodb.net/king
 DNS_RESULT_ORDER=ipv4first
+# Resolvedores DNS customizados opcionais, separados por vírgula (IPv4/IPv6 e porta opcional)
+# DNS_SERVERS=1.1.1.1,8.8.8.8
+# Ative apenas para diagnóstico temporário; o rastreamento de Promises adiciona custo em runtime
+# ANTI_CRASH_TRACE_PROMISES=true
 
 # ============================================
 # INTEGRAÇÃO SPOTIFY (Opcional)
@@ -209,6 +213,8 @@ Configurações estruturais do dashboard:
   "domain": "localhost"
 }
 ```
+
+Com `antiCrash` ativado, uma excecao nao capturada ou rejeicao nao tratada e registrada com valores sensiveis ocultos e encerra o processo com codigo 1. Use um gerenciador de processos ou politica de reinicio do container para recuperacao automatica. O rastreamento da origem de Promises fica desativado normalmente; ative `ANTI_CRASH_TRACE_PROMISES=true` apenas durante um diagnostico, pois adiciona custo de runtime. O comportamento de TLS fica a cargo do Node.js, sem monkey-patching global.
 
 ### Configuração do Discord Developer Portal
 

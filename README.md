@@ -91,7 +91,7 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| **Runtime** | Node.js | >= 20.11.1 |
+| **Runtime** | Node.js | >= 20.19.0 |
 | **Discord Library** | discord.js | v14 |
 | **Music System** | Lavalink Client | v2.9.7 |
 | **Web Framework** | Express | v5.2.1 |
@@ -106,7 +106,7 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 ## 📦 Installation
 
 ### Prerequisites
-- Node.js >= 20.11.1
+- Node.js >= 20.19.0
 - npm or yarn
 - MongoDB (local or Atlas)
 - Discord Bot Token
@@ -146,6 +146,10 @@ PREFIX=k
 # ============================================
 MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/king
 DNS_RESULT_ORDER=ipv4first
+# Optional custom DNS resolvers (comma-separated IPv4/IPv6 addresses, optionally with ports)
+# DNS_SERVERS=1.1.1.1,8.8.8.8
+# Set only for temporary diagnostics; promise stack tracking adds runtime overhead
+# ANTI_CRASH_TRACE_PROMISES=true
 
 # ============================================
 # SPOTIFY INTEGRATION (Optional)
@@ -209,6 +213,8 @@ Dashboard structural settings:
   "domain": "localhost"
 }
 ```
+
+When `antiCrash` is enabled, an uncaught exception or unhandled rejection is logged with sensitive values redacted and terminates the process with exit code 1. Run the bot under a process manager or container restart policy if automatic recovery is required. Promise creation stack tracking is disabled normally; enable `ANTI_CRASH_TRACE_PROMISES=true` only while diagnosing an issue because it adds runtime overhead. TLS behavior is left to Node.js without global monkey-patching.
 
 ### Discord Developer Portal Setup
 

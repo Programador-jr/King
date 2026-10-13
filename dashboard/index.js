@@ -28,6 +28,7 @@ const {
 const { createDashboardSessionConfig } = require("./sessionConfig");
 const { createDashboardRequestSecurity } = require("./requestSecurity");
 const { assertTicketAuthorization } = require("../handlers/ticketAuthorization");
+const { makePanelButtonCustomId } = require("../handlers/ticketPanelIdentity");
 
 const getBotData = (client) => ({
   avatar: client.user.displayAvatarURL({ size: 128 }),
@@ -1642,13 +1643,13 @@ module.exports = client => {
           .setDescription(description || "Precisa de ajuda? Clique no botÃ£o abaixo para criar um ticket.")
           .setFooter({ text: "Sistema de Tickets" });
 
-        const row = new MessageActionRow()
-          .addComponents(
-            new MessageButton()
-              .setCustomId("create_ticket")
-              .setLabel(buttonLabel || "ðŸŽ« Criar Ticket")
-              .setStyle("PRIMARY")
-          );
+        const panelId = `panel-${Date.now()}`;
+        const row = new MessageActionRow().addComponents(
+          new MessageButton()
+            .setCustomId(makePanelButtonCustomId(panelId, 0))
+            .setLabel(buttonLabel || "Criar Ticket")
+            .setStyle("PRIMARY")
+        );
 
         const panelMessage = await channel.send({
           embeds: [embed],
@@ -1661,11 +1662,15 @@ module.exports = client => {
         }
 
         await client.ticketHandler.createPanel(guildId, {
+          id: panelId,
+          panelId,
           channelId: channelId,
           messageId: panelMessage.id,
           title: title,
           description: description,
-          buttonLabel: buttonLabel
+          buttonLabel: buttonLabel,
+          buttons: [{ customId: makePanelButtonCustomId(panelId, 0), label: buttonLabel || "Criar Ticket", style: "PRIMARY" }],
+          questions: [],
         });
 
         return res.json({ ok: true, message: "Painel criado com sucesso" });
@@ -1782,9 +1787,9 @@ module.exports = client => {
         const rows = [];
         const buttonRow = new MessageActionRow();
         
-        (panel.buttons || []).forEach(btn => {
+        (panel.buttons || []).forEach((btn, index) => {
           const button = new MessageButton()
-            .setCustomId(btn.customId || 'create_ticket')
+            .setCustomId(makePanelButtonCustomId(panel.id || panel.panelId, index))
             .setLabel(btn.label || 'Criar Ticket')
             .setStyle(btn.style || 'PRIMARY');
           if (btn.emoji) button.setEmoji(btn.emoji);
@@ -2070,10 +2075,8 @@ module.exports = client => {
         const rows = [];
         const buttonRow = new MessageActionRow();
         
-        buttons.forEach(btn => {
-          const customId = btn.customId && btn.customId !== 'create_ticket' 
-            ? btn.customId 
-            : `create_ticket_${panelId}`;
+        buttons.forEach((btn, index) => {
+          const customId = makePanelButtonCustomId(panelId, index);
           const button = new MessageButton()
             .setCustomId(customId)
             .setLabel(btn.label || 'Criar Ticket')
@@ -2096,11 +2099,9 @@ module.exports = client => {
           client.ticketHandler = new TicketHandler(client);
         }
 
-        const updatedButtons = buttons.map(btn => ({
+        const updatedButtons = buttons.map((btn, index) => ({
           ...btn,
-          customId: btn.customId && btn.customId !== 'create_ticket' 
-            ? btn.customId 
-            : `create_ticket_${panelId}`
+          customId: makePanelButtonCustomId(panelId, index)
         }));
 
         await client.ticketHandler.createPanel(guildId, {

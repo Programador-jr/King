@@ -3,22 +3,11 @@ const dns = require("node:dns");
 const GuildSettings = require("./settings");
 const GuildStats = require("./infos");
 const UserCoins = require("./kingcoin");
+const { parseDnsServers } = require("../handlers/dnsServers");
 const DELETE_FIELD = Symbol("delete-field");
 
-const isProduction = process.env.NODE_ENV;
-let dnsServers = null;
-
-if (!isProduction) {
-  const rawDnsServers = process.env.DNS_SERVERS || "";
-  dnsServers = rawDnsServers
-    .split(",")
-    .map((server) => server.trim())
-    .filter(Boolean);
-
-  if (dnsServers.length) {
-    dns.setServers(dnsServers);
-  }
-}
+const dnsServers = parseDnsServers(process.env.DNS_SERVERS);
+if (dnsServers.length) dns.setServers(dnsServers);
 
 const MONGO_URI = process.env.MONGO_URI;
 
