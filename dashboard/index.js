@@ -26,6 +26,7 @@ const {
   getDashboardCallbackUrl,
 } = require("../handlers/dashboardConfig");
 const { createDashboardSessionConfig } = require("./sessionConfig");
+const { createDashboardRequestSecurity } = require("./requestSecurity");
 
 const getBotData = (client) => ({
   avatar: client.user.displayAvatarURL({ size: 128 }),
@@ -267,6 +268,7 @@ module.exports = client => {
     // We instantiate express app and the session store.
     const app = express();
     const httpApp = express();
+    const dashboardSecurity = createDashboardRequestSecurity({ production: isProduction });
     const session = require(`express-session`);
     const MemoryStore = require(`memorystore`)(session);
 
@@ -290,6 +292,7 @@ module.exports = client => {
      * @INFO - ADD A SESSION SAVER
      */
     app.set("trust proxy", dashboardSessionConfig.trustProxy);
+    app.use(dashboardSecurity.securityHeaders);
     app.use(session({
         store: new MemoryStore({ checkPeriod: 86400000 }),
         secret: dashboardSessionConfig.secret,
@@ -308,12 +311,21 @@ module.exports = client => {
 
 
     //Those for app.use(s) are for the input of the post method (updateing settings)
-    app.use(express.json());
-    app.use(express.urlencoded({
-      extended: true
-    }));
+    app.use(dashboardSecurity.requestRateLimit);
+    app.use(dashboardSecurity.jsonParser);
+    app.use(dashboardSecurity.urlencodedParser);
+    app.use(dashboardSecurity.sameOriginProtection);
+    app.use(dashboardSecurity.csrfProtection);
     app.use((req, res, next) => {
       res.locals.isDevUser = Boolean(req?.isAuthenticated?.() && req?.user?.id && isDeveloper(req.user.id));
+      if (req.method === "GET"
+        && req.path !== "/login"
+        && req.path !== "/callback"
+        && !req.path.startsWith("/api/")
+        && !req.path.startsWith("/public/")
+        && req.accepts("html")) {
+        res.locals.csrfToken = dashboardSecurity.generateCsrfToken(req);
+      }
       next();
     });
 
@@ -505,7 +517,7 @@ module.exports = client => {
 
 
     //Logout the user and move him back to the main page
-    app.get("/logout", (req, res, next) => {
+    app.post("/logout", (req, res, next) => {
       const destroySession = () => {
         if (!req.session) {
           res.clearCookie("connect.sid", {
@@ -2391,6 +2403,8 @@ module.exports = client => {
     } else {
       console.log("[TopGG] WEBHOOK DESATIVADO: TOPGG_WEBHOOK_AUTH não configurado no .env");
     }
+
+    app.use(dashboardSecurity.errorHandler);
 
     /**
      * @START THE WEBSITE

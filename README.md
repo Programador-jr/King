@@ -183,6 +183,8 @@ In production, the dashboard requires a random `DASHBOARD_SESSION_SECRET` of at 
 
 Sessions currently use an in-memory store. They do not survive process restarts and are not shared across multiple dashboard instances. Use one dashboard instance until a persistent store compatible with the deployment topology is configured; the repository does not define a production session-store backend yet.
 
+Dashboard requests use session-backed CSRF tokens on state-changing methods, plus same-origin checks when browsers send `Origin` or Fetch Metadata headers. The Top.gg webhook keeps its provider authentication flow and skips browser CSRF checks. The dashboard applies in-memory rate limits per process: 20 login/callback requests per 15 minutes, 30 queue controls and 30 ticket actions per minute, 60 other mutations per minute, and 120 Top.gg webhook requests per minute. JSON and URL-encoded bodies are limited to 256 KB; URL-encoded forms accept up to 200 parameters. Oversized requests return 413, cross-origin or invalid-CSRF requests return 403, and rate limits return 429. Helmet's CSP allows the existing inline dashboard scripts and event handlers together with the Bootstrap, Font Awesome, and Google Fonts assets; removing inline-script allowances requires migrating those legacy handlers first.
+
 ### Configuration Files
 
 #### `botconfig/config.json`

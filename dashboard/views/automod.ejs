@@ -121,6 +121,7 @@
     </div>
 
     <form method="POST" action="/dashboard/<%= guild.id %>/automod" class="settings-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="row">
         <div class="col-lg-8">
           <div class="info-box">
