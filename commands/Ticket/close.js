@@ -7,6 +7,7 @@ const {
 const config = require("../../botconfig/config.json");
 var ee = require("../../botconfig/embed.json");
 const settings = require("../../botconfig/settings.json");
+const { assertTicketAuthorization } = require("../../handlers/ticketAuthorization");
 
 module.exports = {
     name: "close",
@@ -15,7 +16,7 @@ module.exports = {
     aliases: ["fechar"],
     cooldown: 5,
     description: "Fecha um ticket",
-    memberpermissions: ["MANAGE_CHANNELS"],
+    memberpermissions: [],
     run: async (client, message, args) => {
         try {
             if (!client.ticketHandler) {
@@ -40,12 +41,20 @@ module.exports = {
                 return message.reply({ content: "❌ Ticket não encontrado.", flags: 64 });
             }
 
+            if (!assertTicketAuthorization(client, ticketData, message.member, "close")) {
+                return message.reply({ content: "Você não tem permissão para fechar este ticket.", flags: 64 });
+            }
+
             const closedTicket = await client.ticketHandler.closeTicket(
                 message.guild.id,
                 ticketNumber,
                 message.author.id,
                 message.author.tag
             );
+
+            if (!closedTicket) {
+                return message.reply({ content: "O ticket não está aberto ou não foi possível fechá-lo.", flags: 64 });
+            }
 
             await client.ticketHandler.sendCloseLog(
                 message.guild.id,

@@ -6,8 +6,11 @@ const path = require("node:path");
  * served from the dashboard root.
  */
 module.exports = function mountDashboardStaticAssets(app, express, dashboardDir) {
-  app.use(express.static(path.join(dashboardDir, "public"), {
+  const publicDirectory = path.join(dashboardDir, "public");
+  const options = {
     dotfiles: "ignore",
     index: false,
-  }));
+  };
+  app.use(express.static(publicDirectory, options));
+  app.use("/public", express.static(publicDirectory, options));
 };

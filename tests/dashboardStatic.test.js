@@ -43,11 +43,12 @@ test("dashboard serves public assets but does not expose internal files", async 
   });
 
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
-  const asset = await fetch(`${baseUrl}/style.css`);
+  const asset = await fetch(`${baseUrl}/public/style.css`);
   assert.equal(asset.status, 200);
   assert.match(await asset.text(), /color: black/);
+  assert.equal((await fetch(`${baseUrl}/style.css`)).status, 200);
 
-  for (const route of ["/index.js", "/settings.json", "/.env", "/views/index.ejs"]) {
+  for (const route of ["/public/index.js", "/public/settings.json", "/public/.env", "/public/views/index.ejs", "/index.js", "/settings.json", "/.env", "/views/index.ejs"]) {
     const response = await fetch(`${baseUrl}${route}`);
     assert.equal(response.status, 404, `${route} should not be publicly accessible`);
     const body = await response.text();

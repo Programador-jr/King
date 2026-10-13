@@ -321,6 +321,8 @@ The bot will:
 5. **Tickets** - Create and manage ticket panels
 6. **Logs** - View action history and audit trail
 
+Ticket access policy: ticket owners may close or reopen their own tickets; members with a configured `ticketRoles` support role or `Manage Guild`/Administrator permission may close and reopen any ticket. Only support staff and administrators may delete a closed ticket. Discord interactions and dashboard APIs enforce the same policy.
+
 ## 🔐 Security
 
 ### Best Practices

@@ -11,6 +11,7 @@ const {
   PermissionFlagsBits
 } = require("discord.js");
 const { getBotBan, createBotBanEmbed } = require("../../handlers/devUtils");
+const { assertTicketAuthorization } = require("../../handlers/ticketAuthorization");
 
 module.exports = async (client, interaction) => {
   if (interaction.user?.bot) return;
@@ -291,7 +292,7 @@ module.exports = async (client, interaction) => {
           ticketUserId: ticketData.userId
         });
         
-        if (!isTicketOwner && !hasManageGuildPermission) {
+        if (!assertTicketAuthorization(client, ticketData, interaction.member, "close")) {
           console.log("[Close Ticket] Erro: Usuário sem permissão");
           return interaction.reply({
             content: "❌ Apenas o dono do ticket ou staff pode fechar o ticket.",
@@ -322,11 +323,6 @@ module.exports = async (client, interaction) => {
         const durationText = duration > 0 
           ? `${duration} minuto${duration !== 1 ? 's' : ''}`
           : "menos de 1 minuto";
-
-        await interaction.channel.permissionOverwrites.edit(closedTicket.userId, {
-          ViewChannel: false,
-          SendMessages: false
-        });
 
         try {
           await client.ticketHandler.sendCloseLog(interaction.guild.id, closedTicket, interaction.guild, interaction.user);
@@ -404,19 +400,22 @@ module.exports = async (client, interaction) => {
       }
 
       try {
+        const ticketData = client.ticketHandler.getTicket(interaction.guild.id, ticketNumber);
+        if (!ticketData) {
+          return interaction.reply({ content: "Ticket não encontrado.", flags: 64 });
+        }
+        if (!assertTicketAuthorization(client, ticketData, interaction.member, "reopen")) {
+          return interaction.reply({ content: "Você não tem permissão para reabrir este ticket.", flags: 64 });
+        }
         const reopenedTicket = await client.ticketHandler.reopenTicket(
           interaction.guild.id,
           ticketNumber,
           interaction.user.id,
           interaction.user.tag
         );
-
-        await interaction.channel.setName(`ticket-${ticketNumber}`);
-        await interaction.channel.permissionOverwrites.edit(interaction.user, {
-          ViewChannel: true,
-          SendMessages: true,
-          ReadMessageHistory: true
-        });
+        if (!reopenedTicket) {
+          return interaction.reply({ content: "O ticket não está fechado ou não foi possível reabri-lo.", flags: 64 });
+        }
 
         const embed = new EmbedBuilder()
           .setColor("#00D26A")
@@ -479,22 +478,22 @@ module.exports = async (client, interaction) => {
       }
 
       try {
-        await client.ticketHandler.deleteTicket(interaction.guild.id, ticketNumber);
-        await interaction.reply({
-          content: "🗑️ O ticket será deletado em 3 segundos...",
-          flags: 64
-        });
-        
-        setTimeout(() => {
-          interaction.channel.delete().catch(console.error);
-        }, 3000);
+        const ticketData = client.ticketHandler.getTicket(interaction.guild.id, ticketNumber);
+        if (!ticketData) return interaction.reply({ content: "Ticket não encontrado.", flags: 64 });
+        if (!assertTicketAuthorization(client, ticketData, interaction.member, "delete")) {
+          return interaction.reply({ content: "Apenas a equipe de suporte pode excluir tickets.", flags: 64 });
+        }
+        await interaction.deferReply({ flags: 64 });
+        const deletedTicket = await client.ticketHandler.deleteTicket(interaction.guild.id, ticketNumber);
+        if (!deletedTicket) return interaction.editReply("O ticket não está fechado ou não pôde ser excluído.");
+        await interaction.editReply("Ticket excluído com sucesso.");
+        return;
 
       } catch (error) {
         console.error("[Delete Ticket] Erro:", error);
-        await interaction.reply({
-          content: "❌ Ocorreu um erro ao deletar o ticket.",
-          flags: 64
-        });
+        const response = { content: "Ocorreu um erro ao excluir o ticket.", flags: 64 };
+        if (interaction.deferred || interaction.replied) await interaction.editReply(response).catch(() => {});
+        else await interaction.reply(response);
       }
       return;
     }
