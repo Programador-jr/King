@@ -24,7 +24,7 @@ class AlertSystem {
 
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/alerts.css';
+    link.href = '/public/alerts.css';
     document.head.appendChild(link);
   }
 
