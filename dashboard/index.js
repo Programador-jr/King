@@ -289,10 +289,8 @@ module.exports = client => {
       next();
     });
 
-    //LOAD THE ASSETS
-    app.use(express.static(path.join(__dirname, './public')));
-    //Load .well-known (if available)
-    app.use(express.static(path.join(__dirname, '/'), {dotfiles: 'allow'}));
+    // Serve only explicitly public dashboard assets; never expose the dashboard root.
+    require("./staticAssets")(app, express, __dirname);
     
     // We declare a checkAuth function middleware to check if an user is logged in or not, and if not redirect him.
     const checkAuth = (req, res, next) => {
