@@ -59,24 +59,38 @@ module.exports = client => {
     const settings = require("./settings.json");
     const dashboardClientId = process.env.DASHBOARD_CLIENT_ID || settings?.config?.clientID || "";
     const dashboardClientSecret = process.env.DASHBOARD_CLIENT_SECRET || settings?.config?.secret || "";
+    const isProduction = process.env.NODE_ENV === "production";
+    const trustDashboardProxy = process.env.DASHBOARD_TRUST_PROXY === "1"
+      || process.env.DASHBOARD_TRUST_PROXY === "true"
+      || settings?.config?.trustProxy === true;
+    const httpPort = getDashboardPort(settings);
+    const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
+    const resolvedCallback = getDashboardCallbackUrl(settings) || `${resolvedDomain}/callback`;
+    const dashboardSessionConfig = createDashboardSessionConfig({
+      production: isProduction,
+      secureCookie: isProduction || /^https:\/\//i.test(resolvedDomain),
+      trustProxy: trustDashboardProxy,
+    });
+
+    if (isProduction) {
+      if (!/^\d{17,20}$/.test(String(dashboardClientId).trim())) {
+        throw new Error("[dashboard] DASHBOARD_CLIENT_ID must be a valid Discord application ID in production.");
+      }
+      if (!dashboardClientSecret || /^(your|sua|replace|paste|cole|substitua|change[_ -]?me|example|placeholder)/i.test(String(dashboardClientSecret).trim())) {
+        throw new Error("[dashboard] DASHBOARD_CLIENT_SECRET must be configured with a non-placeholder value in production.");
+      }
+      let callbackUrl;
+      try { callbackUrl = new URL(resolvedCallback); } catch {}
+      if (!callbackUrl || !["http:", "https:"].includes(callbackUrl.protocol) || callbackUrl.protocol !== "https:") {
+        throw new Error("[dashboard] Configure DASHBOARD_CALLBACK (or DASHBOARD_DOMAIN) as an HTTPS URL in production.");
+      }
+    }
 
     if (!dashboardClientId || !dashboardClientSecret) {
       console.log("[dashboard] Desativado: DASHBOARD_CLIENT_ID/DASHBOARD_CLIENT_SECRET ausentes no .env (ou dashboard/settings.json).");
       return;
     }
 
-    const httpPort = getDashboardPort(settings);
-    const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
-    const resolvedCallback = getDashboardCallbackUrl(settings) || `${resolvedDomain}/callback`;
-    const isProduction = process.env.NODE_ENV === "production";
-    const trustDashboardProxy = process.env.DASHBOARD_TRUST_PROXY === "1"
-      || process.env.DASHBOARD_TRUST_PROXY === "true"
-      || settings?.config?.trustProxy === true;
-    const dashboardSessionConfig = createDashboardSessionConfig({
-      production: isProduction,
-      secureCookie: isProduction || /^https:\/\//i.test(resolvedDomain),
-      trustProxy: trustDashboardProxy,
-    });
     if (dashboardSessionConfig.generatedSecret) {
       console.warn("[dashboard] DASHBOARD_SESSION_SECRET ausente; usando segredo temporário apenas para desenvolvimento. As sessões serão invalidadas ao reiniciar.");
     }

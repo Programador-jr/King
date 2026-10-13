@@ -179,7 +179,9 @@ NODE_ENV=production
 PORT=5000
 ```
 
-In production, `DASHBOARD_SESSION_SECRET` is required and must be a random value of at least 32 characters; placeholders and short values are rejected. In development, an omitted secret is generated temporarily, invalidating sessions after a restart. If HTTPS is terminated by a trusted reverse proxy, set `DASHBOARD_TRUST_PROXY=1`. The current session store is in memory, so sessions do not survive process restarts.
+In production, the dashboard requires a random `DASHBOARD_SESSION_SECRET` of at least 32 characters, valid Discord OAuth credentials, and an HTTPS callback URL; missing, weak, or placeholder settings stop dashboard startup. In development, an omitted session secret is generated temporarily, invalidating sessions after a restart. If HTTPS is terminated by a trusted reverse proxy, set `DASHBOARD_TRUST_PROXY=1` only when the proxy is trusted. Login regenerates the session, and logout destroys it and clears the cookie.
+
+Sessions currently use an in-memory store. They do not survive process restarts and are not shared across multiple dashboard instances. Use one dashboard instance until a persistent store compatible with the deployment topology is configured; the repository does not define a production session-store backend yet.
 
 ### Configuration Files
 

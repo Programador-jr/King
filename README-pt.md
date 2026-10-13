@@ -179,7 +179,9 @@ NODE_ENV=production
 PORT=5000
 ```
 
-Em produção, `DASHBOARD_SESSION_SECRET` é obrigatório e deve ser um valor aleatório com pelo menos 32 caracteres; valores de exemplo ou curtos são rejeitados. Em desenvolvimento, se a chave for omitida, uma chave temporária será gerada e as sessões serão invalidadas após reiniciar o processo. Se o HTTPS terminar em um proxy reverso confiável, defina `DASHBOARD_TRUST_PROXY=1`. O armazenamento atual das sessões é em memória, portanto elas não sobrevivem a reinicializações.
+Em produção, o dashboard exige um `DASHBOARD_SESSION_SECRET` aleatório com pelo menos 32 caracteres, credenciais OAuth válidas do Discord e uma URL HTTPS de callback; configurações ausentes, fracas ou de exemplo interrompem a inicialização do dashboard. Em desenvolvimento, se a chave de sessão for omitida, uma chave temporária será gerada e as sessões serão invalidadas após reiniciar o processo. Se o HTTPS terminar em um proxy reverso confiável, defina `DASHBOARD_TRUST_PROXY=1` somente quando esse proxy for confiável. O login regenera a sessão e o logout a destrói e remove o cookie.
+
+As sessões usam atualmente um armazenamento em memória. Elas não sobrevivem a reinicializações e não são compartilhadas entre várias instâncias do dashboard. Use uma única instância até configurar um armazenamento persistente compatível com a topologia da implantação; o repositório ainda não define um backend de sessões para produção.
 
 ### Arquivos de Configuração
 
