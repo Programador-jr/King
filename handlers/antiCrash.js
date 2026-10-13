@@ -1,123 +1,61 @@
+const fs = require("node:fs");
 const asyncHooks = require("node:async_hooks");
-const tls = require("node:tls");
-
-const HANDSHAKE_ERROR_CODES = new Set([
-  "ERR_SSL_SSL/TLS_ALERT_HANDSHAKE_FAILURE",
-  "ERR_SSL_TLSV1_ALERT_PROTOCOL_VERSION",
-  "EPROTO",
-]);
 
 const promiseCreationStacks = new WeakMap();
-let promiseTrackingEnabled = false;
-let tlsPatched = false;
+const TRACE_PROMISES = process.env.ANTI_CRASH_TRACE_PROMISES === "true";
 
-const toErrorLike = (value) => (value instanceof Error ? value : new Error(String(value)));
-const getErrorCode = (error) => String(error?.code || "");
-const isTlsHandshakeFailure = (error) => {
-  const code = getErrorCode(error);
-  if (HANDSHAKE_ERROR_CODES.has(code)) return true;
-  const message = String(error?.message || error || "");
-  return /ssl\/tls alert handshake failure|alert number 40/i.test(message);
-};
+function redact(value) {
+  return String(value ?? "")
+    .replace(/\b(Bearer\s+)[^\s,;]+/gi, "$1[REDACTED]")
+    .replace(/\b([a-z_-]*(?:password|passwd|secret|token|authorization|api[_-]?key|credential|signature|auth)[a-z_-]*)(\s*[:=]\s*)([^\s,;]+)/gi, "$1$2[REDACTED]")
+    .replace(/\b((?:mongo(?:db)?_?uri|database_?url|connection_?string)\s*[:=]\s*)[^\s,;]+/gi, "$1[REDACTED]")
+    .replace(/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^\s/@]+@/gi, "$1[REDACTED]@")
+    .replace(/([?&][^=&\s]*(?:token|key|secret|password|signature|auth|credential)[^=&\s]*=)[^&#\s]+/gi, "$1[REDACTED]")
+    .slice(0, 2000);
+}
 
-const formatError = (error) => {
-  const err = toErrorLike(error);
+function safeError(error) {
+  const candidate = error instanceof Error ? error : new Error(String(error));
   return {
-    name: err.name || "Error",
-    code: getErrorCode(err) || "NO_CODE",
-    message: err.message || String(err),
-    stack: err.stack || "",
-    cause: err.cause ? String(err.cause) : "",
-    host: err.host || err.hostname || "",
-    port: err.port || "",
-    address: err.address || "",
-    url: err.config?.url || err.request?.path || "",
-    method: err.config?.method || "",
+    name: redact(candidate.name || "Error"),
+    code: redact(candidate.code || "NO_CODE"),
+    message: redact(candidate.message || "Unspecified error"),
   };
-};
+}
 
-const enablePromiseTracking = () => {
-  if (promiseTrackingEnabled) return;
-  promiseTrackingEnabled = true;
-
-  asyncHooks
-    .createHook({
-      init(asyncId, type, triggerAsyncId, resource) {
-        if (type !== "PROMISE" || !resource || typeof resource.then !== "function") return;
-        const holder = {};
-        Error.captureStackTrace(holder, enablePromiseTracking);
-        promiseCreationStacks.set(resource, String(holder.stack || ""));
-      },
-    })
-    .enable();
-};
-
-const patchTlsConnectLogging = () => {
-  if (tlsPatched) return;
-  tlsPatched = true;
-
-  const originalConnect = tls.connect;
-  tls.connect = function patchedTlsConnect(...args) {
-    let options = {};
-
-    if (typeof args[0] === "object" && args[0] !== null) {
-      options = args[0];
-    } else {
-      if (typeof args[0] === "number") options.port = args[0];
-      if (typeof args[1] === "string") options.host = args[1];
-      if (typeof args[1] === "object" && args[1] !== null) options = { ...options, ...args[1] };
-      if (typeof args[2] === "object" && args[2] !== null) options = { ...options, ...args[2] };
-    }
-
-    const socket = originalConnect.apply(this, args);
-    socket.once("error", (error) => {
-      if (!isTlsHandshakeFailure(error)) return;
-      const host = options.servername || options.host || options.hostname || "unknown";
-      const port = Number(options.port || 443);
-      console.log(`[antiCrash][TLS] Handshake failure in ${host}:${port}`);
-    });
-
-    return socket;
-  };
-};
+function fatalLog(kind, error, origin = "") {
+  const details = safeError(error);
+  const trace = TRACE_PROMISES && error && promiseCreationStacks.get(error);
+  const line = `[antiCrash] fatal ${kind}${origin ? ` (${redact(origin)})` : ""}: ${details.name} code=${details.code} message=${details.message}${trace ? `\nPromise created at: ${redact(trace)}` : ""}\n`;
+  try {
+    fs.writeSync(2, line);
+  } catch {
+    // Preserve the fatal exit even when stderr is unavailable.
+  }
+  process.exit(1);
+}
 
 module.exports = () => {
-  enablePromiseTracking();
-  patchTlsConnectLogging();
+  if (TRACE_PROMISES) {
+    asyncHooks.createHook({
+      init(_asyncId, type, _triggerAsyncId, resource) {
+        if (type !== "PROMISE" || !resource || typeof resource.then !== "function") return;
+        const holder = {};
+        Error.captureStackTrace(holder, module.exports);
+        promiseCreationStacks.set(resource, holder.stack || "");
+      },
+    }).enable();
+  }
 
   process.on("unhandledRejection", (reason, promise) => {
-    const info = formatError(reason);
-    const createdAt = promiseCreationStacks.get(promise) || "";
-
-    if (isTlsHandshakeFailure(reason)) {
-      console.log(" [antiCrash] :: Unhandled rejection (TLS handshake)");
-      console.log(`[antiCrash] code=${info.code} host=${info.host || "?"} port=${info.port || "?"} url=${info.url || "?"}`);
-      if (info.stack) console.log(info.stack);
-      if (createdAt) console.log("[antiCrash] Promise created at:\n" + createdAt);
-      return;
+    const error = reason instanceof Error ? reason : new Error(String(reason));
+    if (TRACE_PROMISES && promise && error && !promiseCreationStacks.has(error)) {
+      const trace = promiseCreationStacks.get(promise);
+      if (trace) promiseCreationStacks.set(error, trace);
     }
-
-    console.log(" [antiCrash] :: Unhandled rejection/Catch");
-    console.log(`[antiCrash] code=${info.code} message=${info.message}`);
-    if (info.url || info.method) {
-      console.log(`[antiCrash] request=${String(info.method || "GET").toUpperCase()} ${info.url || "-"}`);
-    }
-    if (info.stack) console.log(info.stack);
-    if (createdAt) console.log("[antiCrash] Promise created at:\n" + createdAt);
+    fatalLog("unhandledRejection", error);
   });
 
-  process.on("uncaughtException", (err, origin) => {
-    const info = formatError(err);
-    console.log(" [antiCrash] :: Uncaught exception/Catch");
-    console.log(`[antiCrash] origin=${origin || "unknown"} code=${info.code} message=${info.message}`);
-    if (info.stack) console.log(info.stack);
-  });
-
-  process.on("uncaughtExceptionMonitor", (err, origin) => {
-    const info = formatError(err);
-    console.log(" [antiCrash] :: Uncaught exception/Catch (MONITOR)");
-    console.log(`[antiCrash] origin=${origin || "unknown"} code=${info.code} message=${info.message}`);
-    if (info.stack) console.log(info.stack);
-  });
-
+  // Do not swallow uncaught exceptions: terminate immediately after a sanitized synchronous log.
+  process.on("uncaughtException", (error, origin) => fatalLog("uncaughtException", error, origin));
 };

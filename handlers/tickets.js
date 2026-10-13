@@ -1,3 +1,5 @@
+const { parsePanelButtonCustomId } = require("./ticketPanelIdentity");
+
 class TicketHandler {
     constructor(client) {
         this.client = client;
@@ -799,22 +801,37 @@ class TicketHandler {
     }
 
     findPanelByCustomId(guildId, customId) {
+        return this.findPanelByButtonId(guildId, customId);
+    }
+
+    findPanelByButtonId(guildId, customId, messageId = null) {
         try {
             const panels = this.getGuildPanels(guildId);
-            
-            // Procurar nos botões dos painéis
-            let panel = panels.find(p => (p.buttons || []).some(btn => btn.customId === customId));
-            if (panel) return panel;
-            
-            // Se não encontrar, tenta encontrar pelo padrão create_ticket_panelId
-            if (customId.startsWith("create_ticket_")) {
-                const panelId = customId.replace("create_ticket_", "");
-                panel = panels.find(p => p.panelId === panelId);
+            const parsed = parsePanelButtonCustomId(customId);
+            if (parsed) {
+                return panels.find((panel) =>
+                    String(panel.id || panel.panelId) === parsed.panelId
+                    && (panel.buttons || [])[parsed.buttonIndex]
+                ) || null;
+            }
+
+            if (String(customId).startsWith("create_ticket_")) {
+                const panelId = String(customId).slice("create_ticket_".length);
+                const panel = panels.find((item) =>
+                    String(item.panelId || item.id) === panelId
+                    || String(item.id || item.panelId) === panelId
+                );
                 if (panel) return panel;
             }
-            
-            // Se não encontrar, retorna o primeiro painel disponível
-            return panels.length > 0 ? panels[0] : null;
+
+            const matches = panels.filter((panel) =>
+                (panel.buttons || []).some((button) => button.customId === customId)
+            );
+            if (messageId) {
+                return panels.find((panel) => String(panel.messageId) === String(messageId)
+                    && (panel.buttons || []).some((button) => button.customId === customId)) || null;
+            }
+            return matches.length === 1 ? matches[0] : null;
         } catch (error) {
             console.error("[Ticket] Erro ao encontrar painel:", error);
             return null;

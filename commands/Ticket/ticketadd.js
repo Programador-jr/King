@@ -29,9 +29,9 @@ module.exports = {
             }
 
             await channel.permissionOverwrites.create(user, {
-                VIEW_CHANNEL: true,
-                SEND_MESSAGES: true,
-                READ_MESSAGE_HISTORY: true
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true
             });
 
             const embed = new MessageEmbed()
