@@ -183,6 +183,8 @@ Em produção, o dashboard exige um `DASHBOARD_SESSION_SECRET` aleatório com pe
 
 As sessões usam atualmente um armazenamento em memória. Elas não sobrevivem a reinicializações e não são compartilhadas entre várias instâncias do dashboard. Use uma única instância até configurar um armazenamento persistente compatível com a topologia da implantação; o repositório ainda não define um backend de sessões para produção.
 
+As requisicoes do dashboard usam tokens CSRF vinculados a sessao nos metodos que alteram estado, alem de validar a origem quando o navegador envia os cabecalhos `Origin` ou Fetch Metadata. O webhook do Top.gg mantem a autenticacao do provedor e nao usa a verificacao CSRF de navegador. Os limites ficam em memoria por processo: 20 acessos de login/callback por 15 minutos, 30 controles de fila e 30 acoes de ticket por minuto, 60 outras alteracoes por minuto e 120 requisicoes de webhook Top.gg por minuto. Corpos JSON e URL-encoded tem limite de 256 KB; formularios aceitam ate 200 parametros. Requisicoes grandes retornam 413, origem/token CSRF invalido retorna 403 e limites excedidos retornam 429. A CSP do Helmet permite os scripts e manipuladores inline existentes, Bootstrap, Font Awesome e Google Fonts; remover as permissoes inline exige migrar os manipuladores existentes primeiro.
+
 ### Arquivos de Configuração
 
 #### `botconfig/config.json`

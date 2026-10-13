@@ -116,6 +116,7 @@
       <div class="settings-container">
 
         <form method="POST" action="/dashboard/<%= guild.id %>" class="settings-form" id="settingsForm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <!-- Card de Configurações Gerais -->
           <div class="settings-card">
             <div class="settings-card-header">
