@@ -25,6 +25,7 @@ const {
   getDashboardBaseUrl,
   getDashboardCallbackUrl,
 } = require("../handlers/dashboardConfig");
+const { createDashboardSessionConfig } = require("./sessionConfig");
 
 const getBotData = (client) => ({
   avatar: client.user.displayAvatarURL({ size: 128 }),
@@ -58,7 +59,6 @@ module.exports = client => {
     const settings = require("./settings.json");
     const dashboardClientId = process.env.DASHBOARD_CLIENT_ID || settings?.config?.clientID || "";
     const dashboardClientSecret = process.env.DASHBOARD_CLIENT_SECRET || settings?.config?.secret || "";
-    const dashboardSessionSecret = process.env.DASHBOARD_SESSION_SECRET || `#@%#&^$^$%@$^$&%#$%@#$%$^%&$%^#$%@#$%#E%#%@$FEErfgr3g#%GT%536c53cc6%5%tv%4y4hrgrggrgrgf4n`;
 
     if (!dashboardClientId || !dashboardClientSecret) {
       console.log("[dashboard] Desativado: DASHBOARD_CLIENT_ID/DASHBOARD_CLIENT_SECRET ausentes no .env (ou dashboard/settings.json).");
@@ -68,6 +68,18 @@ module.exports = client => {
     const httpPort = getDashboardPort(settings);
     const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
     const resolvedCallback = getDashboardCallbackUrl(settings) || `${resolvedDomain}/callback`;
+    const isProduction = process.env.NODE_ENV === "production";
+    const trustDashboardProxy = process.env.DASHBOARD_TRUST_PROXY === "1"
+      || process.env.DASHBOARD_TRUST_PROXY === "true"
+      || settings?.config?.trustProxy === true;
+    const dashboardSessionConfig = createDashboardSessionConfig({
+      production: isProduction,
+      secureCookie: isProduction || /^https:\/\//i.test(resolvedDomain),
+      trustProxy: trustDashboardProxy,
+    });
+    if (dashboardSessionConfig.generatedSecret) {
+      console.warn("[dashboard] DASHBOARD_SESSION_SECRET ausente; usando segredo temporário apenas para desenvolvimento. As sessões serão invalidadas ao reiniciar.");
+    }
     const isLocalCallback = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?(\/|$)/i.test(resolvedCallback);
     console.log(`[dashboard] OAuth callback URL: ${resolvedCallback}`);
 
@@ -263,11 +275,13 @@ module.exports = client => {
     /**
      * @INFO - ADD A SESSION SAVER
      */
+    app.set("trust proxy", dashboardSessionConfig.trustProxy);
     app.use(session({
         store: new MemoryStore({ checkPeriod: 86400000 }),
-        secret: dashboardSessionSecret,
+        secret: dashboardSessionConfig.secret,
         resave: false,
         saveUninitialized: false,
+        cookie: dashboardSessionConfig.cookie,
     }));
 
     // initialize passport middleware.
@@ -377,13 +391,18 @@ module.exports = client => {
             return res.redirect("/?error=oauth_user");
           }
 
+          const backURL = typeof req.session?.backURL === "string" && req.session.backURL.startsWith("/")
+            ? req.session.backURL
+            : "/dashboard";
+          // Passport regenerates the session during login; restore only the callback state needed below.
           req.logIn(user, (loginErr) => {
             if (loginErr) {
               console.error("[dashboard][oauth] Session login failed:", loginErr.message);
-              if (req?.session) req.session.oauthRetryCount = null;
-              req.session.oauthCallback = null;
+              if (req.session) req.session.oauthCallback = null;
               return res.redirect("/?error=oauth_login");
             }
+            req.session.backURL = backURL;
+            req.session.oauthCallback = callbackURL;
             return next();
           });
         })(req, res, next);
@@ -472,11 +491,38 @@ module.exports = client => {
 
 
     //Logout the user and move him back to the main page
-    app.get(`/logout`, function (req, res) {
-      req.session.destroy(() => {
-        req.logout();
-        res.redirect(`/`);
-      });
+    app.get("/logout", (req, res, next) => {
+      const destroySession = () => {
+        if (!req.session) {
+          res.clearCookie("connect.sid", {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+            secure: dashboardSessionConfig.cookie.secure,
+          });
+          return res.redirect("/");
+        }
+
+        req.session.destroy((err) => {
+          if (err) return next(err);
+          res.clearCookie("connect.sid", {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+            secure: dashboardSessionConfig.cookie.secure,
+          });
+          return res.redirect("/");
+        });
+      };
+
+      if (req.isAuthenticated?.()) {
+        return req.logout((err) => {
+          if (err) return next(err);
+          destroySession();
+        });
+      }
+
+      return destroySession();
     });
 
     // Dashboard endpoint.
