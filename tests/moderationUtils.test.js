@@ -3,6 +3,7 @@ const { test } = require("node:test");
 require("../handlers/discordCompat");
 const {
   assertModerationPermission,
+  hasCommandMemberPermission,
   extractId,
   hasModerationPermission,
 } = require("../handlers/moderationUtils");
@@ -29,6 +30,24 @@ test("moderation authorization allows administrators and configured roles only",
   assert.equal(hasModerationPermission(client, createMember({ roleIds: ["moderator-role"] })), true);
   assert.equal(hasModerationPermission(client, createMember({ roleIds: ["member-role"] })), false);
   assert.equal(hasModerationPermission(client, null), false);
+});
+
+test("configured moderation roles satisfy native command permission gates only for moderation commands", () => {
+  const client = createClient(["moderator-role"]);
+  const moderator = { member: createMember({ roleIds: ["moderator-role"] }) };
+
+  assert.equal(hasCommandMemberPermission(client, moderator, {
+    category: "Moderação",
+    memberpermissions: ["MANAGE_ROLES"],
+  }), true);
+  assert.equal(hasCommandMemberPermission(client, moderator, {
+    category: "Configurações",
+    memberpermissions: ["MANAGE_GUILD"],
+  }), false);
+  assert.equal(hasCommandMemberPermission(client, { member: createMember({ administrator: true }) }, {
+    category: "Moderação",
+    memberpermissions: ["BAN_MEMBERS"],
+  }), true);
 });
 
 test("moderation command gate rejects unauthorized users and accepts allowed users", () => {

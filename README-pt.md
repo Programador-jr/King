@@ -322,6 +322,8 @@ O bot irá:
 5. **Tickets** - Criar e gerenciar painéis de tickets
 6. **Logs** - Ver histórico de ações e trilha de auditoria
 
+Politica de acesso a tickets: o dono pode fechar ou reabrir o proprio ticket; membros com cargo de suporte em `ticketRoles` ou permissao `Manage Guild`/Administrador podem fechar e reabrir qualquer ticket. Somente suporte e administradores podem excluir tickets fechados. As interacoes do Discord e as APIs do dashboard aplicam a mesma politica.
+
 ## 🔐 Segurança
 
 ### Melhores Práticas

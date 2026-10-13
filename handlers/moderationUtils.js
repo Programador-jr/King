@@ -31,6 +31,15 @@ function hasModerationPermission(client, member) {
   return member.roles?.cache?.some((role) => roles.includes(role.id));
 }
 
+function hasCommandMemberPermission(client, message, command) {
+  const required = command?.memberpermissions;
+  if (!Array.isArray(required) || required.length === 0) return true;
+  if (message?.member?.permissions?.has?.(required)) return true;
+
+  const category = String(command?.category || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return category === "moderacao" && hasModerationPermission(client, message?.member);
+}
+
 function assertModerationPermission(client, message) {
   if (!message || !message.guild || !message.member) return false;
   if (hasModerationPermission(client, message.member)) return true;
@@ -196,6 +205,7 @@ async function sendModerationLog(client, guild, payload) {
 module.exports = {
   ensureModerationDefaults,
   hasModerationPermission,
+  hasCommandMemberPermission,
   assertModerationPermission,
   resolveMember,
   resolveUser,

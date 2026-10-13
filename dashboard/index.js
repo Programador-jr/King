@@ -27,6 +27,7 @@ const {
 } = require("../handlers/dashboardConfig");
 const { createDashboardSessionConfig } = require("./sessionConfig");
 const { createDashboardRequestSecurity } = require("./requestSecurity");
+const { assertTicketAuthorization } = require("../handlers/ticketAuthorization");
 
 const getBotData = (client) => ({
   avatar: client.user.displayAvatarURL({ size: 128 }),
@@ -152,6 +153,17 @@ module.exports = client => {
       const userGuild = req.user.guilds.find((entry) => String(entry.id) === String(guildId));
       if (!userGuild) return false;
       return hasManageGuildPermission(userGuild.permissions_new);
+    };
+
+    const userCanManageTicket = async (req, guild, ticket, action) => {
+      if (!req?.isAuthenticated?.() || !req?.user?.id || !guild || !ticket) return false;
+      if (userCanManageGuild(req, guild.id)) return true;
+      let member = guild.members.cache.get(req.user.id);
+      if (!member) {
+        try { member = await guild.members.fetch(req.user.id); }
+        catch (error) { console.error(`[dashboard] Não foi possível carregar membro ${req.user.id} para autorizar ticket:`, error.message); }
+      }
+      return assertTicketAuthorization(client, ticket, member, action);
     };
 
     const resolveEmbedReturnTo = (guildId, rawInput) => {
@@ -1506,10 +1518,6 @@ module.exports = client => {
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
-      }
-
       const ticketNumber = parseInt(req.params.ticketNumber);
       if (!ticketNumber) return res.redirect("/dashboard?error=" + encodeURIComponent("Ticket invÃ¡lido"));
 
@@ -1520,6 +1528,9 @@ module.exports = client => {
 
       const ticket = client.ticketHandler.getTicket(guild.id, ticketNumber);
       if (!ticket) return res.redirect(`/dashboard/${guild.id}/tickets?error=` + encodeURIComponent("Ticket nÃ£o encontrado"));
+      if (!await userCanManageTicket(req, guild, ticket, "reopen")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("Sem permissão para acessar este ticket"));
+      }
 
       res.render("ticket-view", {
         req: req,
@@ -1543,16 +1554,19 @@ module.exports = client => {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
-        if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
-        }
-
         const TicketHandler = require("../handlers/tickets");
         if (!client.ticketHandler) {
           client.ticketHandler = new TicketHandler(client);
         }
 
+        const existingTicket = client.ticketHandler.getTicket(guildId, ticketNumber);
+        if (!existingTicket) return res.status(404).json({ ok: false, message: "Ticket não encontrado" });
+        if (!await userCanManageTicket(req, guild, existingTicket, "close")) {
+          return res.status(403).json({ ok: false, message: "Sem permissão para fechar este ticket" });
+        }
+        if (existingTicket.status !== "open") return res.status(409).json({ ok: false, message: "Ticket não está aberto" });
         const closedTicket = await client.ticketHandler.closeTicket(guildId, ticketNumber, req.user.id, req.user.tag);
+        if (!closedTicket) return res.status(409).json({ ok: false, message: "Não foi possível confirmar o fechamento do ticket" });
 
         await client.ticketHandler.sendCloseLog(guildId, closedTicket, guild, req.user);
 
@@ -1573,16 +1587,19 @@ module.exports = client => {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
-        if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
-        }
-
         const TicketHandler = require("../handlers/tickets");
         if (!client.ticketHandler) {
           client.ticketHandler = new TicketHandler(client);
         }
 
-        await client.ticketHandler.reopenTicket(guildId, ticketNumber);
+        const existingTicket = client.ticketHandler.getTicket(guildId, ticketNumber);
+        if (!existingTicket) return res.status(404).json({ ok: false, message: "Ticket não encontrado" });
+        if (!await userCanManageTicket(req, guild, existingTicket, "reopen")) {
+          return res.status(403).json({ ok: false, message: "Sem permissão para reabrir este ticket" });
+        }
+        if (existingTicket.status !== "closed") return res.status(409).json({ ok: false, message: "Ticket não está fechado" });
+        const reopenedTicket = await client.ticketHandler.reopenTicket(guildId, ticketNumber);
+        if (!reopenedTicket) return res.status(409).json({ ok: false, message: "Não foi possível confirmar a reabertura do ticket" });
 
         return res.json({ ok: true, message: "Ticket reaberto com sucesso" });
       } catch (err) {
@@ -1801,10 +1818,6 @@ module.exports = client => {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
-        if (!userCanManageGuild(req, guildId)) {
-          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
-        }
-
         const TicketHandler = require("../handlers/tickets");
         if (!client.ticketHandler) {
           client.ticketHandler = new TicketHandler(client);
@@ -1813,6 +1826,10 @@ module.exports = client => {
         const ticket = client.ticketHandler.getTicket(guildId, ticketNumber);
         if (!ticket) {
           return res.status(404).json({ ok: false, message: "Ticket nÃ£o encontrado" });
+        }
+
+        if (!await userCanManageTicket(req, guild, ticket, "close")) {
+          return res.status(403).json({ ok: false, message: "Sem permissão para fechar este ticket" });
         }
 
         if (ticket.status === "closed") {
@@ -1826,12 +1843,14 @@ module.exports = client => {
           req.user.tag
         );
 
+        if (!closedTicket) {
+          return res.status(409).json({ ok: false, message: "Não foi possível confirmar o fechamento do ticket" });
+        }
+
         await client.ticketHandler.sendCloseLog(guildId, closedTicket, guild, req.user);
 
         const channel = guild.channels.cache.get(ticket.channelId);
         if (channel) {
-          await channel.setName(`closed-${ticketNumber}`);
-
           const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 
           const customCloseEmbed = client.settings.get(guild.id, "ticketCloseEmbed");

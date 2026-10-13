@@ -3,12 +3,13 @@ const dns = require("node:dns");
 const GuildSettings = require("./settings");
 const GuildStats = require("./infos");
 const UserCoins = require("./kingcoin");
+const DELETE_FIELD = Symbol("delete-field");
 
 const isProduction = process.env.NODE_ENV;
 let dnsServers = null;
 
 if (!isProduction) {
-  const rawDnsServers = process.env.DNS_SERVERS;
+  const rawDnsServers = process.env.DNS_SERVERS || "";
   dnsServers = rawDnsServers
     .split(",")
     .map((server) => server.trim())
@@ -43,6 +44,8 @@ class MongoDBEnmap {
   constructor() {
     this.cache = new Map();
     this.loading = new Map();
+    this.saveQueues = new Map();
+    this.loadingMutations = new Map();
   }
 
   _normalizeDoc(guildId, doc = {}) {
@@ -50,9 +53,32 @@ class MongoDBEnmap {
   }
 
   _saveSafe(guildId, data) {
-    this._save(guildId, data).catch((error) => {
+    const id = String(guildId);
+    const previous = this.saveQueues.get(id) || Promise.resolve();
+    const save = previous.catch(() => {}).then(() => this._save(id, data));
+    this.saveQueues.set(id, save);
+    save.finally(() => {
+      if (this.saveQueues.get(id) === save) this.saveQueues.delete(id);
+    }).catch(() => {});
+    const observable = save.catch((error) => {
       console.error(`[MongoDBEnmap] Falha ao salvar guild ${guildId}:`, error.message);
+      throw error;
     });
+    observable.catch(() => {});
+    return observable;
+  }
+
+  _primeCache(guildId) {
+    const id = String(guildId);
+    if (!this.cache.has(id) && !this.loading.has(id)) this.ensure(id, {});
+  }
+
+  _trackLoadingMutation(guildId, key, value) {
+    const id = String(guildId);
+    if (!this.loading.has(id)) return;
+    const mutations = this.loadingMutations.get(id) || new Map();
+    mutations.set(key, value);
+    this.loadingMutations.set(id, mutations);
   }
 
   async _loadFromDatabase(guildId) {
@@ -62,9 +88,7 @@ class MongoDBEnmap {
       return null;
     }
 
-    const normalized = this._normalizeDoc(id, doc);
-    this.cache.set(id, normalized);
-    return normalized;
+    return this._normalizeDoc(id, doc);
   }
 
   async _load(guildId) {
@@ -88,13 +112,8 @@ class MongoDBEnmap {
 
     try {
       const loaded = await loadPromise;
-      if (loaded) {
-        return loaded;
-      }
-
-      const empty = { _id: id };
-      this.cache.set(id, empty);
-      return empty;
+      if (loaded && !this.cache.has(id)) this.cache.set(id, loaded);
+      return this.cache.get(id) || { _id: id };
     } finally {
       this.loading.delete(id);
     }
@@ -106,7 +125,6 @@ class MongoDBEnmap {
     delete toSave._id;
     
     await GuildSettings.findByIdAndUpdate(id, toSave, { upsert: true });
-    this.cache.set(id, { _id: id, ...toSave });
   }
 
   async warmCache() {
@@ -152,27 +170,26 @@ class MongoDBEnmap {
     this.cache.set(id, seeded);
 
     const loadPromise = this._loadFromDatabase(id)
-      .then((docFromDb) => {
-        if (!docFromDb) {
-          this._saveSafe(id, seeded);
-          return seeded;
+      .then(async (docFromDb) => {
+        const pending = this.loadingMutations.get(id) || new Map();
+        const current = this.cache.get(id) || seeded;
+        const merged = { ...defaults, ...(docFromDb || {}), _id: id };
+        for (const [key, value] of pending) {
+          if (value === DELETE_FIELD) delete merged[key];
+          else merged[key] = value;
         }
-
-        const merged = { ...defaults, ...docFromDb, _id: id };
-        const needsBackfill = Object.keys(defaults).some(
+        const needsBackfill = !docFromDb || Object.keys(defaults).some(
           (key) => docFromDb[key] === undefined || docFromDb[key] === null
         );
 
         this.cache.set(id, merged);
-        if (needsBackfill) {
-          this._saveSafe(id, merged);
-        }
-
-        return merged;
+        this.loadingMutations.delete(id);
+        if (needsBackfill || pending.size) await this._saveSafe(id, merged);
+        return this.cache.get(id) || current;
       })
       .catch((error) => {
         console.error(`[MongoDBEnmap] Falha ao sincronizar guild ${id}:`, error.message);
-        return seeded;
+        return this.cache.get(id) || seeded;
       })
       .finally(() => {
         this.loading.delete(id);
@@ -206,22 +223,25 @@ class MongoDBEnmap {
 
   set(guildId, value, key) {
     const id = String(guildId);
+    this._primeCache(id);
 
     if (!key) {
       const doc = this._normalizeDoc(id, value);
       this.cache.set(id, doc);
-      this._saveSafe(id, doc);
-      return;
+      for (const [field, fieldValue] of Object.entries(value || {})) this._trackLoadingMutation(id, field, fieldValue);
+      return this._saveSafe(id, doc);
     }
 
     let doc = { ...(this.cache.get(id) || { _id: id }) };
     doc[key] = value;
     this.cache.set(id, doc);
-    this._saveSafe(id, doc);
+    this._trackLoadingMutation(id, key, value);
+    return this._saveSafe(id, doc);
   }
 
   push(guildId, value, key) {
     const id = String(guildId);
+    this._primeCache(id);
     let doc = { ...(this.cache.get(id) || { _id: id }) };
     const current = doc[key] || [];
     
@@ -232,11 +252,13 @@ class MongoDBEnmap {
     }
     
     this.cache.set(id, doc);
-    this._saveSafe(id, doc);
+    this._trackLoadingMutation(id, key, doc[key]);
+    return this._saveSafe(id, doc);
   }
 
   remove(guildId, value, key) {
     const id = String(guildId);
+    this._primeCache(id);
     let doc = { ...(this.cache.get(id) || { _id: id }) };
     const current = doc[key] || [];
     
@@ -247,7 +269,8 @@ class MongoDBEnmap {
     }
     
     this.cache.set(id, doc);
-    this._saveSafe(id, doc);
+    this._trackLoadingMutation(id, key, doc[key]);
+    return this._saveSafe(id, doc);
   }
 
   has(guildId, key) {
@@ -262,10 +285,12 @@ class MongoDBEnmap {
 
   delete(guildId, key) {
     const id = String(guildId);
+    this._primeCache(id);
     let doc = { ...(this.cache.get(id) || { _id: id }) };
     delete doc[key];
     this.cache.set(id, doc);
-    this._saveSafe(id, doc);
+    this._trackLoadingMutation(id, key, DELETE_FIELD);
+    return this._saveSafe(id, doc);
   }
 
   async fetch(guildId) {
@@ -273,9 +298,16 @@ class MongoDBEnmap {
     return this.cache.get(String(guildId));
   }
 
+  async flush(guildId) {
+    const save = this.saveQueues.get(String(guildId));
+    if (save) await save;
+  }
+
   clear() {
     this.cache.clear();
     this.loading.clear();
+    this.saveQueues.clear();
+    this.loadingMutations.clear();
   }
 }
 
