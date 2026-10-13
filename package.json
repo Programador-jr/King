@@ -14,7 +14,7 @@
     "colors": "^1.4.0",
     "cpu-stat": "^2.0.1",
     "csrf-sync": "^4.2.1",
-    "discord.js": "^14.26.4",
+    "discord.js": "^14.27.0",
     "distube": "^5.2.3",
     "dotenv": "^17.4.2",
     "ejs": "^5.0.2",
