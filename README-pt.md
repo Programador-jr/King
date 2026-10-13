@@ -161,7 +161,10 @@ DASHBOARD_CLIENT_ID=SEU_DISCORD_CLIENT_ID
 DASHBOARD_CLIENT_SECRET=SEU_DISCORD_CLIENT_SECRET
 DASHBOARD_DOMAIN=http://localhost:5000
 DASHBOARD_CALLBACK=http://localhost:5000/callback
-DASHBOARD_SESSION_SECRET=SUA_CHAVE_SECRETA_MUITO_LONGA_E_ALEATORIA_AQUI
+DASHBOARD_SESSION_SECRET=SUBSTITUA_PELA_CHAVE_GERADA
+# Gere com: openssl rand -hex 48
+# Descomente somente se estiver atrás de um proxy reverso confiável
+# DASHBOARD_TRUST_PROXY=1
 
 # ============================================
 # FONTES DE MÚSICA (Opcional)
@@ -175,6 +178,8 @@ YTDLP_PATH=/caminho/para/yt-dlp
 NODE_ENV=production
 PORT=5000
 ```
+
+Em produção, `DASHBOARD_SESSION_SECRET` é obrigatório e deve ser um valor aleatório com pelo menos 32 caracteres; valores de exemplo ou curtos são rejeitados. Em desenvolvimento, se a chave for omitida, uma chave temporária será gerada e as sessões serão invalidadas após reiniciar o processo. Se o HTTPS terminar em um proxy reverso confiável, defina `DASHBOARD_TRUST_PROXY=1`. O armazenamento atual das sessões é em memória, portanto elas não sobrevivem a reinicializações.
 
 ### Arquivos de Configuração
 

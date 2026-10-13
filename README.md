@@ -161,7 +161,10 @@ DASHBOARD_CLIENT_ID=YOUR_DISCORD_CLIENT_ID
 DASHBOARD_CLIENT_SECRET=YOUR_DISCORD_CLIENT_SECRET
 DASHBOARD_DOMAIN=http://localhost:5000
 DASHBOARD_CALLBACK=http://localhost:5000/callback
-DASHBOARD_SESSION_SECRET=YOUR_VERY_LONG_RANDOM_SECRET_KEY_HERE
+DASHBOARD_SESSION_SECRET=REPLACE_WITH_GENERATED_SECRET
+# Generate with: openssl rand -hex 48
+# Uncomment only when running behind one trusted reverse proxy
+# DASHBOARD_TRUST_PROXY=1
 
 # ============================================
 # MUSIC SOURCES (Optional)
@@ -175,6 +178,8 @@ YTDLP_PATH=/path/to/yt-dlp
 NODE_ENV=production
 PORT=5000
 ```
+
+In production, `DASHBOARD_SESSION_SECRET` is required and must be a random value of at least 32 characters; placeholders and short values are rejected. In development, an omitted secret is generated temporarily, invalidating sessions after a restart. If HTTPS is terminated by a trusted reverse proxy, set `DASHBOARD_TRUST_PROXY=1`. The current session store is in memory, so sessions do not survive process restarts.
 
 ### Configuration Files
 
