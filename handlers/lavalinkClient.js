@@ -204,7 +204,7 @@ class LavalinkManagerWrapper extends EventEmitter {
     }
 
     loadNodesFromConfig() {
-        // Prefer an explicit local node when requested; this never changes production defaults.
+        // Explicit node credentials take precedence over the legacy JSON node list.
         const hasExplicitNodeEnv = Boolean(
             String(process.env.LAVALINK_HOST || "").trim()
             && String(process.env.LAVALINK_PASSWORD || "").trim()
