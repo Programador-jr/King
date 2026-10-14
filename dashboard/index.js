@@ -289,17 +289,9 @@ module.exports = client => {
       next();
     });
 
-    // Serve only browser assets; never expose dashboard source, views, or configuration.
-    const publicAssetsPath = path.join(__dirname, "public");
-    app.use("/public", express.static(publicAssetsPath, {
-      dotfiles: "deny",
-      index: false,
-      fallthrough: true,
-      setHeaders: (res) => {
-        res.setHeader("X-Content-Type-Options", "nosniff");
-      }
-    }));
-    
+    // Serve only files from dashboard/public, with both legacy and /public URLs.
+    require("./staticAssets")(app, express, __dirname);
+
     // We declare a checkAuth function middleware to check if an user is logged in or not, and if not redirect him.
     const checkAuth = (req, res, next) => {
       if (req.isAuthenticated()) return next();
