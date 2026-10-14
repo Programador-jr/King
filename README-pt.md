@@ -130,6 +130,22 @@ cp .env.example .env
 nano .env
 ```
 
+## Integração local com Lavalink
+
+O serviço Lavalink está no repositório separado [King-Lavalink](https://github.com/Programador-jr/King-Lavalink). Siga o README desse repositório para instalar o Java, preparar o servidor e ativar o plugin oficial `youtube-source`.
+
+Para conectar uma cópia local deste bot ao seu Lavalink local, configure estas variáveis no `.env` do King, usando a mesma senha definida em `King-Lavalink/application.yml`:
+
+```env
+LAVALINK_LOCAL=true
+LAVALINK_HOST=127.0.0.1
+LAVALINK_PORT=2333
+LAVALINK_SECURE=false
+LAVALINK_PASSWORD=SENHA_DO_APPLICATION_YML
+```
+
+Com `LAVALINK_LOCAL=true`, o bot seleciona somente o nó local e ignora `botconfig/lavalink.json`. Remova ou defina como `false` essa variável para continuar usando a lista de nós configurada, como antes. Não publique a senha nem use essa configuração local na hospedagem de produção.
+
 ## ⚙️ Configuração
 
 ### Variáveis de Ambiente (`.env`)
