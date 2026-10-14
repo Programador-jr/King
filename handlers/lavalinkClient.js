@@ -22,6 +22,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         this.voiceRecovery = new Map();
         this.trackStatsCache = new Map();
         this.disabledNodes = new Map();
+        this.connectionAttemptActive = false;
     }
 
     isNodeDisabled(nodeId) {
@@ -383,6 +384,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         // reconnects from reverting to botconfig/lavalink.json when env config is active.
         const nodeOptionsList = this.getNodeOptionsList();
         const debugEnabled = this.parseBoolean(process.env.LAVALINK_DEBUG, false);
+        this.connectionAttemptActive = true;
         
         if (!this.rawListener) {
             this.rawListener = async (packet) => {
@@ -441,6 +443,7 @@ class LavalinkManagerWrapper extends EventEmitter {
                 });
                 
                 await this.waitForUsableNode(10000, true);
+                this.connectionAttemptActive = false;
                 this.log("info", `Reconectado com sucesso ao node ${nodeOptions.id}`);
                 return true;
             } catch (e) {
@@ -449,6 +452,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             }
         }
         
+        this.connectionAttemptActive = false;
         throw new Error("Nao foi possivel reconectar a nenhum node.");
     }
 
@@ -537,9 +541,17 @@ class LavalinkManagerWrapper extends EventEmitter {
             }
         });
 
+        this.manager.on("error", (error) => {
+            this.log("error", "Erro emitido pelo Lavalink Manager.", error);
+        });
+
         this.manager.nodeManager.on("error", async (node, error) => {
             const errorStr = this.shortError(error);
             const nodeId = node?.id || "unknown";
+            if (this.connectionAttemptActive) {
+                this.log("warn", `Erro no node ${nodeId} durante tentativa de conexão: ${errorStr}`);
+                return;
+            }
             if (errorStr.includes("WebSocket") || errorStr.includes("ECONNREFUSED") || errorStr.includes("ETIMEDOUT")) {
                 this.disableNode(nodeId, 60000);
                 this.log("warn", `Node ${nodeId} com erro de conexao: ${errorStr}. Desabilitado por 60s.`);
@@ -871,6 +883,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         }
 
         let lastError = null;
+        this.connectionAttemptActive = true;
 
         for (const nodeOptions of nodeOptionsList) {
             try {
@@ -911,6 +924,7 @@ class LavalinkManagerWrapper extends EventEmitter {
 
                 await this.waitForUsableNode(20000, true);
 
+                this.connectionAttemptActive = false;
                 this.log("info", `Usando node ${nodeOptions.id}`);
                 return this.manager;
             } catch (error) {
@@ -932,6 +946,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             }
         }
 
+        this.connectionAttemptActive = false;
         throw lastError || new Error("Nao foi possivel conectar a nenhum node Lavalink.");
     }
 
