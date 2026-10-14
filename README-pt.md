@@ -91,7 +91,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 
 | Componente | Tecnologia | Versão |
 |-----------|-----------|---------|
-| **Runtime** | Node.js | >= 20.11.1 |
+| **Runtime** | Node.js | >= 20.19.0 |
 | **Biblioteca Discord** | discord.js | v14 |
 | **Sistema de Música** | Lavalink Client | v2.9.7 |
 | **Framework Web** | Express | v5.2.1 |
@@ -106,7 +106,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 ## 📦 Instalação
 
 ### Pré-requisitos
-- Node.js >= 20.11.1
+- Node.js >= 20.19.0
 - npm ou yarn
 - MongoDB (local ou Atlas)
 - Discord Bot Token
@@ -146,6 +146,10 @@ PREFIX=k
 # ============================================
 MONGODB_URI=mongodb+srv://usuario:senha@cluster.mongodb.net/king
 DNS_RESULT_ORDER=ipv4first
+# Resolvedores DNS customizados opcionais, separados por vírgula (IPv4/IPv6 e porta opcional)
+# DNS_SERVERS=1.1.1.1,8.8.8.8
+# Ative apenas para diagnóstico temporário; o rastreamento de Promises adiciona custo em runtime
+# ANTI_CRASH_TRACE_PROMISES=true
 
 # ============================================
 # INTEGRAÇÃO SPOTIFY (Opcional)
@@ -161,7 +165,10 @@ DASHBOARD_CLIENT_ID=SEU_DISCORD_CLIENT_ID
 DASHBOARD_CLIENT_SECRET=SEU_DISCORD_CLIENT_SECRET
 DASHBOARD_DOMAIN=http://localhost:5000
 DASHBOARD_CALLBACK=http://localhost:5000/callback
-DASHBOARD_SESSION_SECRET=SUA_CHAVE_SECRETA_MUITO_LONGA_E_ALEATORIA_AQUI
+DASHBOARD_SESSION_SECRET=SUBSTITUA_PELA_CHAVE_GERADA
+# Gere com: openssl rand -hex 48
+# Descomente somente se estiver atrás de um proxy reverso confiável
+# DASHBOARD_TRUST_PROXY=1
 
 # ============================================
 # FONTES DE MÚSICA (Opcional)
@@ -175,6 +182,12 @@ YTDLP_PATH=/caminho/para/yt-dlp
 NODE_ENV=production
 PORT=5000
 ```
+
+Em produção, o dashboard exige um `DASHBOARD_SESSION_SECRET` aleatório com pelo menos 32 caracteres, credenciais OAuth válidas do Discord e uma URL HTTPS de callback; configurações ausentes, fracas ou de exemplo interrompem a inicialização do dashboard. Em desenvolvimento, se a chave de sessão for omitida, uma chave temporária será gerada e as sessões serão invalidadas após reiniciar o processo. Se o HTTPS terminar em um proxy reverso confiável, defina `DASHBOARD_TRUST_PROXY=1` somente quando esse proxy for confiável. O login regenera a sessão e o logout a destrói e remove o cookie.
+
+As sessões usam atualmente um armazenamento em memória. Elas não sobrevivem a reinicializações e não são compartilhadas entre várias instâncias do dashboard. Use uma única instância até configurar um armazenamento persistente compatível com a topologia da implantação; o repositório ainda não define um backend de sessões para produção.
+
+As requisicoes do dashboard usam tokens CSRF vinculados a sessao nos metodos que alteram estado, alem de validar a origem quando o navegador envia os cabecalhos `Origin` ou Fetch Metadata. O webhook do Top.gg mantem a autenticacao do provedor e nao usa a verificacao CSRF de navegador. Os limites ficam em memoria por processo: 20 acessos de login/callback por 15 minutos, 30 controles de fila e 30 acoes de ticket por minuto, 60 outras alteracoes por minuto e 120 requisicoes de webhook Top.gg por minuto. Corpos JSON e URL-encoded tem limite de 256 KB; formularios aceitam ate 200 parametros. Requisicoes grandes retornam 413, origem/token CSRF invalido retorna 403 e limites excedidos retornam 429. A CSP do Helmet permite os scripts e manipuladores inline existentes, Bootstrap, Font Awesome e Google Fonts; remover as permissoes inline exige migrar os manipuladores existentes primeiro.
 
 ### Arquivos de Configuração
 
@@ -200,6 +213,8 @@ Configurações estruturais do dashboard:
   "domain": "localhost"
 }
 ```
+
+Com `antiCrash` ativado, uma excecao nao capturada ou rejeicao nao tratada e registrada com valores sensiveis ocultos e encerra o processo com codigo 1. Use um gerenciador de processos ou politica de reinicio do container para recuperacao automatica. O rastreamento da origem de Promises fica desativado normalmente; ative `ANTI_CRASH_TRACE_PROMISES=true` apenas durante um diagnostico, pois adiciona custo de runtime. O comportamento de TLS fica a cargo do Node.js, sem monkey-patching global.
 
 ### Configuração do Discord Developer Portal
 
@@ -312,6 +327,8 @@ O bot irá:
 4. **Música** - Controles de fila e gerenciamento de filtros
 5. **Tickets** - Criar e gerenciar painéis de tickets
 6. **Logs** - Ver histórico de ações e trilha de auditoria
+
+Politica de acesso a tickets: o dono pode fechar ou reabrir o proprio ticket; membros com cargo de suporte em `ticketRoles` ou permissao `Manage Guild`/Administrador podem fechar e reabrir qualquer ticket. Somente suporte e administradores podem excluir tickets fechados. As interacoes do Discord e as APIs do dashboard aplicam a mesma politica.
 
 ## 🔐 Segurança
 

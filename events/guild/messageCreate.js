@@ -6,6 +6,7 @@ const { onCoolDown, replacemsg } = require(`../../handlers/functions`);
 const { addCommandUsed } = require(`../../databases/mongodb`);
 const Discord = require(`discord.js`);
 const { getBotBan, createBotBanEmbed } = require("../../handlers/devUtils");
+const { hasCommandMemberPermission } = require("../../handlers/moderationUtils");
 
 function escapeRegex(str) {
     try {
@@ -187,7 +188,7 @@ client.settings.ensure(message.guild.id, {
         }
         try {
           //if Command has specific permission return error
-          if (command.memberpermissions && command.memberpermissions.length > 0 && !message.member.permissions.has(command.memberpermissions)) {
+          if (command.memberpermissions && command.memberpermissions.length > 0 && !hasCommandMemberPermission(client, message, command)) {
             return message.reply({ embeds: [new Discord.MessageEmbed()
                 .setColor(ee.wrongcolor)
                 .setFooter(ee.footertext, ee.footericon)

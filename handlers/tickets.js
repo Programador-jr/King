@@ -1,6 +1,21 @@
+const { parsePanelButtonCustomId } = require("./ticketPanelIdentity");
+
 class TicketHandler {
     constructor(client) {
         this.client = client;
+        this.guildQueues = new Map();
+        this.activeCreations = new Set();
+    }
+
+    _withGuildLock(guildId, operation) {
+        const id = String(guildId);
+        const previous = this.guildQueues.get(id) || Promise.resolve();
+        const current = previous.catch(() => {}).then(operation);
+        this.guildQueues.set(id, current);
+        current.finally(() => {
+            if (this.guildQueues.get(id) === current) this.guildQueues.delete(id);
+        }).catch(() => {});
+        return current;
     }
 
     async _resolveGuildChannel(guild, channelId) {
@@ -135,7 +150,7 @@ class TicketHandler {
         };
     }
 
-    _saveTicketsDb(guildId, data) {
+    async _saveTicketsDb(guildId, data) {
         const current = this.client.settings.get(guildId) || {};
 
         // Converter tickets para objetoplain simples para evitar problemas com MongoDB
@@ -155,239 +170,311 @@ class TicketHandler {
             ticketHistory: data.history
         };
 
-        this.client.settings.set(guildId, newData);
+        try {
+            await this.client.settings.set(guildId, newData);
+        } catch (error) {
+            this.client.settings.set(guildId, current);
+            throw error;
+        }
+    }
+
+    _appendHistory(history, entry) {
+        const next = [...(Array.isArray(history) ? history : []), entry];
+        if (next.length > 1000) next.splice(0, next.length - 1000);
+        return next;
     }
 
     async createTicket(guildId, userId, reason = "Sem motivo especificado", userTag = "Unknown") {
         const guild = this.client.guilds.cache.get(guildId);
         if (!guild) return null;
+        return this._withGuildLock(guildId, async () => {
+            let db = this.getTicketsDb(guildId);
+            const data = { ...db.data };
+            const incomplete = Object.entries(data).filter(([, ticket]) =>
+                String(ticket?.userId) === String(userId)
+                && ["creating", "open"].includes(ticket?.status)
+                && !ticket?.channelId
+                && !this.activeCreations.has(`${guildId}:${ticket.ticketNumber}`)
+            );
+            if (incomplete.length) {
+                for (const [key] of incomplete) delete data[key];
+                const incompleteNumbers = new Set(incomplete.map(([, ticket]) => ticket.ticketNumber));
+                db = {
+                    ...db,
+                    open: db.open.filter((number) => !incompleteNumbers.has(number)),
+                    closed: db.closed.filter((number) => !incompleteNumbers.has(number)),
+                    data,
+                    history: incomplete.reduce((history, [, ticket]) => this._appendHistory(history, {
+                        action: "creation_recovered",
+                        ticketNumber: ticket.ticketNumber,
+                        userId,
+                        timestamp: Date.now(),
+                    }), db.history),
+                };
+                await this._saveTicketsDb(guildId, db);
+            }
+            const hasOpenTicket = Object.values(db.data).some((ticket) =>
+                String(ticket?.userId) === String(userId)
+                && ["creating", "open"].includes(ticket?.status)
+            );
+            if (hasOpenTicket) return null;
 
-        const db = this.getTicketsDb(guildId);
-        const ticketNumber = db.count + 1;
-
-        const ticketData = {
-            id: `ticket-${ticketNumber}`,
-            ticketNumber,
-            guildId,
-            userId,
-            userTag: userTag,
-            reason,
-            channelId: null,
-            messageId: null,
-            status: "open",
-            createdAt: Date.now(),
-            closedAt: null,
-            closedBy: null,
-            closedByTag: null,
-            transcript: [],
-            categoryId: null,
-            panelId: null
-        };
-
-        const tickets = { ...db.data };
-        tickets[`ticket-${ticketNumber}`] = ticketData;
-
-        const openTickets = [...db.open, ticketNumber];
-
-        const newDb = {
-            count: ticketNumber,
-            open: openTickets,
-            closed: db.closed,
-            data: tickets,
-            history: db.history
-        };
-        this._saveTicketsDb(guildId, newDb);
-
-        this.addToHistory(guildId, {
-            action: "created",
-            ticketNumber,
-            userId,
-            userTag,
-            reason,
-            timestamp: Date.now()
+            const storedNumbers = Object.values(db.data)
+                .map((ticket) => Number(ticket?.ticketNumber) || 0);
+            const ticketNumber = Math.max(Number(db.count) || 0, ...storedNumbers) + 1;
+            const ticketData = {
+                id: `ticket-${ticketNumber}`,
+                ticketNumber,
+                guildId,
+                userId,
+                userTag,
+                reason,
+                channelId: null,
+                messageId: null,
+                status: "creating",
+                createdAt: Date.now(),
+                closedAt: null,
+                closedBy: null,
+                closedByTag: null,
+                transcript: [],
+                categoryId: null,
+                panelId: null,
+            };
+            const ticketRecords = { ...db.data, [`ticket-${ticketNumber}`]: ticketData };
+            await this._saveTicketsDb(guildId, {
+                ...db,
+                count: ticketNumber,
+                data: ticketRecords,
+                history: this._appendHistory(db.history, {
+                    action: "creating",
+                    ticketNumber,
+                    userId,
+                    userTag,
+                    reason,
+                    timestamp: Date.now(),
+                }),
+            });
+            this.activeCreations.add(`${guildId}:${ticketNumber}`);
+            return ticketData;
         });
-
-        return ticketData;
     }
 
     async createTicketChannel(guild, ticketData, categoryId, panelId = null) {
-        // Buscar cargos de suporte configurados
-        const supportRoles = this.client.settings.get(guild.id, "ticketRoles") || [];
-
-        const permissionOverwrites = [
-            {
-                id: guild.roles.everyone,
-                deny: ["ViewChannel"]
-            },
-            {
-                id: this.client.user.id,
-                allow: ["ViewChannel", "SendMessages", "ManageMessages", "EmbedLinks"]
-            },
-            {
-                id: ticketData.userId,
-                allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"]
+        return this._withGuildLock(guild.id, async () => {
+            const ticketNumber = Number(ticketData?.ticketNumber);
+            const key = `ticket-${ticketNumber}`;
+            const db = this.getTicketsDb(guild.id);
+            const reservation = db.data[key];
+            if (!reservation || reservation.status !== "creating" || reservation.channelId) {
+                throw new Error(`Ticket #${ticketNumber} não possui uma reserva válida.`);
             }
-        ];
-
-        // Adicionar cargos de suporte
-        for (const roleId of supportRoles) {
-            permissionOverwrites.push({
-                id: roleId,
-                allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"]
-            });
-        }
-
-        const ticketChannel = await guild.channels.create({
-            name: `ticket-${ticketData.ticketNumber}`,
-            type: 0,
-            parent: categoryId ? guild.channels.cache.get(categoryId) : null,
-            permissionOverwrites: permissionOverwrites
+            const supportRoles = this.client.settings.get(guild.id, "ticketRoles") || [];
+            const permissionOverwrites = [
+                { id: guild.roles.everyone, deny: ["ViewChannel"] },
+                { id: this.client.user.id, allow: ["ViewChannel", "SendMessages", "ManageMessages", "EmbedLinks"] },
+                { id: reservation.userId, allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"] },
+                ...supportRoles.map((roleId) => ({
+                    id: roleId,
+                    allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
+                })),
+            ];
+            let channel;
+            try {
+                channel = await guild.channels.create({
+                    name: `ticket-${ticketNumber}`,
+                    type: 0,
+                    parent: categoryId ? guild.channels.cache.get(categoryId) : null,
+                    permissionOverwrites,
+                });
+                const updated = {
+                    ...reservation,
+                    status: "open",
+                    channelId: channel.id,
+                    categoryId,
+                    panelId,
+                };
+                await this._saveTicketsDb(guild.id, {
+                    ...db,
+                    open: [...new Set([...db.open, ticketNumber])],
+                    data: { ...db.data, [key]: updated },
+                    history: this._appendHistory(db.history, {
+                        action: "created",
+                        ticketNumber,
+                        userId: reservation.userId,
+                        timestamp: Date.now(),
+                    }),
+                });
+                Object.assign(ticketData, updated);
+                this.activeCreations.delete(`${guild.id}:${ticketNumber}`);
+                return channel;
+            } catch (error) {
+                if (channel) {
+                    await channel.delete("Clean up ticket whose persistence failed").catch((cleanupError) => {
+                        console.error(`[Tickets] Falha ao remover o canal ${channel.id} após erro ao persistir o ticket #${ticketNumber}:`, cleanupError);
+                    });
+                }
+                const latest = this.getTicketsDb(guild.id);
+                const data = { ...latest.data };
+                delete data[key];
+                await this._saveTicketsDb(guild.id, {
+                    ...latest,
+                    open: latest.open.filter((number) => number !== ticketNumber),
+                    closed: latest.closed.filter((number) => number !== ticketNumber),
+                    data,
+                    history: this._appendHistory(latest.history, {
+                        action: "creation_failed",
+                        ticketNumber,
+                        userId: reservation.userId,
+                        error: error.message,
+                        timestamp: Date.now(),
+                    }),
+                }).catch((cleanupError) => {
+                    console.error(`[Tickets] Falha ao limpar reserva incompleta #${ticketNumber}:`, cleanupError);
+                });
+                this.activeCreations.delete(`${guild.id}:${ticketNumber}`);
+                console.error(`[Tickets] Falha ao criar canal do ticket #${ticketNumber} no servidor ${guild.id}:`, error);
+                throw error;
+            }
         });
-
-        const db = this.getTicketsDb(guild.id);
-        const tickets = { ...db.data };
-        if (tickets[`ticket-${ticketData.ticketNumber}`]) {
-            tickets[`ticket-${ticketData.ticketNumber}`].channelId = ticketChannel.id;
-            tickets[`ticket-${ticketData.ticketNumber}`].categoryId = categoryId;
-            tickets[`ticket-${ticketData.ticketNumber}`].panelId = panelId;
-            
-            this._saveTicketsDb(guild.id, {
-                ...db,
-                data: tickets
-            });
-        }
-
-        return ticketChannel;
     }
 
     async closeTicket(guildId, ticketNumber, closedBy, closedByTag = "Unknown") {
-        const db = this.getTicketsDb(guildId);
-        const tickets = { ...db.data };
-        const ticketKey = `ticket-${ticketNumber}`;
-        
-        if (!tickets[ticketKey]) return null;
-
-        const ticketData = tickets[ticketKey];
-        const oldStatus = ticketData.status;
-        ticketData.status = "closed";
-        ticketData.closedAt = Date.now();
-        ticketData.closedBy = closedBy;
-        ticketData.closedByTag = closedByTag;
-
-        tickets[ticketKey] = ticketData;
-
-        const openTickets = Array.isArray(db.open) ? db.open.filter(t => t !== ticketNumber) : [];
-        const closedTickets = Array.isArray(db.closed) 
-          ? db.closed.includes(ticketNumber) 
-            ? db.closed 
-            : [...db.closed, ticketNumber]
-          : [ticketNumber];
-
-        this._saveTicketsDb(guildId, {
-            ...db,
-            open: openTickets,
-            closed: closedTickets,
-            data: tickets
-        });
-
-        this.addToHistory(guildId, {
-            action: "closed",
-            ticketNumber,
-            closedBy,
-            closedByTag,
-            timestamp: Date.now()
-        });
-
-        if (ticketData.channelId) {
-            const guild = this.client.guilds.cache.get(guildId);
-            if (guild) {
-                const channel = guild.channels.cache.get(ticketData.channelId);
+        return this._withGuildLock(guildId, async () => {
+            const db = this.getTicketsDb(guildId);
+            const ticketKey = `ticket-${ticketNumber}`;
+            const previous = db.data[ticketKey];
+            if (!previous || previous.status !== "open" || previous.creationPending) return null;
+            const channel = await this._getTicketChannel(guildId, previous);
+            if (previous.channelId && !channel) return null;
+            const priorName = channel?.name;
+            try {
                 if (channel) {
                     await channel.setName(`closed-${ticketNumber}`);
+                    await channel.permissionOverwrites.edit(previous.userId, {
+                        ViewChannel: false,
+                        SendMessages: false,
+                    });
                 }
+                const closedAt = Date.now();
+                const ticketData = { ...previous, status: "closed", closedAt, closedBy, closedByTag };
+                await this._saveTicketsDb(guildId, {
+                    ...db,
+                    open: db.open.filter((number) => number !== ticketNumber),
+                    closed: [...new Set([...db.closed, ticketNumber])],
+                    data: { ...db.data, [ticketKey]: ticketData },
+                    history: this._appendHistory(db.history, {
+                        action: "closed", ticketNumber, closedBy, closedByTag, timestamp: closedAt,
+                    }),
+                });
+                return ticketData;
+            } catch (error) {
+                if (channel) {
+                    await channel.setName(priorName).catch(() => {});
+                    await channel.permissionOverwrites.edit(previous.userId, {
+                        ViewChannel: true, SendMessages: true, ReadMessageHistory: true,
+                    }).catch(() => {});
+                }
+                throw error;
             }
-        }
-
-        return ticketData;
+        });
     }
 
     async reopenTicket(guildId, ticketNumber) {
-        const db = this.getTicketsDb(guildId);
-        const tickets = { ...db.data };
-        const ticketKey = `ticket-${ticketNumber}`;
-        
-        if (!tickets[ticketKey]) return null;
-
-        const ticketData = tickets[ticketKey];
-        ticketData.status = "open";
-        ticketData.closedAt = null;
-        ticketData.closedBy = null;
-        ticketData.closedByTag = null;
-
-        tickets[ticketKey] = ticketData;
-
-        const closedTickets = Array.isArray(db.closed) ? db.closed.filter(t => t !== ticketNumber) : [];
-        const openTickets = Array.isArray(db.open) ? [...db.open, ticketNumber] : [ticketNumber];
-
-        this._saveTicketsDb(guildId, {
-            ...db,
-            open: openTickets,
-            closed: closedTickets,
-            data: tickets
-        });
-
-        this.addToHistory(guildId, {
-            action: "reopened",
-            ticketNumber,
-            timestamp: Date.now()
-        });
-
-        if (ticketData.channelId) {
-            const guild = this.client.guilds.cache.get(guildId);
-            if (guild) {
-                const channel = guild.channels.cache.get(ticketData.channelId);
+        return this._withGuildLock(guildId, async () => {
+            const db = this.getTicketsDb(guildId);
+            const ticketKey = `ticket-${ticketNumber}`;
+            const previous = db.data[ticketKey];
+            if (!previous || previous.status !== "closed") return null;
+            const channel = await this._getTicketChannel(guildId, previous);
+            if (previous.channelId && !channel) return null;
+            const priorName = channel?.name;
+            try {
                 if (channel) {
                     await channel.setName(`ticket-${ticketNumber}`);
+                    await channel.permissionOverwrites.edit(previous.userId, {
+                        ViewChannel: true,
+                        SendMessages: true,
+                        ReadMessageHistory: true,
+                    });
                 }
+                const ticketData = { ...previous, status: "open", closedAt: null, closedBy: null, closedByTag: null };
+                await this._saveTicketsDb(guildId, {
+                    ...db,
+                    closed: db.closed.filter((number) => number !== ticketNumber),
+                    open: [...new Set([...db.open, ticketNumber])],
+                    data: { ...db.data, [ticketKey]: ticketData },
+                    history: this._appendHistory(db.history, { action: "reopened", ticketNumber, timestamp: Date.now() }),
+                });
+                return ticketData;
+            } catch (error) {
+                if (channel) {
+                    await channel.setName(priorName).catch(() => {});
+                    await channel.permissionOverwrites.edit(previous.userId, {
+                        ViewChannel: false, SendMessages: false,
+                    }).catch(() => {});
+                }
+                throw error;
             }
-        }
-
-        return ticketData;
+        });
     }
 
     async deleteTicket(guildId, ticketNumber) {
-        const db = this.getTicketsDb(guildId);
-        const tickets = { ...db.data };
-        const ticketKey = `ticket-${ticketNumber}`;
-        
-        if (!tickets[ticketKey]) return null;
-
-        const ticketData = tickets[ticketKey];
-
-        this.addToHistory(guildId, {
-            action: "deleted",
-            ticketNumber,
-            userId: ticketData.userId,
-            userTag: ticketData.userTag,
-            timestamp: Date.now()
+        return this._withGuildLock(guildId, async () => {
+            const db = this.getTicketsDb(guildId);
+            const ticketKey = `ticket-${ticketNumber}`;
+            let ticketData = db.data[ticketKey];
+            if (!ticketData || !["closed", "deleting"].includes(ticketData.status)) return null;
+            if (ticketData.status === "closed") {
+                ticketData = { ...ticketData, status: "deleting" };
+                await this._saveTicketsDb(guildId, {
+                    ...db,
+                    closed: db.closed.filter((number) => number !== ticketNumber),
+                    data: { ...db.data, [ticketKey]: ticketData },
+                });
+            }
+            const channel = await this._getTicketChannel(guildId, ticketData);
+            if (ticketData.channelId && !channel) {
+                console.warn(`[Tickets] Canal ${ticketData.channelId} do ticket #${ticketNumber} não encontrado; removendo registro incompleto.`);
+            }
+            try {
+                if (channel) await channel.delete(`Ticket #${ticketNumber} deleted by authorized staff`);
+            } catch (error) {
+                const latest = this.getTicketsDb(guildId);
+                const restored = { ...ticketData, status: "closed" };
+                await this._saveTicketsDb(guildId, {
+                    ...latest,
+                    closed: [...new Set([...latest.closed, ticketNumber])],
+                    data: { ...latest.data, [ticketKey]: restored },
+                }).catch((restoreError) => {
+                    console.error(`[Tickets] Falha ao restaurar o estado do ticket #${ticketNumber}:`, restoreError);
+                });
+                throw error;
+            }
+            const latest = this.getTicketsDb(guildId);
+            const data = { ...latest.data };
+            delete data[ticketKey];
+            await this._saveTicketsDb(guildId, {
+                ...latest,
+                open: latest.open.filter((number) => number !== ticketNumber),
+                closed: latest.closed.filter((number) => number !== ticketNumber),
+                data,
+                history: this._appendHistory(latest.history, {
+                    action: "deleted", ticketNumber, userId: ticketData.userId,
+                    userTag: ticketData.userTag, timestamp: Date.now(),
+                }),
+            });
+            return ticketData;
         });
-
-        delete tickets[ticketKey];
-
-        const openTickets = Array.isArray(db.open) ? db.open.filter(t => t !== ticketNumber) : [];
-        const closedTickets = Array.isArray(db.closed) ? db.closed.filter(t => t !== ticketNumber) : [];
-
-        this._saveTicketsDb(guildId, {
-            ...db,
-            open: openTickets,
-            closed: closedTickets,
-            data: tickets
-        });
-
-        return ticketData;
     }
 
-    addToHistory(guildId, entry) {
+    async _getTicketChannel(guildId, ticketData) {
+        if (!ticketData?.channelId) return null;
+        const guild = this.client.guilds.cache.get(guildId);
+        if (!guild) return null;
+        return this._resolveGuildChannel(guild, ticketData.channelId);
+    }
+
+    async addToHistory(guildId, entry) {
         const db = this.getTicketsDb(guildId);
         const history = [...db.history, entry];
         
@@ -395,7 +482,7 @@ class TicketHandler {
             history.splice(0, history.length - 1000);
         }
         
-        this._saveTicketsDb(guildId, {
+        await this._saveTicketsDb(guildId, {
             ...db,
             history: history
         });
@@ -714,22 +801,37 @@ class TicketHandler {
     }
 
     findPanelByCustomId(guildId, customId) {
+        return this.findPanelByButtonId(guildId, customId);
+    }
+
+    findPanelByButtonId(guildId, customId, messageId = null) {
         try {
             const panels = this.getGuildPanels(guildId);
-            
-            // Procurar nos botões dos painéis
-            let panel = panels.find(p => (p.buttons || []).some(btn => btn.customId === customId));
-            if (panel) return panel;
-            
-            // Se não encontrar, tenta encontrar pelo padrão create_ticket_panelId
-            if (customId.startsWith("create_ticket_")) {
-                const panelId = customId.replace("create_ticket_", "");
-                panel = panels.find(p => p.panelId === panelId);
+            const parsed = parsePanelButtonCustomId(customId);
+            if (parsed) {
+                return panels.find((panel) =>
+                    String(panel.id || panel.panelId) === parsed.panelId
+                    && (panel.buttons || [])[parsed.buttonIndex]
+                ) || null;
+            }
+
+            if (String(customId).startsWith("create_ticket_")) {
+                const panelId = String(customId).slice("create_ticket_".length);
+                const panel = panels.find((item) =>
+                    String(item.panelId || item.id) === panelId
+                    || String(item.id || item.panelId) === panelId
+                );
                 if (panel) return panel;
             }
-            
-            // Se não encontrar, retorna o primeiro painel disponível
-            return panels.length > 0 ? panels[0] : null;
+
+            const matches = panels.filter((panel) =>
+                (panel.buttons || []).some((button) => button.customId === customId)
+            );
+            if (messageId) {
+                return panels.find((panel) => String(panel.messageId) === String(messageId)
+                    && (panel.buttons || []).some((button) => button.customId === customId)) || null;
+            }
+            return matches.length === 1 ? matches[0] : null;
         } catch (error) {
             console.error("[Ticket] Erro ao encontrar painel:", error);
             return null;

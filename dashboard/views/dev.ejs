@@ -144,6 +144,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: invert(var(--text-main) ? 1 : 0);"></button>
             </div>
             <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="modal-body">
                 <input type="hidden" name="action" value="ban">
                 <div><label for="ban-target">ID do usuario</label><input id="ban-target" name="targetId" type="text" required></div>
@@ -180,6 +181,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="modal-body">
                 <input type="hidden" name="action" value="unban">
                 <div><label for="unban-target">ID do usuario</label><input id="unban-target" name="targetId" type="text" required></div>
@@ -202,6 +204,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="modal-body">
                 <input type="hidden" name="action" value="addkc">
                 <div><label for="addkc-target">ID do usuario</label><input id="addkc-target" name="targetId" type="text" required></div>
@@ -225,6 +228,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form class="dev-form" method="post" action="/dev/action">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="modal-body">
                 <input type="hidden" name="action" value="removekc">
                 <div><label for="removekc-target">ID do usuario</label><input id="removekc-target" name="targetId" type="text" required></div>
@@ -310,6 +314,7 @@
                       <td><%= entry.durationLabel || 'Permanente' %></td>
                       <td>
                         <form id="unban-form-<%= entry.userId %>" method="POST" action="/dev/action" style="display:inline;">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                           <input type="hidden" name="action" value="unban">
                           <input type="hidden" name="targetId" value="<%= entry.userId %>">
                           <button type="button" class="dev-btn danger" style="padding:6px 12px;font-size:.85rem;" onclick="showUnbanConfirm('<%= entry.userId %>', '<%= entry.userTag %>')">Desbanir</button>
@@ -345,6 +350,7 @@
                   </div>
                   <div style="margin-top:10px;">
                     <form id="unban-form-mobile-<%= entry.userId %>" method="POST" action="/dev/action">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <input type="hidden" name="action" value="unban">
                       <input type="hidden" name="targetId" value="<%= entry.userId %>">
                       <button type="button" class="dev-btn danger" style="width:100%;padding:8px;" onclick="showUnbanConfirm('<%= entry.userId %>', '<%= entry.userTag %>')">Desbanir</button>

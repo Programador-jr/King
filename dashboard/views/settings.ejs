@@ -116,6 +116,7 @@
       <div class="settings-container">
 
         <form method="POST" action="/dashboard/<%= guild.id %>" class="settings-form" id="settingsForm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <!-- Card de Configurações Gerais -->
           <div class="settings-card">
             <div class="settings-card-header">
@@ -394,7 +395,7 @@
                   <i class="fas fa-user-shield"></i>
                   <h5>Cargos de Moderação</h5>
                 </div>
-                <p class="form-helper">Usuários com estes cargos podem usar comandos de moderação. Se vazio, apenas administradores.</p>
+                <p class="form-helper">Usuários com estes cargos podem usar comandos de moderação. Administradores também têm acesso; sem cargos configurados, apenas administradores.</p>
                 <% const moderationRoles = bot.settings.get(guild.id, 'moderationRoles') || []; %>
                 <select class="form-select modern-select" multiple aria-label="Moderation Roles" name="moderationRoles">
                   <% selectableDjRoles.forEach((role) => { %>

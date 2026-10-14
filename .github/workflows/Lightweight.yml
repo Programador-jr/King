@@ -9,6 +9,9 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['20.19.0', '22']
 
     steps:
     - name: Checkout
@@ -17,11 +20,11 @@ jobs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
     - name: Install deps
-      run: npm install --prefer-offline --no-audit --no-fund
+      run: npm ci --prefer-offline --no-audit --no-fund
 
     - name: Skip Dependabot
       if: github.actor == 'dependabot[bot]'
@@ -34,6 +37,9 @@ jobs:
         node --check index.js
         find . -name "*.js" -not -path "./node_modules/*" -exec node --check {} \;
 
+    - name: Unit and integration tests
+      run: npm test
+
     - name: Lint (optional)
       run: |
         if [ -f package.json ] && grep -q "\"lint\"" package.json; then
@@ -41,7 +47,3 @@ jobs:
         else
           echo "No lint script, skipping..."
         fi
-
-    - name: Safe startup test
-      run: |
-        NODE_ENV=test node index.js || exit 1

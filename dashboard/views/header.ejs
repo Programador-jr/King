@@ -165,9 +165,12 @@
     </div>
     <div class="logout-modal-footer">
       <button class="btn btn-success" onclick="backToProfile()">Cancelar</button>
-      <button class="btn btn-danger" onclick="location.href='/logout'">
+      <form method="POST" action="/logout" style="display:inline;">
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+        <button class="btn btn-danger" type="submit">
         <i class="fas fa-sign-out-alt"></i> Confirmar Saída
-      </button>
+        </button>
+      </form>
     </div>
   </div>
 </div>
@@ -468,3 +471,4 @@
     });
   });
 </script>
+<script src="/public/security.js" defer data-csrf-token="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>"></script>

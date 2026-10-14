@@ -2,7 +2,8 @@
   "scripts": {
     "postinstall": "node scripts/fix-sift.js",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@discordjs/builders": "^1.14.1",
@@ -12,11 +13,13 @@
     "axios": "^1.15.2",
     "colors": "^1.4.0",
     "cpu-stat": "^2.0.1",
+    "csrf-sync": "^4.2.1",
     "discord.js": "^14.26.4",
     "distube": "^5.2.3",
     "dotenv": "^17.4.2",
     "ejs": "^5.0.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.1",
     "express-session": "^1.19.0",
     "gifenc": "^1.0.3",
     "helmet": "^8.1.0",
@@ -35,6 +38,6 @@
     "nodemon": "^3.1.14"
   },
   "engines": {
-    "node": ">=20.11.1"
+    "node": ">=20.19.0"
   }
 }

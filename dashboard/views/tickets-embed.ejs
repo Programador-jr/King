@@ -276,6 +276,7 @@
       </ul>
 
       <form id="embedForm" method="POST" action="/dashboard/<%= guild.id %>/tickets/embed">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="welcomeEmbed" id="welcomeEmbedData">
         <input type="hidden" name="closeEmbed" id="closeEmbedData">
         <input type="hidden" name="returnTo" value="<%= returnTo || ('/dashboard/' + guild.id + '/tickets') %>">
