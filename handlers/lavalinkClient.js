@@ -529,6 +529,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             const nodeId = node?.id || "unknown";
             this.log("warn", `Node desconectado: ${nodeId}${detail ? ` (${detail})` : ""}`);
             this.emit("nodeDisconnect", node, reason);
+            if (this.connectionAttemptActive) return;
             
             if (reason?.code === 1006 || reason?.code === 1000) {
                 this.disableNode(nodeId, 60000);
@@ -570,6 +571,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             const nodeId = node?.id || "unknown";
             this.log("error", `Node exception: ${nodeId}`, exception);
             this.emit("nodeException", node, exception);
+            if (this.connectionAttemptActive) return;
             
             const errorStr = this.shortError(exception);
             if (errorStr.includes("sourceManagers") || errorStr.includes("no sources")) {
