@@ -289,10 +289,16 @@ module.exports = client => {
       next();
     });
 
-    //LOAD THE ASSETS
-    app.use(express.static(path.join(__dirname, './public')));
-    //Load .well-known (if available)
-    app.use(express.static(path.join(__dirname, '/'), {dotfiles: 'allow'}));
+    // Serve only browser assets; never expose dashboard source, views, or configuration.
+    const publicAssetsPath = path.join(__dirname, "public");
+    app.use("/public", express.static(publicAssetsPath, {
+      dotfiles: "deny",
+      index: false,
+      fallthrough: true,
+      setHeaders: (res) => {
+        res.setHeader("X-Content-Type-Options", "nosniff");
+      }
+    }));
     
     // We declare a checkAuth function middleware to check if an user is logged in or not, and if not redirect him.
     const checkAuth = (req, res, next) => {
