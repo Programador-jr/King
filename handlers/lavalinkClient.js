@@ -203,6 +203,28 @@ class LavalinkManagerWrapper extends EventEmitter {
     }
 
     loadNodesFromConfig() {
+        // Prefer an explicit local node when requested; this never changes production defaults.
+        const localMode = this.parseBoolean(process.env.LAVALINK_LOCAL, false);
+        if (localMode) {
+            const host = this.resolveHost(process.env.LAVALINK_HOST || "127.0.0.1");
+            const port = Number.parseInt(process.env.LAVALINK_PORT || "2333", 10);
+            const authorization = String(process.env.LAVALINK_PASSWORD || "").trim();
+            const secure = this.parseBoolean(process.env.LAVALINK_SECURE, false);
+
+            if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !authorization) {
+                throw new Error("Modo Lavalink local ativo, mas LAVALINK_HOST/PORT/PASSWORD estão inválidos.");
+            }
+
+            return [{
+                id: "king-lavalink-local",
+                host,
+                port,
+                secure,
+                authorization,
+                apiVersion: "v4",
+            }];
+        }
+
         const configPath = path.join(__dirname, "..", "botconfig", "lavalink.json");
         if (!fs.existsSync(configPath)) return [];
 
