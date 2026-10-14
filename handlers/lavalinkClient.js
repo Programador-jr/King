@@ -212,7 +212,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             const authorization = String(process.env.LAVALINK_PASSWORD || "").trim();
             const secure = this.parseBoolean(process.env.LAVALINK_SECURE, false);
 
-            if (!host || !/^\\d+$/.test(String(rawPort)) || !Number.isInteger(port) || port < 1 || port > 65535 || !authorization) {
+            if (!host || !/^\d+$/.test(String(rawPort)) || !Number.isInteger(port) || port < 1 || port > 65535 || !authorization) {
                 throw new Error("Modo Lavalink local ativo, mas LAVALINK_HOST/PORT/PASSWORD estão inválidos.");
             }
 
