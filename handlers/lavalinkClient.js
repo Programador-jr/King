@@ -175,21 +175,22 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     getNodeOptions() {
         const rawHost = String(process.env.LAVALINK_HOST || "localhost").trim();
-        const hostWithoutProtocol = rawHost.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
-        const host = hostWithoutProtocol.split("/")[0];
-        const port = Number.parseInt(process.env.LAVALINK_PORT || "2333", 10) || 2333;
+        const host = this.resolveHost(rawHost);
+        const rawPort = process.env.LAVALINK_PORT || "2333";
+        const port = Number.parseInt(rawPort, 10);
         const secureDefault = port === 443 || /^https:\/\//i.test(rawHost);
+        const secure = this.parseBoolean(process.env.LAVALINK_SECURE, secureDefault);
         const authorization = String(process.env.LAVALINK_PASSWORD || "").trim();
 
-        if (!authorization) {
-            throw new Error("LAVALINK_PASSWORD nao definido no .env");
+        if (!host || !/^\d+$/.test(String(rawPort)) || !Number.isInteger(port) || port < 1 || port > 65535 || !authorization) {
+            throw new Error("LAVALINK_HOST, LAVALINK_PORT e LAVALINK_PASSWORD devem estar configurados corretamente no .env");
         }
 
         return {
             id: "main-node",
             host,
             port,
-            secure: secureDefault,
+            secure,
             authorization,
             apiVersion: "v4",
         };
