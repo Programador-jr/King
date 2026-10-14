@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const http = require("http");  
 const url = require(`url`);
 const path = require(`path`);
@@ -25,10 +25,6 @@ const {
   getDashboardBaseUrl,
   getDashboardCallbackUrl,
 } = require("../handlers/dashboardConfig");
-const { createDashboardSessionConfig } = require("./sessionConfig");
-const { createDashboardRequestSecurity } = require("./requestSecurity");
-const { assertTicketAuthorization } = require("../handlers/ticketAuthorization");
-const { makePanelButtonCustomId } = require("../handlers/ticketPanelIdentity");
 
 const getBotData = (client) => ({
   avatar: client.user.displayAvatarURL({ size: 128 }),
@@ -62,41 +58,16 @@ module.exports = client => {
     const settings = require("./settings.json");
     const dashboardClientId = process.env.DASHBOARD_CLIENT_ID || settings?.config?.clientID || "";
     const dashboardClientSecret = process.env.DASHBOARD_CLIENT_SECRET || settings?.config?.secret || "";
-    const isProduction = process.env.NODE_ENV === "production";
-    const trustDashboardProxy = process.env.DASHBOARD_TRUST_PROXY === "1"
-      || process.env.DASHBOARD_TRUST_PROXY === "true"
-      || settings?.config?.trustProxy === true;
-    const httpPort = getDashboardPort(settings);
-    const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
-    const resolvedCallback = getDashboardCallbackUrl(settings) || `${resolvedDomain}/callback`;
-    const dashboardSessionConfig = createDashboardSessionConfig({
-      production: isProduction,
-      secureCookie: isProduction || /^https:\/\//i.test(resolvedDomain),
-      trustProxy: trustDashboardProxy,
-    });
-
-    if (isProduction) {
-      if (!/^\d{17,20}$/.test(String(dashboardClientId).trim())) {
-        throw new Error("[dashboard] DASHBOARD_CLIENT_ID must be a valid Discord application ID in production.");
-      }
-      if (!dashboardClientSecret || /^(your|sua|replace|paste|cole|substitua|change[_ -]?me|example|placeholder)/i.test(String(dashboardClientSecret).trim())) {
-        throw new Error("[dashboard] DASHBOARD_CLIENT_SECRET must be configured with a non-placeholder value in production.");
-      }
-      let callbackUrl;
-      try { callbackUrl = new URL(resolvedCallback); } catch {}
-      if (!callbackUrl || !["http:", "https:"].includes(callbackUrl.protocol) || callbackUrl.protocol !== "https:") {
-        throw new Error("[dashboard] Configure DASHBOARD_CALLBACK (or DASHBOARD_DOMAIN) as an HTTPS URL in production.");
-      }
-    }
+    const dashboardSessionSecret = process.env.DASHBOARD_SESSION_SECRET || `#@%#&^$^$%@$^$&%#$%@#$%$^%&$%^#$%@#$%#E%#%@$FEErfgr3g#%GT%536c53cc6%5%tv%4y4hrgrggrgrgf4n`;
 
     if (!dashboardClientId || !dashboardClientSecret) {
       console.log("[dashboard] Desativado: DASHBOARD_CLIENT_ID/DASHBOARD_CLIENT_SECRET ausentes no .env (ou dashboard/settings.json).");
       return;
     }
 
-    if (dashboardSessionConfig.generatedSecret) {
-      console.warn("[dashboard] DASHBOARD_SESSION_SECRET ausente; usando segredo temporário apenas para desenvolvimento. As sessões serão invalidadas ao reiniciar.");
-    }
+    const httpPort = getDashboardPort(settings);
+    const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
+    const resolvedCallback = getDashboardCallbackUrl(settings) || `${resolvedDomain}/callback`;
     const isLocalCallback = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?(\/|$)/i.test(resolvedCallback);
     console.log(`[dashboard] OAuth callback URL: ${resolvedCallback}`);
 
@@ -154,17 +125,6 @@ module.exports = client => {
       const userGuild = req.user.guilds.find((entry) => String(entry.id) === String(guildId));
       if (!userGuild) return false;
       return hasManageGuildPermission(userGuild.permissions_new);
-    };
-
-    const userCanManageTicket = async (req, guild, ticket, action) => {
-      if (!req?.isAuthenticated?.() || !req?.user?.id || !guild || !ticket) return false;
-      if (userCanManageGuild(req, guild.id)) return true;
-      let member = guild.members.cache.get(req.user.id);
-      if (!member) {
-        try { member = await guild.members.fetch(req.user.id); }
-        catch (error) { console.error(`[dashboard] Não foi possível carregar membro ${req.user.id} para autorizar ticket:`, error.message); }
-      }
-      return assertTicketAuthorization(client, ticket, member, action);
     };
 
     const resolveEmbedReturnTo = (guildId, rawInput) => {
@@ -281,7 +241,6 @@ module.exports = client => {
     // We instantiate express app and the session store.
     const app = express();
     const httpApp = express();
-    const dashboardSecurity = createDashboardRequestSecurity({ production: isProduction });
     const session = require(`express-session`);
     const MemoryStore = require(`memorystore`)(session);
 
@@ -304,14 +263,11 @@ module.exports = client => {
     /**
      * @INFO - ADD A SESSION SAVER
      */
-    app.set("trust proxy", dashboardSessionConfig.trustProxy);
-    app.use(dashboardSecurity.securityHeaders);
     app.use(session({
         store: new MemoryStore({ checkPeriod: 86400000 }),
-        secret: dashboardSessionConfig.secret,
+        secret: dashboardSessionSecret,
         resave: false,
         saveUninitialized: false,
-        cookie: dashboardSessionConfig.cookie,
     }));
 
     // initialize passport middleware.
@@ -324,26 +280,25 @@ module.exports = client => {
 
 
     //Those for app.use(s) are for the input of the post method (updateing settings)
-    app.use(dashboardSecurity.requestRateLimit);
-    app.use(dashboardSecurity.jsonParser);
-    app.use(dashboardSecurity.urlencodedParser);
-    app.use(dashboardSecurity.sameOriginProtection);
-    app.use(dashboardSecurity.csrfProtection);
+    app.use(express.json());
+    app.use(express.urlencoded({
+      extended: true
+    }));
     app.use((req, res, next) => {
       res.locals.isDevUser = Boolean(req?.isAuthenticated?.() && req?.user?.id && isDeveloper(req.user.id));
-      if (req.method === "GET"
-        && req.path !== "/login"
-        && req.path !== "/callback"
-        && !req.path.startsWith("/api/")
-        && !req.path.startsWith("/public/")
-        && req.accepts("html")) {
-        res.locals.csrfToken = dashboardSecurity.generateCsrfToken(req);
-      }
       next();
     });
 
-    // Serve only explicitly public dashboard assets; never expose the dashboard root.
-    require("./staticAssets")(app, express, __dirname);
+    // Serve only browser assets; never expose dashboard source, views, or configuration.
+    const publicAssetsPath = path.join(__dirname, "public");
+    app.use("/public", express.static(publicAssetsPath, {
+      dotfiles: "deny",
+      index: false,
+      fallthrough: true,
+      setHeaders: (res) => {
+        res.setHeader("X-Content-Type-Options", "nosniff");
+      }
+    }));
     
     // We declare a checkAuth function middleware to check if an user is logged in or not, and if not redirect him.
     const checkAuth = (req, res, next) => {
@@ -430,18 +385,13 @@ module.exports = client => {
             return res.redirect("/?error=oauth_user");
           }
 
-          const backURL = typeof req.session?.backURL === "string" && req.session.backURL.startsWith("/")
-            ? req.session.backURL
-            : "/dashboard";
-          // Passport regenerates the session during login; restore only the callback state needed below.
           req.logIn(user, (loginErr) => {
             if (loginErr) {
               console.error("[dashboard][oauth] Session login failed:", loginErr.message);
-              if (req.session) req.session.oauthCallback = null;
+              if (req?.session) req.session.oauthRetryCount = null;
+              req.session.oauthCallback = null;
               return res.redirect("/?error=oauth_login");
             }
-            req.session.backURL = backURL;
-            req.session.oauthCallback = callbackURL;
             return next();
           });
         })(req, res, next);
@@ -530,38 +480,11 @@ module.exports = client => {
 
 
     //Logout the user and move him back to the main page
-    app.post("/logout", (req, res, next) => {
-      const destroySession = () => {
-        if (!req.session) {
-          res.clearCookie("connect.sid", {
-            path: "/",
-            httpOnly: true,
-            sameSite: "lax",
-            secure: dashboardSessionConfig.cookie.secure,
-          });
-          return res.redirect("/");
-        }
-
-        req.session.destroy((err) => {
-          if (err) return next(err);
-          res.clearCookie("connect.sid", {
-            path: "/",
-            httpOnly: true,
-            sameSite: "lax",
-            secure: dashboardSessionConfig.cookie.secure,
-          });
-          return res.redirect("/");
-        });
-      };
-
-      if (req.isAuthenticated?.()) {
-        return req.logout((err) => {
-          if (err) return next(err);
-          destroySession();
-        });
-      }
-
-      return destroySession();
+    app.get(`/logout`, function (req, res) {
+      req.session.destroy(() => {
+        req.logout();
+        res.redirect(`/`);
+      });
     });
 
     // Dashboard endpoint.
@@ -1519,6 +1442,10 @@ module.exports = client => {
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
+      if (!member.permissions.has("MANAGE_GUILD")) {
+        return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
+      }
+
       const ticketNumber = parseInt(req.params.ticketNumber);
       if (!ticketNumber) return res.redirect("/dashboard?error=" + encodeURIComponent("Ticket invÃ¡lido"));
 
@@ -1529,9 +1456,6 @@ module.exports = client => {
 
       const ticket = client.ticketHandler.getTicket(guild.id, ticketNumber);
       if (!ticket) return res.redirect(`/dashboard/${guild.id}/tickets?error=` + encodeURIComponent("Ticket nÃ£o encontrado"));
-      if (!await userCanManageTicket(req, guild, ticket, "reopen")) {
-        return res.redirect("/dashboard?error=" + encodeURIComponent("Sem permissão para acessar este ticket"));
-      }
 
       res.render("ticket-view", {
         req: req,
@@ -1555,19 +1479,16 @@ module.exports = client => {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
+        }
+
         const TicketHandler = require("../handlers/tickets");
         if (!client.ticketHandler) {
           client.ticketHandler = new TicketHandler(client);
         }
 
-        const existingTicket = client.ticketHandler.getTicket(guildId, ticketNumber);
-        if (!existingTicket) return res.status(404).json({ ok: false, message: "Ticket não encontrado" });
-        if (!await userCanManageTicket(req, guild, existingTicket, "close")) {
-          return res.status(403).json({ ok: false, message: "Sem permissão para fechar este ticket" });
-        }
-        if (existingTicket.status !== "open") return res.status(409).json({ ok: false, message: "Ticket não está aberto" });
         const closedTicket = await client.ticketHandler.closeTicket(guildId, ticketNumber, req.user.id, req.user.tag);
-        if (!closedTicket) return res.status(409).json({ ok: false, message: "Não foi possível confirmar o fechamento do ticket" });
 
         await client.ticketHandler.sendCloseLog(guildId, closedTicket, guild, req.user);
 
@@ -1588,19 +1509,16 @@ module.exports = client => {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
+        }
+
         const TicketHandler = require("../handlers/tickets");
         if (!client.ticketHandler) {
           client.ticketHandler = new TicketHandler(client);
         }
 
-        const existingTicket = client.ticketHandler.getTicket(guildId, ticketNumber);
-        if (!existingTicket) return res.status(404).json({ ok: false, message: "Ticket não encontrado" });
-        if (!await userCanManageTicket(req, guild, existingTicket, "reopen")) {
-          return res.status(403).json({ ok: false, message: "Sem permissão para reabrir este ticket" });
-        }
-        if (existingTicket.status !== "closed") return res.status(409).json({ ok: false, message: "Ticket não está fechado" });
-        const reopenedTicket = await client.ticketHandler.reopenTicket(guildId, ticketNumber);
-        if (!reopenedTicket) return res.status(409).json({ ok: false, message: "Não foi possível confirmar a reabertura do ticket" });
+        await client.ticketHandler.reopenTicket(guildId, ticketNumber);
 
         return res.json({ ok: true, message: "Ticket reaberto com sucesso" });
       } catch (err) {
@@ -1643,13 +1561,13 @@ module.exports = client => {
           .setDescription(description || "Precisa de ajuda? Clique no botÃ£o abaixo para criar um ticket.")
           .setFooter({ text: "Sistema de Tickets" });
 
-        const panelId = `panel-${Date.now()}`;
-        const row = new MessageActionRow().addComponents(
-          new MessageButton()
-            .setCustomId(makePanelButtonCustomId(panelId, 0))
-            .setLabel(buttonLabel || "Criar Ticket")
-            .setStyle("PRIMARY")
-        );
+        const row = new MessageActionRow()
+          .addComponents(
+            new MessageButton()
+              .setCustomId("create_ticket")
+              .setLabel(buttonLabel || "ðŸŽ« Criar Ticket")
+              .setStyle("PRIMARY")
+          );
 
         const panelMessage = await channel.send({
           embeds: [embed],
@@ -1662,15 +1580,11 @@ module.exports = client => {
         }
 
         await client.ticketHandler.createPanel(guildId, {
-          id: panelId,
-          panelId,
           channelId: channelId,
           messageId: panelMessage.id,
           title: title,
           description: description,
-          buttonLabel: buttonLabel,
-          buttons: [{ customId: makePanelButtonCustomId(panelId, 0), label: buttonLabel || "Criar Ticket", style: "PRIMARY" }],
-          questions: [],
+          buttonLabel: buttonLabel
         });
 
         return res.json({ ok: true, message: "Painel criado com sucesso" });
@@ -1787,9 +1701,9 @@ module.exports = client => {
         const rows = [];
         const buttonRow = new MessageActionRow();
         
-        (panel.buttons || []).forEach((btn, index) => {
+        (panel.buttons || []).forEach(btn => {
           const button = new MessageButton()
-            .setCustomId(makePanelButtonCustomId(panel.id || panel.panelId, index))
+            .setCustomId(btn.customId || 'create_ticket')
             .setLabel(btn.label || 'Criar Ticket')
             .setStyle(btn.style || 'PRIMARY');
           if (btn.emoji) button.setEmoji(btn.emoji);
@@ -1823,6 +1737,10 @@ module.exports = client => {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
         }
 
+        if (!userCanManageGuild(req, guildId)) {
+          return res.status(403).json({ ok: false, message: "VocÃª nÃ£o tem permissÃ£o" });
+        }
+
         const TicketHandler = require("../handlers/tickets");
         if (!client.ticketHandler) {
           client.ticketHandler = new TicketHandler(client);
@@ -1831,10 +1749,6 @@ module.exports = client => {
         const ticket = client.ticketHandler.getTicket(guildId, ticketNumber);
         if (!ticket) {
           return res.status(404).json({ ok: false, message: "Ticket nÃ£o encontrado" });
-        }
-
-        if (!await userCanManageTicket(req, guild, ticket, "close")) {
-          return res.status(403).json({ ok: false, message: "Sem permissão para fechar este ticket" });
         }
 
         if (ticket.status === "closed") {
@@ -1848,14 +1762,12 @@ module.exports = client => {
           req.user.tag
         );
 
-        if (!closedTicket) {
-          return res.status(409).json({ ok: false, message: "Não foi possível confirmar o fechamento do ticket" });
-        }
-
         await client.ticketHandler.sendCloseLog(guildId, closedTicket, guild, req.user);
 
         const channel = guild.channels.cache.get(ticket.channelId);
         if (channel) {
+          await channel.setName(`closed-${ticketNumber}`);
+
           const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 
           const customCloseEmbed = client.settings.get(guild.id, "ticketCloseEmbed");
@@ -2075,8 +1987,10 @@ module.exports = client => {
         const rows = [];
         const buttonRow = new MessageActionRow();
         
-        buttons.forEach((btn, index) => {
-          const customId = makePanelButtonCustomId(panelId, index);
+        buttons.forEach(btn => {
+          const customId = btn.customId && btn.customId !== 'create_ticket' 
+            ? btn.customId 
+            : `create_ticket_${panelId}`;
           const button = new MessageButton()
             .setCustomId(customId)
             .setLabel(btn.label || 'Criar Ticket')
@@ -2099,9 +2013,11 @@ module.exports = client => {
           client.ticketHandler = new TicketHandler(client);
         }
 
-        const updatedButtons = buttons.map((btn, index) => ({
+        const updatedButtons = buttons.map(btn => ({
           ...btn,
-          customId: makePanelButtonCustomId(panelId, index)
+          customId: btn.customId && btn.customId !== 'create_ticket' 
+            ? btn.customId 
+            : `create_ticket_${panelId}`
         }));
 
         await client.ticketHandler.createPanel(guildId, {
@@ -2423,8 +2339,6 @@ module.exports = client => {
     } else {
       console.log("[TopGG] WEBHOOK DESATIVADO: TOPGG_WEBHOOK_AUTH não configurado no .env");
     }
-
-    app.use(dashboardSecurity.errorHandler);
 
     /**
      * @START THE WEBSITE
