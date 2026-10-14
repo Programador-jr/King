@@ -205,7 +205,11 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     loadNodesFromConfig() {
         // Prefer an explicit local node when requested; this never changes production defaults.
-        const localMode = this.parseBoolean(process.env.LAVALINK_LOCAL, false);
+        const hasExplicitNodeEnv = Boolean(
+            String(process.env.LAVALINK_HOST || "").trim()
+            && String(process.env.LAVALINK_PASSWORD || "").trim()
+        );
+        const localMode = this.parseBoolean(process.env.LAVALINK_LOCAL, false) || hasExplicitNodeEnv;
         if (localMode) {
             const host = this.resolveHost(process.env.LAVALINK_HOST || "127.0.0.1");
             const rawPort = process.env.LAVALINK_PORT || "2333";
@@ -375,7 +379,9 @@ class LavalinkManagerWrapper extends EventEmitter {
         this.autoplayState.clear();
         this.filterState.clear();
         
-        const nodeOptionsList = this.loadNodesFromConfig();
+        // Use the same node-selection logic as the initial connection. This prevents
+        // reconnects from reverting to botconfig/lavalink.json when env config is active.
+        const nodeOptionsList = this.getNodeOptionsList();
         const debugEnabled = this.parseBoolean(process.env.LAVALINK_DEBUG, false);
         
         if (!this.rawListener) {
