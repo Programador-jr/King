@@ -738,6 +738,31 @@ class LavalinkManagerWrapper extends EventEmitter {
         }
     }
 
+    getVoiceSessionDiagnostics(guildId, minFreshAt = 0) {
+        const player = this.getPlayer(guildId);
+        const state = this.voiceStateCache.get(guildId);
+        const server = this.voiceServerCache.get(guildId);
+        const voice = player?.voice || {};
+        const stateComplete = Boolean(state?.sessionId && state?.channelId);
+        const serverComplete = Boolean(server?.token && server?.endpoint);
+        const stateFresh = Boolean(state && (minFreshAt <= 0 || (state.at || 0) >= minFreshAt));
+        const serverFresh = Boolean(server && (minFreshAt <= 0 || (server.at || 0) >= minFreshAt));
+        const channelMatches = Boolean(
+            state?.channelId &&
+            (state.channelId === (player?.voiceChannelId || player?.options?.voiceChannelId))
+        );
+
+        // Report only presence/freshness flags; never log Discord voice credentials.
+        return [
+            `state=${stateComplete ? "complete" : "missing"}`,
+            `server=${serverComplete ? "complete" : "missing"}`,
+            `stateFresh=${stateFresh}`,
+            `serverFresh=${serverFresh}`,
+            `playerVoice=${Boolean(voice.sessionId && voice.token && voice.endpoint)}`,
+            `channelMatch=${channelMatches}`,
+        ].join(" ");
+    }
+
     async syncCachedVoiceToPlayer(guildId, minFreshAt = 0) {
         const player = this.getPlayer(guildId);
         if (!player?.node?.sessionId) return false;
@@ -821,20 +846,41 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     async refreshVoiceSession(guildId, timeoutMs = 12000) {
         const player = this.getPlayer(guildId);
-        if (!player || !player.voiceChannelId) return false;
+        const channelId = player?.voiceChannelId || player?.options?.voiceChannelId;
+        if (!player || !channelId) return false;
 
         const refreshAt = Date.now();
+        // Old cached packets must not be mistaken for a new Discord voice handshake.
+        this.voiceStateCache.delete(guildId);
+        this.voiceServerCache.delete(guildId);
         player.voice = {
             ...(player.voice || {}),
             sessionId: null,
             token: null,
             endpoint: null,
-            channelId: player.voiceChannelId,
+            channelId,
         };
 
-        await player.connect().catch(() => {});
+        try {
+            // Re-sending CONNECT while the bot is already in the channel may not
+            // trigger fresh VOICE_STATE_UPDATE / VOICE_SERVER_UPDATE packets.
+            // Force a real leave/join transition while keeping the Lavalink player.
+            if (typeof player.disconnect === "function") {
+                await player.disconnect(true);
+                await new Promise((resolve) => setTimeout(resolve, 350));
+            }
+            await player.connect();
+        } catch (error) {
+            this.log("warn", "Falha ao reiniciar a conexao de voz durante a recuperacao.", error);
+            return false;
+        }
+
         const voiceReady = await this.waitForVoiceSession(guildId, timeoutMs, refreshAt);
-        if (!voiceReady) return false;
+        if (!voiceReady) {
+            this.log("warn", `Handshake de voz nao renovado (${this.getVoiceSessionDiagnostics(guildId, refreshAt)}).`);
+            return false;
+        }
+
         await this.syncCachedVoiceToPlayer(guildId, refreshAt);
         return true;
     }
@@ -1221,7 +1267,10 @@ class LavalinkManagerWrapper extends EventEmitter {
             await player.connect();
             const voiceReady = await this.waitForVoiceSession(guildId, 12000, connectRequestedAt);
             if (!voiceReady) {
-                this.log("warn", "Handshake de voz pendente após conectar o player.");
+                this.log(
+                    "warn",
+                    `Handshake de voz pendente após conectar o player (${this.getVoiceSessionDiagnostics(guildId, connectRequestedAt)}).`,
+                );
             }
         }
 
@@ -1361,7 +1410,10 @@ class LavalinkManagerWrapper extends EventEmitter {
             voiceReady = await this.refreshVoiceSession(player.guildId, 12000);
         }
         if (!voiceReady) {
-            throw new Error("Conectei ao canal de voz, mas o Discord nao enviou a sessao de voz completa para iniciar a reproducao.");
+            const details = this.getVoiceSessionDiagnostics(player.guildId);
+            throw new Error(
+                `Conectei ao canal de voz, mas o Discord nao enviou a sessao de voz completa para iniciar a reproducao. (${details})`,
+            );
         }
         const result = await this.searchTracks(player, query, requester);
 
