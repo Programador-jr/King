@@ -52,7 +52,29 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     shortError(error) {
         if (!error) return "";
-        const message = error instanceof Error ? error.message : String(error);
+        let message = "";
+        if (error instanceof Error) {
+            message = error.message || error.name || "Error";
+        } else if (typeof error === "object") {
+            message = error.message || error.reason || error.code || "";
+            if (!message) {
+                try {
+                    const seen = new WeakSet();
+                    message = JSON.stringify(error, (key, value) => {
+                        if (/token|password|authorization|secret|sessionid/i.test(key)) return "[redacted]";
+                        if (value && typeof value === "object") {
+                            if (seen.has(value)) return "[circular]";
+                            seen.add(value);
+                        }
+                        return value;
+                    });
+                } catch {
+                    message = Object.prototype.toString.call(error);
+                }
+            }
+        } else {
+            message = String(error);
+        }
         return String(message || "").replace(/\s+/g, " ").trim().slice(0, 200);
     }
 
@@ -419,7 +441,7 @@ class LavalinkManagerWrapper extends EventEmitter {
                         id: this.client.user.id,
                         username: this.client.user.username,
                     },
-                    autoSkip: true,
+                    autoSkip: false,
                     playerOptions: {
                         defaultSearchPlatform: "ytsearch",
                         onEmptyQueue: {
@@ -901,7 +923,7 @@ class LavalinkManagerWrapper extends EventEmitter {
                         id: this.client.user.id,
                         username: this.client.user.username,
                     },
-                    autoSkip: true,
+                    autoSkip: false,
                     playerOptions: {
                         defaultSearchPlatform: "ytsearch",
                         onEmptyQueue: {
@@ -1058,20 +1080,28 @@ class LavalinkManagerWrapper extends EventEmitter {
     }
 
     async searchTracks(player, query, requester) {
-        const cleanQuery = String(query || "").trim();
-        if (!cleanQuery) {
-            throw new Error("Consulta vazia.");
+        // Normalize strings and legacy query objects without ever searching for "[object Object]".
+        const queryOptions = query && typeof query === "object" && !Array.isArray(query)
+            ? query
+            : null;
+        const cleanQuery = String(
+            queryOptions?.query ?? queryOptions?.url ?? queryOptions?.identifier ?? query ?? ""
+        ).trim();
+        if (!cleanQuery || cleanQuery === "[object Object]") {
+            throw new Error("Consulta vazia ou inválida.");
         }
 
         const requesterUser = this.normalizeRequester(requester);
         const attempts = [];
+        const explicitSource = String(queryOptions?.source || "").trim().toLowerCase();
 
         if (this.isUrl(cleanQuery)) {
             attempts.push({ query: cleanQuery });
         } else {
-            attempts.push({ query: cleanQuery, source: "ytsearch" });
-            attempts.push({ query: cleanQuery, source: "ytmsearch" });
-            attempts.push({ query: cleanQuery, source: "scsearch" });
+            if (explicitSource) attempts.push({ query: cleanQuery, source: explicitSource });
+            for (const source of ["ytsearch", "ytmsearch", "scsearch"]) {
+                if (source !== explicitSource) attempts.push({ query: cleanQuery, source });
+            }
         }
 
         const maxRetries = 3;
@@ -1148,6 +1178,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         const defaults = this.getGuildPlaybackDefaults(guildId);
         const defaultVolume = this.getSanitizedVolume(defaults.defaultvolume);
         let createdNow = false;
+        let channelChanged = false;
 
         if (!player) {
             player = this.manager.createPlayer({
@@ -1159,14 +1190,8 @@ class LavalinkManagerWrapper extends EventEmitter {
                 selfMute: false,
             });
             createdNow = true;
-        }
-
-        if (textChannelId) {
-            player.textChannelId = textChannelId;
-            player.options.textChannelId = textChannelId;
-        }
-
-        if (player.voiceChannelId !== voiceChannel.id) {
+        } else if (player.voiceChannelId !== voiceChannel.id) {
+            channelChanged = true;
             await player.changeVoiceState({
                 voiceChannelId: voiceChannel.id,
                 selfDeaf: true,
@@ -1174,19 +1199,30 @@ class LavalinkManagerWrapper extends EventEmitter {
             });
         }
 
-        const connectRequestedAt = Date.now();
-        player.voice = {
-            ...(player.voice || {}),
-            sessionId: null,
-            token: null,
-            endpoint: null,
-            channelId: voiceChannel.id,
-        };
-        await player.connect();
+        if (textChannelId) {
+            player.textChannelId = textChannelId;
+            player.options = player.options || {};
+            player.options.textChannelId = textChannelId;
+        }
 
-        const voiceReady = await this.waitForVoiceSession(guildId, 12000, connectRequestedAt);
-        if (!voiceReady) {
-            this.log("warn", "Handshake de voz pendente. Tentando reproduzir.");
+        // Preserve a valid Discord voice session when a user only adds another track.
+        // Resetting sessionId/token/endpoint on every play can interrupt active playback.
+        const voice = player.voice || {};
+        const hasVoiceSession = Boolean(
+            voice.sessionId &&
+            voice.token &&
+            voice.endpoint &&
+            (!voice.channelId || voice.channelId === player.voiceChannelId)
+        );
+        const needsConnect = createdNow || channelChanged || !player.connected || !hasVoiceSession;
+
+        if (needsConnect) {
+            const connectRequestedAt = Date.now();
+            await player.connect();
+            const voiceReady = await this.waitForVoiceSession(guildId, 12000, connectRequestedAt);
+            if (!voiceReady) {
+                this.log("warn", "Handshake de voz pendente após conectar o player.");
+            }
         }
 
         if (createdNow) {
@@ -1202,7 +1238,6 @@ class LavalinkManagerWrapper extends EventEmitter {
 
         return player;
     }
-
     waitForTrackStart(guildId, timeoutMs = 30000, startedAfter = Date.now()) {
         const lastStart = this.lastTrackStartAt.get(guildId) || 0;
         if (lastStart >= startedAfter) {
