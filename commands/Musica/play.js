@@ -17,8 +17,7 @@ const replyError = async (message, payload) => {
 const playWithRetry = async (client, channel, query, options, maxRetries = 3) => {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-            await client.lavalink.play(channel, query, options);
-            return; // Sucesso, sair do retry
+            return await client.lavalink.play(channel, query, options);
         } catch (playError) {
             // Verificar se e' o erro específico de sessao de voz
             if (playError.message &&
@@ -122,13 +121,16 @@ module.exports = {
             try {
                 // O Lavalink resolve a faixa e mantém a extração de áudio no mesmo serviço.
                 // URLs de stream temporárias podem expirar antes de a fila terminar.
-                await playWithRetry(client, channel, Text, {
+                const playback = await playWithRetry(client, channel, Text, {
                     member,
                     textChannel: guild.channels.cache.get(message.channelId)
                 });
 
                 if (newmsg) {
-                    newmsg.edit({ content: "Tocando: ```" + Text + "```" }).catch(() => {});
+                    const status = playback?.startedPlayback
+                        ? "Tocando: "
+                        : "Adicionada à fila: ";
+                    newmsg.edit({ content: status + "```" + Text + "```" }).catch(() => {});
                 }
             } catch (e) {
                 console.log(e.stack ? e.stack : e);
