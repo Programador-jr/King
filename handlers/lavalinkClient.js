@@ -1248,11 +1248,8 @@ class LavalinkManagerWrapper extends EventEmitter {
         return new Promise((resolve, reject) => {
             let settled = false;
             let timer = null;
-            let poll = null;
-
             const cleanup = () => {
                 if (timer) clearTimeout(timer);
-                if (poll) clearInterval(poll);
                 this.manager.off("trackStart", onStart);
                 this.manager.off("trackError", onTrackError);
                 this.manager.off("trackStuck", onTrackStuck);
@@ -1271,14 +1268,6 @@ class LavalinkManagerWrapper extends EventEmitter {
                 settled = true;
                 cleanup();
                 reject(error instanceof Error ? error : new Error(String(error)));
-            };
-
-            const checkPlayerState = () => {
-                const player = this.getPlayer(guildId);
-                if (!player) return;
-                if (player.playing) {
-                    resolveOnce(player.queue?.current || null);
-                }
             };
 
             timer = setTimeout(async () => {
@@ -1315,8 +1304,6 @@ class LavalinkManagerWrapper extends EventEmitter {
                     rejectOnce(error);
                 }
             }, timeoutMs);
-
-            poll = setInterval(checkPlayerState, 250);
 
             const onStart = (player, track) => {
                 if (player.guildId !== guildId) return;
@@ -1423,11 +1410,18 @@ class LavalinkManagerWrapper extends EventEmitter {
             }
         }
 
+        let startedTrack = null;
         if (shouldWaitForStart) {
-            await this.waitForTrackStart(player.guildId, 30000, playbackRequestStartedAt);
+            startedTrack = await this.waitForTrackStart(player.guildId, 30000, playbackRequestStartedAt);
         }
 
-        return { player, tracks: result.tracks, result };
+        return {
+            player,
+            tracks: result.tracks,
+            result,
+            startedPlayback: shouldWaitForStart,
+            startedTrack,
+        };
     }
 
     async skip(guildId) {
