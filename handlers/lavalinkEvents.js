@@ -1,6 +1,28 @@
 const shortError = (error) => {
   if (!error) return "";
-  const message = error instanceof Error ? error.message : String(error);
+  let message = "";
+  if (error instanceof Error) {
+    message = error.message || error.name || "Error";
+  } else if (typeof error === "object") {
+    message = error.message || error.reason || error.code || "";
+    if (!message) {
+      try {
+        const seen = new WeakSet();
+        message = JSON.stringify(error, (key, value) => {
+          if (/token|password|authorization|secret|sessionid/i.test(key)) return "[redacted]";
+          if (value && typeof value === "object") {
+            if (seen.has(value)) return "[circular]";
+            seen.add(value);
+          }
+          return value;
+        });
+      } catch {
+        message = Object.prototype.toString.call(error);
+      }
+    }
+  } else {
+    message = String(error);
+  }
   return String(message || "").replace(/\s+/g, " ").trim().slice(0, 200);
 };
 
@@ -379,9 +401,19 @@ module.exports = (client) => {
 
   client.lavalink.on('empty', async (player) => {
     try {
-        const textChannel = client.channels.cache.get(player.textChannelId);
+        const guild = client.guilds.cache.get(player?.guildId);
+        const voiceChannelId = player?.voiceChannelId || player?.voice?.channelId;
+        const voiceChannel = voiceChannelId ? guild?.channels.cache.get(voiceChannelId) : null;
+
+        // playerDestroy também acontece ao encerrar uma fila ou executar stop().
+        // Só mostre "canal vazio" quando for possível confirmar que não há humanos.
+        if (!voiceChannel?.members) return;
+        const hasHumanMembers = voiceChannel.members.some((member) => !member.user?.bot);
+        if (hasHumanMembers) return;
+
+        const textChannel = client.channels.cache.get(player?.textChannelId);
         if (textChannel) {
-            textChannel.send({
+            await textChannel.send({
                 embeds: [
                     new MessageEmbed()
                         .setColor(ee.wrongcolor)
@@ -390,7 +422,7 @@ module.exports = (client) => {
                         .setDescription("<:queue:893912259535966238> **O canal de voz ficou vazio, saindo do canal...**")
                         .setTimestamp()
                 ]
-            });
+            }).catch((error) => logShort("warn", "Falha ao enviar aviso de canal vazio.", error));
         }
     } catch (e) {
         logShort("warn", "Falha ao tratar canal vazio.", e);
@@ -402,7 +434,25 @@ module.exports = (client) => {
   });
 
   client.lavalink.on('error', async (guildId, error) => {
-    logShort("error", "Erro interno.", error);
+    logShort("error", "Falha ao reproduzir faixa no Lavalink.", error);
+    try {
+      const player = client.lavalink.getPlayer(guildId);
+      const textChannel = player?.textChannelId
+        ? client.channels.cache.get(player.textChannelId)
+        : null;
+      if (!textChannel) return;
+      await textChannel.send({
+        embeds: [
+          new MessageEmbed()
+            .setColor(ee.wrongcolor)
+            .setTitle("Falha ao reproduzir a música")
+            .setDescription("O Lavalink não conseguiu reproduzir esta faixa. A fila foi preservada para evitar que várias músicas sejam puladas automaticamente. Verifique os logs do Lavalink e tente pular a faixa manualmente.")
+            .setTimestamp()
+        ]
+      });
+    } catch (sendError) {
+      logShort("warn", "Falha ao notificar o canal sobre o erro de reprodução.", sendError);
+    }
   });
 
   function receiveQueueData(newQueue, newTrack) {
