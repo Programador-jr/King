@@ -1,7 +1,5 @@
 const { MessageEmbed, PermissionFlagsBits } = require("discord.js");
 const ee = require("../../botconfig/embed.json");
-const { spawn } = require("child_process");
-const path = require("path");
 
 const ERROR_DELETE_MS = 4000;
 const deleteLater = (msg) => {
@@ -122,137 +120,12 @@ module.exports = {
             }).catch(() => null);
 
             try {
-                // DETECTAR SE É CONSULTA DO YOUTUBE
-                const isYouTubeQuery =
-                    Text.match(/(youtube\.com|youtu.be)/i) ||
-                    !Text.match(/^(https?:\/\/)?(soundcloud|bandcamp|twitch|vimeo|nico)\.|^(soundcloud|bandcamp|twitch|vimeo|nico):/i) &&
-                    (Text.match(/music\s|audio\s/i) || !Text.startsWith('http'));
-
-                if (isYouTubeQuery) {
-                    // USAR YT-DLP DIRETO PARA YOUTUBE
-                    try {
-                        // Obter caminho do yt-dlp
-                        let ytDlpPath = "yt-dlp"; // Assume it's in PATH
-                        try {
-                            // Tentar obter o caminho do pacote @distube/yt-dlp se estiver instalado localmente
-                            const distubeYtDlpPath = require.resolve("@distube/yt-dlp");
-                            // O executável yt-dlp está em node_modules/.bin/ quando instalado via npm
-                            ytDlpPath = path.join(
-                                path.dirname(distubeYtDlpPath),
-                                "..",
-                                "..",
-                                ".bin",
-                                `yt-dlp${process.platform === "win32" ? ".exe" : ""}`
-                            );
-                        } catch (e) {
-                            // Se nao conseguir resolver o caminho, manter o padrao "yt-dlp" (assumir que esta no PATH)
-                        }
-
-                        // Executar yt-dlp para obter informacoes em formato JSON
-                        const info = await new Promise((resolve, reject) => {
-                            const args = [
-                                Text,
-                                "--no-warnings",
-                                "--ignore-config",
-                                "--prefer-free-formats",
-                                "--skip-download",
-                                "--simulate",
-                                "--dump-single-json",
-                                "--no-playlist"
-                            ];
-
-                            const child = spawn(ytDlpPath, args, {
-                                windowsHide: true
-                            });
-
-                            let stdout = "";
-                            let stderr = "";
-
-                            child.stdout.on("data", (chunk) => {
-                                stdout += chunk.toString();
-                            });
-
-                            child.stderr.on("data", (chunk) => {
-                                stderr += chunk.toString();
-                            });
-
-                            child.on("error", (err) => {
-                                reject(new Error(`Failed to spawn yt-dlp: ${err.message}`));
-                            });
-
-                            child.on("close", (code) => {
-                                if (code !== 0) {
-                                    reject(new Error(`yt-dlp exited with code ${code}: ${stderr || stdout || "Unknown error"}`));
-                                    return;
-                                }
-                                try {
-                                    const result = JSON.parse(stdout.trim());
-                                    resolve(result);
-                                } catch (parseErr) {
-                                    reject(new Error(`Failed to parse yt-dlp output as JSON: ${parseErr.message}`));
-                                }
-                            });
-                        });
-
-                        if (!info || !info.id) {
-                            throw new Error("Falha ao obter informações do YouTube com yt-dlp");
-                        }
-
-                        // Obter URL de stream direto de audio
-                        let streamUrl = "";
-                        if (info.url) {
-                            streamUrl = info.url;
-                        } else if (Array.isArray(info.formats)) {
-                            // Procurar por formato de audio apenas (sem video)
-                            const audioOnlyFormats = info.formats.filter(
-                                f => f.url &&
-                                     /audio/i.test(f.acodec || "") &&    // Tem codec de audio
-                                     !/video/i.test(f.vcodec || "")     // NÃO tem codec de video
-                            );
-                            if (audioOnlyFormats.length > 0) {
-                                // Escolher o formato com maior bitrate
-                                const bestAudioFormat = audioOnlyFormats.reduce((best, f) =>
-                                    (f.bitrate || 0) > (best.bitrate || 0) ? f : best
-                                );
-                                streamUrl = bestAudioFormat.url;
-                            } else {
-                                // Se nao encontrar audio apenas, procurar por qualquer formato com audio
-                                const audioFormats = info.formats.filter(
-                                    f => f.url &&
-                                         /audio/i.test(f.acodec || "")    // Tem codec de audio (pode ter video também)
-                                );
-                                if (audioFormats.length > 0) {
-                                    const bestAudioFormat = audioFormats.reduce((best, f) =>
-                                        (f.bitrate || 0) > (best.bitrate || 0) ? f : best
-                                    );
-                                    streamUrl = bestAudioFormat.url;
-                                }
-                            }
-                        }
-
-                        if (!streamUrl) {
-                            throw new Error("Nao foi possivel obter URL de stream de audio do YouTube");
-                        }
-
-                        // REPRODUZIR USANDO O URL DIRETO DO YT-DLP (como fonte HTTP no Lavalink)
-                        // PASSAR COMO OBJETO COM source: "http" PARA GARANTIR QUE O LAVALINK TRATE COMO FONTE HTTP DIRETA
-                        await playWithRetry(client, channel, { query: streamUrl, source: "http" }, {
-                            member: member,
-                            textChannel: guild.channels.cache.get(message.channelId)
-                        });
-                    } catch (ytDlpError) {
-                        console.error("[YouTube yt-dlp Error]", ytDlpError);
-                        // Como ultimo recurso, tentar o Lavalink native com retry
-                        await playWithRetry(client, channel, Text, {
-                            member: member
-                        });
-                    }
-                } else {
-                    // USAR LAVALINK NATIVE PARA TODAS AS OUTRAS FONTES COM RETRY
-                    await playWithRetry(client, channel, Text, {
-                        member: member
-                    });
-                }
+                // O Lavalink resolve a faixa e mantém a extração de áudio no mesmo serviço.
+                // URLs de stream temporárias podem expirar antes de a fila terminar.
+                await playWithRetry(client, channel, Text, {
+                    member,
+                    textChannel: guild.channels.cache.get(message.channelId)
+                });
 
                 if (newmsg) {
                     newmsg.edit({ content: "Tocando: ```" + Text + "```" }).catch(() => {});
