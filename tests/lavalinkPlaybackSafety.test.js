@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const LavalinkManagerWrapper = require("../handlers/lavalinkClient");
 const filters = require("../botconfig/filters.json");
+const { EventEmitter } = require("node:events");
 
 test("searchTracks normalizes a legacy query object instead of searching for [object Object]", async () => {
     const wrapper = new LavalinkManagerWrapper({
@@ -82,4 +83,31 @@ test("the default custom-speed filter is neutral and does not accelerate playbac
     });
 
     assert.equal(wrapper.getSpeedLevelFromFilter("customspeed"), 1);
+});
+
+
+test("waitForTrackStart does not mistake a stale playing flag for a newly started track", async () => {
+    const wrapper = new LavalinkManagerWrapper({
+        user: { id: "bot-id", username: "King" },
+    });
+    wrapper.manager = new EventEmitter();
+    wrapper.getPlayer = () => ({
+        guildId: "guild-id",
+        playing: true,
+        connected: true,
+        voice: {
+            sessionId: "voice-session",
+            token: "voice-token",
+            endpoint: "voice.example.invalid",
+        },
+        queue: {
+            current: { encoded: "previous-track" },
+            tracks: [],
+        },
+    });
+
+    await assert.rejects(
+        wrapper.waitForTrackStart("guild-id", 25, Date.now()),
+        /Lavalink nao iniciou a reproducao/
+    );
 });
