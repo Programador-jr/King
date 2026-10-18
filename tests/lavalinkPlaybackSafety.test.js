@@ -111,3 +111,93 @@ test("waitForTrackStart does not mistake a stale playing flag for a newly starte
         /Lavalink nao iniciou a reproducao/
     );
 });
+
+test("refreshVoiceSession forces a leave/join and only accepts fresh voice packets", async () => {
+    const wrapper = new LavalinkManagerWrapper({
+        user: { id: "bot-id", username: "King" },
+    });
+    const calls = [];
+    const player = {
+        guildId: "guild-id",
+        voiceChannelId: "voice-channel",
+        options: { voiceChannelId: "voice-channel" },
+        voice: {
+            sessionId: "stale-session",
+            token: "stale-token",
+            endpoint: "stale.example.invalid",
+            channelId: "voice-channel",
+        },
+        disconnect: async (force) => {
+            calls.push(["disconnect", force]);
+            player.voiceChannelId = null;
+        },
+        connect: async () => {
+            calls.push(["connect"]);
+            player.voiceChannelId = player.options.voiceChannelId;
+        },
+    };
+
+    wrapper.getPlayer = () => player;
+    wrapper.waitForVoiceSession = async (_guildId, _timeoutMs, minFreshAt) => {
+        assert.ok(minFreshAt > 0);
+        assert.equal(wrapper.voiceStateCache.has("guild-id"), false);
+        assert.equal(wrapper.voiceServerCache.has("guild-id"), false);
+        const at = Date.now();
+        wrapper.voiceStateCache.set("guild-id", {
+            sessionId: "fresh-session",
+            channelId: "voice-channel",
+            guildId: "guild-id",
+            at,
+        });
+        wrapper.voiceServerCache.set("guild-id", {
+            token: "fresh-token",
+            endpoint: "voice.example.invalid",
+            guildId: "guild-id",
+            at,
+        });
+        player.voice = {
+            sessionId: "fresh-session",
+            token: "fresh-token",
+            endpoint: "voice.example.invalid",
+            channelId: "voice-channel",
+        };
+        return true;
+    };
+    wrapper.syncCachedVoiceToPlayer = async () => true;
+
+    assert.equal(await wrapper.refreshVoiceSession("guild-id", 100), true);
+    assert.deepEqual(calls, [["disconnect", true], ["connect"]]);
+    assert.equal(player.voice.sessionId, "fresh-session");
+});
+
+test("getVoiceSessionDiagnostics identifies missing voice updates without exposing credentials", () => {
+    const wrapper = new LavalinkManagerWrapper({
+        user: { id: "bot-id", username: "King" },
+    });
+    wrapper.manager = { initiated: true };
+    wrapper.getPlayer = () => ({
+        guildId: "guild-id",
+        voiceChannelId: "voice-channel",
+        options: { voiceChannelId: "voice-channel" },
+        voice: {},
+    });
+    wrapper.voiceStateCache.set("guild-id", {
+        sessionId: "session-secret",
+        channelId: "voice-channel",
+        at: Date.now(),
+    });
+    wrapper.voiceServerCache.set("guild-id", {
+        token: "token-secret",
+        endpoint: null,
+        at: Date.now(),
+    });
+
+    const details = wrapper.getVoiceSessionDiagnostics("guild-id");
+
+    assert.match(details, /state=complete/);
+    assert.match(details, /server=missing/);
+    assert.match(details, /channelMatch=true/);
+    assert.equal(details.includes("session-secret"), false);
+    assert.equal(details.includes("token-secret"), false);
+});
+
