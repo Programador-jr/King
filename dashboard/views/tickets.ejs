@@ -10,6 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/index.css">
     <title>Tickets | <%= guild.name %></title>
+    <link rel="stylesheet" href="/panel-refresh.css">
   </head>
   <body class="theme-discord modern-tickets">
     <%- include('header'); -%>
@@ -21,6 +22,12 @@
           Gerencie painéis, tickets e histórico de <b><%= guild.name %></b>.
         </p>
       </div>
+      <nav class="panel-page-nav" aria-label="Se&#231;&#245;es do painel">
+        <a href="/dashboard/<%= guild.id %>"><i class="fas fa-sliders-h" aria-hidden="true"></i> Geral</a>
+        <a href="/dashboard/<%= guild.id %>/automod"><i class="fas fa-shield-alt" aria-hidden="true"></i> Modera&#231;&#227;o</a>
+        <a href="/dashboard/<%= guild.id %>/tickets" aria-current="page"><i class="fas fa-ticket-alt" aria-hidden="true"></i> Tickets</a>
+        <a href="/queue/<%= guild.id %>"><i class="fas fa-music" aria-hidden="true"></i> M&#250;sica</a>
+      </nav>
 
       <div class="tickets-container">
 

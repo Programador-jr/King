@@ -81,8 +81,13 @@ module.exports = {
 						],
 					})
 				}
-				let seekNumber = Number(args[0])
-				if (seekNumber > newQueue.songs[0].duration || seekNumber < 0) return message.reply({
+				const seekNumber = Number(args[0]);
+				if (newQueue.songs[0].isStream || !Number.isFinite(Number(newQueue.songs[0].duration)) || Number(newQueue.songs[0].duration) <= 0) {
+					return message.reply({
+						embeds: [new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} Esta faixa não permite busca por posição.`)]
+					});
+				}
+				if (!Number.isFinite(seekNumber) || seekNumber > newQueue.songs[0].duration || seekNumber < 0) return message.reply({
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **A posição de busca deve estar entre \`0\` e \`${newQueue.songs[0].duration}\`!**`)
 					],

@@ -80,10 +80,20 @@ module.exports = {
 						],
 					})
 				}
-				let seekNumber = Number(args[0])
-				let seektime = newQueue.currentTime - seekNumber;
-				if (seektime < 0) seektime = 0;
-				if (seektime >= newQueue.songs[0].duration - newQueue.currentTime) seektime = 0;
+				const seekNumber = Number(args[0]);
+				if (!Number.isFinite(seekNumber) || seekNumber <= 0) {
+					return message.reply({
+						embeds: [new MessageEmbed()
+							.setColor(ee.wrongcolor)
+							.setTitle(`${client.allEmojis.x} Informe uma quantidade de segundos maior que zero.`)]
+					});
+				}
+				if (newQueue.songs[0].isStream || !Number.isFinite(Number(newQueue.songs[0].duration)) || Number(newQueue.songs[0].duration) <= 0) {
+					return message.reply({
+						embeds: [new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} Esta faixa não permite retroceder por posição.`)]
+					});
+				}
+				const seektime = Math.max(0, newQueue.currentTime - seekNumber);
 				if (check_if_dj(client, member, newQueue.songs[0])) {
 					return message.reply({
 						embeds: [new MessageEmbed()

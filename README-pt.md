@@ -1,15 +1,15 @@
-# 👑 King Bot
+#  King Bot
 
-[English](README.md) | [Português](README-pt.md)
+[English](README.md) | **Português**
 
 Um bot Discord poderoso e repleto de recursos com moderação avançada, streaming de música, sistemas automatizados e um dashboard web abrangente.
 
 ![Discord.js](https://img.shields.io/badge/discord.js-v14-blue?style=flat-square&logo=discord)
 ![Node.js](https://img.shields.io/badge/Node.js-v24.13.0-green?style=flat-square&logo=node.js)
 ![Licença](https://img.shields.io/badge/licença-MIT-yellow?style=flat-square)
-![Versão](https://img.shields.io/badge/versão-6.0.0-orange?style=flat-square)
+![Versão](https://img.shields.io/badge/versão-6.1.0-orange?style=flat-square)
 
-## 📋 Índice
+##  Índice
 
 - [Funcionalidades](#-funcionalidades)
 - [Stack Tecnológico](#-stack-tecnológico)
@@ -22,9 +22,9 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 - [Contribuindo](#-contribuindo)
 - [Suporte](#-suporte)
 
-## ✨ Funcionalidades
+##  Funcionalidades
 
-### 🛡️ **Sistema Avançado de Moderação**
+###  **Sistema Avançado de Moderação**
 - **Suite completa de moderação** com comandos de banimento, expulsão, silêncio, aviso
 - **Sistema de Auto-Moderação** com regras customizáveis
   - Proteção anti-spam com penalidades progressivas
@@ -36,7 +36,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 - **Gerenciamento de canais** com bloqueio/desbloqueio e modo lento
 - **Exclusão em massa** de mensagens com comando purge
 
-### 🎵 **Sistema de Música Profissional**
+###  **Sistema de Música Profissional**
 - **Reprodução de música** de alta qualidade via Lavalink
 - **Suporte a múltiplas fontes**:
   - YouTube
@@ -53,7 +53,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 - **Estatísticas de música** com cache para performance
 - **Múltiplos nós Lavalink** com failover automático
 
-### 🎫 **Sistema de Tickets**
+###  **Sistema de Tickets**
 - **Gerenciamento completo do ciclo de vida** de tickets
 - **Painel de dashboard** para criação e configuração
 - **Estatísticas de tickets** e rastreamento de histórico
@@ -61,7 +61,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 - **Templates automatizados** para mensagens e logs
 - **Integração com webhooks** para notificações
 
-### 🤖 **Automação & Utilitários**
+###  **Automação & Utilitários**
 - **Comandos de informações de usuário** (perfil, avatar, info do servidor)
 - **Ferramentas de gerenciamento** de servidor
 - **Comandos divertidos** e jogos
@@ -69,7 +69,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 - **Sistema de ajuda** com categorias de comando
 - **Filtragem de mensagens** com categorias
 
-### 📊 **Dashboard Web**
+###  **Dashboard Web**
 - **Autenticação Discord OAuth2** para login seguro
 - **Interface de gerenciamento** de servidor
 - **Estatísticas em tempo real** e status
@@ -79,7 +79,7 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 - **Design responsivo** com Bootstrap 5
 - **Componentes de UI modernos** e sistema de alertas
 
-### 🔒 **Recursos de Segurança**
+###  **Recursos de Segurança**
 - **Controle de acesso baseado em papéis** (RBAC)
 - **Validação de webhooks** e integração segura
 - **Sanitização e validação** de entrada
@@ -87,11 +87,11 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 - **Gerenciamento de segredos** via variáveis de ambiente
 - **Logging de auditoria** com rastreamento detalhado de ações
 
-## 🛠 Stack Tecnológico
+##  Stack Tecnológico
 
 | Componente | Tecnologia | Versão |
 |-----------|-----------|---------|
-| **Runtime** | Node.js | >= 20.19.0 |
+| **Runtime** | Node.js | >= 22.12.0 |
 | **Biblioteca Discord** | discord.js | v14 |
 | **Sistema de Música** | Lavalink Client | v2.9.7 |
 | **Framework Web** | Express | v5.2.1 |
@@ -103,10 +103,10 @@ Um bot Discord poderoso e repleto de recursos com moderação avançada, streami
 | **Processamento de Áudio** | libsodium-wrappers | v0.8.2 |
 | **Fontes de Mídia** | play-dl, youtubei.js, yt-dlp | Mais recente |
 
-## 📦 Instalação
+##  Instalação
 
 ### Pré-requisitos
-- Node.js >= 20.19.0
+- Node.js >= 22.12.0
 - npm ou yarn
 - MongoDB (local ou Atlas)
 - Discord Bot Token
@@ -146,7 +146,7 @@ LAVALINK_PASSWORD=SENHA_DO_APPLICATION_YML
 
 Com `LAVALINK_LOCAL=true`, o bot seleciona somente o nó local e ignora `botconfig/lavalink.json`. Remova ou defina como `false` essa variável para continuar usando a lista de nós configurada, como antes. Não publique a senha nem use essa configuração local na hospedagem de produção.
 
-## ⚙️ Configuração
+##  Configuração
 
 ### Variáveis de Ambiente (`.env`)
 
@@ -160,7 +160,7 @@ PREFIX=k
 # ============================================
 # BANCO DE DADOS
 # ============================================
-MONGODB_URI=mongodb+srv://usuario:senha@cluster.mongodb.net/king
+MONGO_URI=mongodb+srv://usuario:senha@cluster.mongodb.net/king
 DNS_RESULT_ORDER=ipv4first
 # Resolvedores DNS customizados opcionais, separados por vírgula (IPv4/IPv6 e porta opcional)
 # DNS_SERVERS=1.1.1.1,8.8.8.8
@@ -243,7 +243,7 @@ Com `antiCrash` ativado, uma excecao nao capturada ou rejeicao nao tratada e reg
 5. Copie **Client ID** e **Client Secret** para `.env`
 
 
-## 🚀 Como Usar
+##  Como Usar
 
 ### Iniciando o Bot
 
@@ -269,7 +269,7 @@ O bot irá:
 4. Acesse as configurações do seu servidor
 5. Configure moderação, música e funcionalidades do bot
 
-## 🎮 Comandos
+##  Comandos
 
 ### Comandos de Música (`/music` ou `kmusic`)
 - `play` - Reproduzir música do YouTube, Spotify ou SoundCloud
@@ -328,7 +328,7 @@ O bot irá:
 - `prefix` - Alterar prefixo de comando
 - `settings` - Gerenciar configurações do servidor
 
-## 📊 Funcionalidades do Dashboard
+##  Funcionalidades do Dashboard
 
 ### Autenticação
 - Login seguro com Discord OAuth2
@@ -346,7 +346,7 @@ O bot irá:
 
 Politica de acesso a tickets: o dono pode fechar ou reabrir o proprio ticket; membros com cargo de suporte em `ticketRoles` ou permissao `Manage Guild`/Administrador podem fechar e reabrir qualquer ticket. Somente suporte e administradores podem excluir tickets fechados. As interacoes do Discord e as APIs do dashboard aplicam a mesma politica.
 
-## 🔐 Segurança
+##  Segurança
 
 ### Melhores Práticas
 
@@ -365,12 +365,12 @@ Politica de acesso a tickets: o dono pode fechar ou reabrir o proprio ticket; me
 - Validação de URL de webhook
 - Sistema de bypass baseado em papéis para AutoMod
 
-## 🐛 Resolução de Problemas
+##  Resolução de Problemas
 
 ### Bot não inicia
 ```bash
 # Verificar versão do Node
-node --version  # Deve ser >= 20.11.1
+node --version  # Deve ser >= 22.12.0
 
 # Limpar cache e reinstalar
 rm -rf node_modules package-lock.json
@@ -404,14 +404,14 @@ cat .env
 # Logs: Verificar console por erros de Express
 ```
 
-## 📖 Documentação
+##  Documentação
 
 - [Documentação Discord.js](https://discord.js.org)
 - [Documentação Lavalink](https://lavalink.dev)
 - [Guia Express.js](https://expressjs.com)
 - [Documentação MongoDB](https://docs.mongodb.com)
 
-## 🤝 Contribuindo
+##  Contribuindo
 
 Contribuições são bem-vindas! Siga estes passos:
 
@@ -421,16 +421,16 @@ Contribuições são bem-vindas! Siga estes passos:
 4. Faça Push para o branch (`git push origin feature/minha-feature`)
 5. Abra um Pull Request
 
-## 📝 Licença
+##  Licença
 
 Este projeto é licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
 
-## 💬 Suporte
+##  Suporte
 
 - **Issues** - Abra uma [issue](https://github.com/Programador-jr/King/issues) no GitHub
 - **Discussões** - Participe de nossas [GitHub Discussions](https://github.com/Programador-jr/King/discussions)
 - **Discord** - Verifique nosso [canal de suporte](https://discord.gg/NypBbRgBJ3)
 
-## 🌟 Mostre seu Apoio
+##  Mostre seu Apoio
 
-Dê uma ⭐ neste projeto se o ajudou! Significa muito.
+Dê uma  neste projeto se o ajudou! Significa muito.

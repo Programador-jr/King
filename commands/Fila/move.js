@@ -101,7 +101,7 @@ module.exports = {
 					});
 				}
 				let songIndex = Number(args[0]);
-				if (!songIndex) {
+				if (!Number.isInteger(songIndex) || songIndex < 1) {
 					return message.reply({
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
@@ -112,7 +112,7 @@ module.exports = {
 					});
 				}
 				let position = Number(args[1]);
-				if (!position) {
+				if (!Number.isInteger(position) || position < 1) {
 					return message.reply({
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
@@ -122,14 +122,16 @@ module.exports = {
 						],
 					});
 				}
-				if (position >= newQueue.songs.length || position < 0) position = -1;
 				if (songIndex > newQueue.songs.length - 1) return message.reply({
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta música não existe!**`)
-						.setDescription(`**A última música da fila tem o índice: \`${newQueue.songs.length}\`**`)
+						.setDescription(`**A última posição disponível é: \`${newQueue.songs.length - 1}\`**`)
 					],
 
 				})
+				if (position > newQueue.songs.length - 1) return message.reply({
+					embeds: [new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} A posição deve estar entre 1 e ${newQueue.songs.length - 1}.`)]
+				});
 				if (position == 0) return message.reply({
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Não é possível mover a música antes de tocá-la!**`)

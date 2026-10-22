@@ -9,6 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
     <title>Dashboard | <%= websiteInfo.name %></title>
+    <link rel="stylesheet" href="/panel-refresh.css">
   </head>
   <body>
     <%- include('header'); -%>
@@ -36,7 +37,19 @@
         %>
 
         <% if (manageableGuilds.length > 0) { %>
-          <div class="row g-3 server-grid">
+          <div class="server-toolbar" aria-label="Buscar e filtrar servidores">
+            <label class="server-search" for="server-search-input">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <input id="server-search-input" type="search" autocomplete="off" placeholder="Buscar servidor pelo nome" aria-controls="server-grid">
+            </label>
+            <div class="server-filters" role="group" aria-label="Filtrar servidores">
+              <button type="button" class="server-filter is-active" data-server-filter="all" aria-pressed="true">Todos <span><%= manageableGuilds.length %></span></button>
+              <button type="button" class="server-filter" data-server-filter="online" aria-pressed="false"><i class="fas fa-check-circle" aria-hidden="true"></i> Bot online</button>
+              <button type="button" class="server-filter" data-server-filter="missing" aria-pressed="false"><i class="fas fa-plus-circle" aria-hidden="true"></i> Bot não adicionado</button>
+            </div>
+          </div>
+          <p class="server-results" id="server-results" aria-live="polite"><%= manageableGuilds.length %> servidores encontrados</p>
+          <div class="row g-3 server-grid" id="server-grid">
             <% manageableGuilds.forEach((guild) => {
               const guildIcon = guild.icon
                 ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.webp?size=512`
@@ -45,32 +58,21 @@
               const botGuild = onServer ? bot.guilds.get(guild.id) : null;
               const memberCount = botGuild ? botGuild.memberCount : (guild.memberCount || guild.members?.cache?.size || 'N/A');
             %>
-              <div class="col-12 col-sm-6 col-xl-4">
+              <div class="col-12 col-sm-6 col-xl-4 server-grid-item" data-server-card data-server-name="<%= guild.name.toLowerCase() %>" data-bot-state="<%= onServer ? 'online' : 'missing' %>">
                 <article class="card text-white bg-dark server-card">
-                  <div class="server-image-container">
-                    <img src="<%= guildIcon %>" class="card-img-top" alt="<%= guild.name %>">
-                    <% if (onServer) { %>
-                      <div class="server-overlay">
-                        <span class="server-badge">
-                          <i class="fas fa-users"></i>
-                          <%= memberCount %> membros
+                  <div class="card-body">
+                    <div class="server-identity">
+                      <img src="<%= guildIcon %>" class="server-avatar" alt="Ícone de <%= guild.name %>" loading="lazy">
+                      <div class="server-identity-copy">
+                        <h5 class="card-title"><%= guild.name %></h5>
+                        <span class="status-pill <%= onServer ? 'status-pill-ok' : 'status-pill-warn' %>">
+                          <i class="fas <%= onServer ? 'fa-check-circle' : 'fa-plus-circle' %>" aria-hidden="true"></i>
+                          <%= onServer ? 'Bot online' : 'Bot não adicionado' %>
                         </span>
                       </div>
-                    <% } %>
-                  </div>
-                  <div class="card-body">
-                    <% if (onServer) { %>
-                      <span class="status-pill status-pill-ok">
-                        <i class="fas fa-check-circle"></i>
-                        Online
-                      </span>
-                    <% } else { %>
-                      <span class="status-pill status-pill-warn">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Bot não adicionado
-                      </span>
-                    <% } %>
-                    <h5 class="card-title"><%= guild.name %></h5>
+                    </div>
+                    <% if (onServer) { %><p class="server-members"><i class="fas fa-users" aria-hidden="true"></i> <%= memberCount %> membros</p><% } %>
+
 
                     <% if (onServer) { %>
                       <p class="card-text">
@@ -81,11 +83,11 @@
                           <i class="fas fa-cogs"></i>
                           <span>Configurações</span>
                         </a>
-                        <a href="/dashboard/<%- guild.id %>/tickets" class="btn-modern btn-modern-secondary">
+                        <a href="/dashboard/<%- guild.id %>/tickets" class="btn-modern btn-modern-secondary server-secondary-action">
                           <i class="fas fa-ticket-alt"></i>
                           <span>Tickets</span>
                         </a>
-                        <a href="/dashboard/<%- guild.id %>/automod" class="btn-modern btn-modern-secondary">
+                        <a href="/dashboard/<%- guild.id %>/automod" class="btn-modern btn-modern-secondary server-secondary-action">
                           <i class="fas fa-shield-alt"></i>
                           <span>AutoMod</span>
                         </a>
@@ -111,6 +113,7 @@
               </div>
             <% }); %>
           </div>
+          <div class="server-no-results" id="server-no-results" hidden>Nenhum servidor corresponde à busca e ao filtro selecionados.</div>
         <% } else { %>
           <div class="hero-card dashboard-empty-card">
             <h5 style="margin-top:0;">Nenhum servidor disponível</h5>
@@ -134,6 +137,37 @@
     <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">↑</button>
     <%- include('footer'); -%>
 
+    <script>
+      (() => {
+        const input = document.getElementById('server-search-input');
+        const cards = [...document.querySelectorAll('[data-server-card]')];
+        const filters = [...document.querySelectorAll('[data-server-filter]')];
+        const results = document.getElementById('server-results');
+        const empty = document.getElementById('server-no-results');
+        let activeFilter = 'all';
+        const update = () => {
+          const query = (input?.value || '').trim().toLocaleLowerCase('pt-BR');
+          let visible = 0;
+          cards.forEach((card) => {
+            const matches = card.dataset.serverName.includes(query) && (activeFilter === 'all' || card.dataset.botState === activeFilter);
+            card.hidden = !matches;
+            if (matches) visible += 1;
+          });
+          if (results) results.textContent = `${visible} ${visible === 1 ? 'servidor encontrado' : 'servidores encontrados'}`;
+          if (empty) empty.hidden = visible !== 0;
+        };
+        input?.addEventListener('input', update);
+        filters.forEach((button) => button.addEventListener('click', () => {
+          activeFilter = button.dataset.serverFilter;
+          filters.forEach((filter) => {
+            const selected = filter === button;
+            filter.classList.toggle('is-active', selected);
+            filter.setAttribute('aria-pressed', String(selected));
+          });
+          update();
+        }));
+      })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
   </body>
 </html>

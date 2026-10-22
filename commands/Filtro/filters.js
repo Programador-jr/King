@@ -1,12 +1,12 @@
-const {
-  MessageEmbed,
-  MessageActionRow,
-  StringSelectMenuBuilder,
-  MessageButton
-} = require("discord.js");
+const { MessageEmbed, MessageActionRow, StringSelectMenuBuilder, MessageButton } = require("discord.js");
 const config = require("../../botconfig/config.json");
 const ee = require("../../botconfig/embed.json");
 const FiltersSettings = require("../../botconfig/filters.json");
+const { check_if_dj } = require("../../handlers/functions");
+
+const SPECIAL_FILTERS = new Set(["custombassboost", "clear"]);
+const REGULAR_FILTERS = Object.keys(FiltersSettings).filter((name) => !SPECIAL_FILTERS.has(name));
+const PAGE_SIZE = 25;
 
 const getCurrentFilters = (queue) => {
   if (!queue) return [];
@@ -15,228 +15,202 @@ const getCurrentFilters = (queue) => {
   return [];
 };
 
-const allFilters = Object.keys(FiltersSettings);
-
-const specialFilters = {
-  custombassboost: { name: "Bassboost Personalizado", desc: "Use o comando {prefix}custombassboost <valor> (0-20)", requiresValue: true },
-  clear: { name: "Limpar Filtros", desc: "Remove todos os filtros ativos", isClear: true }
-};
-
-const regularFilters = allFilters.filter(f => !specialFilters[f]);
+const makeEmbed = (title, description) => new MessageEmbed()
+  .setColor(ee.color)
+  .setTitle(title)
+  .setDescription(description || "\u200b");
 
 module.exports = {
   name: "filters",
   category: "Filtro",
   usage: "filters",
   aliases: ["filtros", "filtro", "filter"],
-  description: "Liste todos os filtros ativos e possíveis!",
+  description: "Mostra e gerencia os filtros de áudio ativos.",
   cooldown: 5,
   requiredroles: [],
   alloweduserids: [],
-  run: async (client, message, args) => {
+  run: async (client, message) => {
     try {
-      const { member, guildId, guild } = message;
-      if (!member) return message.reply({
-        flags: 64,
-        embeds: [new MessageEmbed()
-          .setColor(ee.wrongcolor)
-          .setTitle(`${client.allEmojis.x} Este comando só funciona em servidores.`)
-        ]
-      });
-      const { channel } = member.voice;
-      
-      let newQueue = client.distube.getQueue(guildId);
-      const currentFilters = getCurrentFilters(newQueue);
-      
-      const prefix = client.settings.get(guildId, "prefix") || config.prefix;
-      
-      const createMainMenu = (filters, queueExists) => {
-        const regularActive = filters.filter(f => regularFilters.includes(f));
-        
-        const row = new MessageActionRow().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId("filter_action")
-            .setPlaceholder("Escolha uma ação")
-            .addOptions([
-              {
-                label: "Adicionar Filtro",
-                value: "add",
-                emoji: "➕"
-              },
-              {
-                label: "Remover Filtro",
-                value: "remove",
-                emoji: "➖"
-              }
-            ])
-            .setDisabled(!queueExists)
-        );
-        return [row];
-      };
-      
-      const createFilterSelect = (action, filters) => {
-        const availableFilters = action === "add" 
-          ? regularFilters.filter(f => !filters.includes(f))
-          : filters.filter(f => regularFilters.includes(f));
-        
-        if (availableFilters.length === 0) {
-          return null;
+      const { member, guild, guildId } = message;
+      if (!member || !guild) {
+        return message.reply({ embeds: [makeEmbed(`${client.allEmojis.x} Este comando só funciona em servidores.`)] });
+      }
+
+      const voiceChannel = member.voice?.channel;
+      if (!voiceChannel) {
+        return message.reply({ embeds: [makeEmbed(`${client.allEmojis.x} Entre em um canal de voz para gerenciar os filtros.`)] });
+      }
+
+      const queue = client.distube.getQueue(guildId);
+      const hasQueue = Boolean(queue?.songs?.length);
+      const botVoiceChannel = guild.members.me?.voice?.channel;
+      if ((hasQueue && !botVoiceChannel) || (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id)) {
+        return message.reply({ embeds: [makeEmbed(`${client.allEmojis.x} Entre no meu canal de voz para gerenciar os filtros.`)] });
+      }
+      if (hasQueue) {
+        const djError = check_if_dj(client, member, queue.songs[0]);
+        if (djError) {
+          return message.reply({
+            embeds: [makeEmbed(`${client.allEmojis.x} Você não tem autorização para alterar os filtros.`, `Cargos DJ exigidos:\n> ${djError}`)]
+          });
         }
-        
-        const options = availableFilters.slice(0, 25).map(f => ({
-          label: f,
-          value: f
-        }));
-        
-        return new MessageActionRow().addComponents(
+      }
+
+      const prefix = client.settings.get(guildId, "prefix") || config.prefix;
+      const createMainMenu = (disabled = false) => new MessageActionRow().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("filter_action")
+          .setPlaceholder("Escolha uma ação")
+          .addOptions([
+            { label: "Adicionar filtro", value: "add" },
+            { label: "Remover filtro", value: "remove" },
+          ])
+          .setDisabled(disabled)
+      );
+
+      const createSelection = (action, activeFilters, requestedPage = 0) => {
+        const available = action === "add"
+          ? REGULAR_FILTERS.filter((name) => !activeFilters.includes(name))
+          : activeFilters.filter((name) => REGULAR_FILTERS.includes(name));
+        if (!available.length) return null;
+
+        const pageCount = Math.ceil(available.length / PAGE_SIZE);
+        const page = Math.max(0, Math.min(pageCount - 1, requestedPage));
+        const options = available.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((name) => ({ label: name, value: name }));
+        const rows = [new MessageActionRow().addComponents(
           new StringSelectMenuBuilder()
-            .setCustomId(`filter_${action}`)
-            .setPlaceholder(action === "add" ? "Selecione filtros para adicionar" : "Selecione filtros para remover")
+            .setCustomId(`filter_${action}_${page}`)
+            .setPlaceholder(`Selecione filtros · página ${page + 1}/${pageCount}`)
             .setMinValues(1)
             .setMaxValues(Math.min(options.length, 5))
             .addOptions(options)
-        );
-      };
-      
-      const getEmbed = (filters, showSpecial = false) => {
-        const embed = new MessageEmbed()
-          .setColor(ee.color)
-          .setFooter(ee.footertext, ee.footericon)
-          .setTitle("🎛️ Filtros");
-        
-        if (filters.length > 0) {
-          embed.addField("**Filtros Ativos:**", filters.map(f => `\`${f}\``).join(", "));
-        } else {
-          embed.addField("**Filtros Ativos:**", "Nenhum");
+        )];
+
+        if (pageCount > 1) {
+          rows.push(new MessageActionRow().addComponents(
+            new MessageButton()
+              .setCustomId(`filter_page:${action}:${page - 1}`)
+              .setLabel("Anterior")
+              .setStyle("SECONDARY")
+              .setDisabled(page === 0),
+            new MessageButton()
+              .setCustomId(`filter_page:${action}:${page + 1}`)
+              .setLabel("Próxima")
+              .setStyle("SECONDARY")
+              .setDisabled(page >= pageCount - 1)
+          ));
         }
-        
-        if (showSpecial) {
-          const specialActive = filters.filter(f => specialFilters[f]);
-          if (specialActive.length > 0) {
-            const specialDesc = specialActive.map(f => {
-              const s = specialFilters[f];
-              if (f === "clear") return `\`clear\``;
-              if (f === "custombassboost") return `\`custombassboost\` (use ${prefix}custombassboost)`;
-              return `\`${f}\``;
-            }).join(", ");
-            embed.addField("**Filtros Especiais:**", specialDesc);
-          }
-        }
-        
-        embed.addField("**Nota:**", `⚠️ Filtros \`custombassboost\` e \`clear\` requerem comandos especiais:\n> \`${prefix}custombassboost <0-20>\` - Bassboost\n> \`${prefix}clear\` - Limpar todos`);
-        
-        return embed;
+
+        return { rows, page, pageCount };
       };
-      
-      const hasQueue = newQueue && newQueue.songs && newQueue.songs.length > 0;
-      
+
+      const currentEmbed = (filters) => {
+        const active = filters.length ? filters.map((name) => `\`${name}\``).join(", ") : "Nenhum";
+        return makeEmbed("Filtros de áudio", `**Ativos:** ${active}\n\nUse \`${prefix}custombassboost <0-20>\` para definir o bassboost personalizado ou \`${prefix}clearfilters\` para limpar os filtros.`);
+      };
+
       const msg = await message.reply({
-        embeds: [getEmbed(currentFilters, true)],
-        components: createMainMenu(currentFilters, hasQueue)
+        embeds: [currentEmbed(getCurrentFilters(queue))],
+        components: [createMainMenu(!hasQueue)],
       });
-      
-      const collector = msg.createMessageComponentCollector({
-        filter: (i) => i.user.id === member.id,
-        time: 120000
-      });
-      
+
+      const collector = msg.createMessageComponentCollector({ time: 120000 });
       collector.on("collect", async (interaction) => {
         try {
-          if (interaction.user.id !== member.id) {
-            return interaction.reply({
-              content: `${client.allEmojis.x} Você não pode usar isso!`,
-              flags: 64
-            }).catch(() => {});
+          if (interaction.user.id !== message.author.id) {
+            return interaction.reply({ content: `${client.allEmojis.x} Só quem abriu este painel pode usá-lo.`, flags: 64 }).catch(() => {});
           }
-          
-          await interaction.deferUpdate().catch(() => {});
-          
-          const queue = client.distube.getQueue(guildId);
-          if (!queue) {
+
+          const liveMember = await guild.members.fetch(interaction.user.id).catch(() => null);
+          const liveQueue = client.distube.getQueue(guildId);
+          if (!liveMember?.voice?.channel) {
+            return interaction.reply({ content: `${client.allEmojis.x} Entre em um canal de voz para alterar os filtros.`, flags: 64 }).catch(() => {});
+          }
+          const liveBotVoice = guild.members.me?.voice?.channel;
+          if ((liveQueue?.songs?.length && !liveBotVoice) || (liveBotVoice && liveBotVoice.id !== liveMember.voice.channel.id)) {
+            return interaction.reply({ content: `${client.allEmojis.x} Entre no meu canal de voz para alterar os filtros.`, flags: 64 }).catch(() => {});
+          }
+          if (liveQueue?.songs?.length) {
+            const djError = check_if_dj(client, liveMember, liveQueue.songs[0]);
+            if (djError) {
+              return interaction.reply({ content: `${client.allEmojis.x} Você não tem autorização para alterar os filtros. Cargos DJ exigidos: ${djError}`, flags: 64 }).catch(() => {});
+            }
+          }
+
+          if (!liveQueue?.songs?.length) {
+            await interaction.deferUpdate().catch(() => {});
             return interaction.editReply({
-              content: `${client.allEmojis.x} Não há música tocando!`,
-              components: []
+              content: `${client.allEmojis.x} Não há música tocando.`,
+              components: [createMainMenu(true)],
             }).catch(() => {});
           }
-          
+
+          await interaction.deferUpdate().catch(() => {});
+          const filters = getCurrentFilters(liveQueue);
+
           if (interaction.customId === "filter_action") {
             const action = interaction.values[0];
-            const currentFilters = getCurrentFilters(queue);
-            
-            const selectRow = createFilterSelect(action, currentFilters);
-            
-            if (!selectRow) {
-              return interaction.editReply({
-                content: action === "add" ? `${client.allEmojis.check_mark} Todos os filtros regulares já estão ativos!` : `${client.allEmojis.x} Nenhum filtro regular ativo para remover!`,
-                components: []
-              }).catch(() => {});
+            const selection = createSelection(action, filters);
+            if (!selection) {
+              const text = action === "add" ? "Todos os filtros disponíveis já estão ativos." : "Não há filtros regulares ativos para remover.";
+              return interaction.editReply({ content: text, embeds: [currentEmbed(filters)], components: [createMainMenu()] }).catch(() => {});
             }
-            
             return interaction.editReply({
-              embeds: [
-                new MessageEmbed()
-                  .setColor(ee.color)
-                  .setTitle(action === "add" ? "➕ Adicionar Filtros" : "➖ Remover Filtros")
-                  .setDescription(`Selecione um ou mais filtros abaixo:\n\n⚠️ **Nota:** \`custombassboost\` e \`clear\` são filtros especiais.\n> Use \`${prefix}custombassboost <0-20>\` para bassboost\n> Use \`${prefix}clear\` para limpar todos`)
-              ],
-              components: [selectRow]
+              content: "Selecione os filtros para alterar.",
+              embeds: [makeEmbed(action === "add" ? "Adicionar filtros" : "Remover filtros", `Página ${selection.page + 1}/${selection.pageCount}.`)],
+              components: selection.rows,
             }).catch(() => {});
           }
-          else if (interaction.customId === "filter_add" || interaction.customId === "filter_remove") {
-            const isAdd = interaction.customId === "filter_add";
-            const selectedFilters = interaction.values;
-            const queueFilters = queue.filters;
-            
-            if (isAdd) {
-              await queueFilters.add(selectedFilters);
-            } else {
-              await queueFilters.remove(selectedFilters);
+
+          const pageMatch = interaction.customId.match(/^filter_page:(add|remove):(\d+)$/);
+          if (pageMatch) {
+            const [, action, rawPage] = pageMatch;
+            const selection = createSelection(action, filters, Number(rawPage));
+            if (!selection) {
+              return interaction.editReply({ content: "Nenhum filtro disponível nesta ação.", embeds: [currentEmbed(filters)], components: [createMainMenu()] }).catch(() => {});
             }
-            
-            const updatedFilters = getCurrentFilters(client.distube.getQueue(guildId));
-            
-            await interaction.editReply({
-              content: isAdd 
-                ? `${client.allEmojis.check_mark} Filtros adicionados: ${selectedFilters.map(f => `\`${f}\``).join(", ")}` 
-                : `${client.allEmojis.check_mark} Filtros removidos: ${selectedFilters.map(f => `\`${f}\``).join(", ")}`,
-              embeds: [
-                new MessageEmbed()
-                  .setColor(ee.color)
-                  .setTitle("🎛️ Filtros Atuais")
-                  .addField("**Filtros Ativos:**", updatedFilters.length ? updatedFilters.map(f => `\`${f}\``).join(", ") : "Nenhum")
-              ],
-              components: []
-            }).catch(() => {});
-            
-            await msg.edit({
-              embeds: [getEmbed(updatedFilters, true)],
-              components: createMainMenu(updatedFilters, true)
+            return interaction.editReply({
+              content: "Selecione os filtros para alterar.",
+              embeds: [makeEmbed(action === "add" ? "Adicionar filtros" : "Remover filtros", `Página ${selection.page + 1}/${selection.pageCount}.`)],
+              components: selection.rows,
             }).catch(() => {});
           }
-        } catch (e) {
-          console.log("Collector error:", e);
+
+          const selectMatch = interaction.customId.match(/^filter_(add|remove)_\d+$/);
+          if (selectMatch) {
+            const isAdd = selectMatch[1] === "add";
+            const selected = interaction.values;
+            if (isAdd) await liveQueue.filters.add(selected);
+            else await liveQueue.filters.remove(selected);
+
+            const updated = getCurrentFilters(client.distube.getQueue(guildId));
+            return interaction.editReply({
+              content: `${client.allEmojis.check_mark} Filtros ${isAdd ? "adicionados" : "removidos"}: ${selected.map((name) => `\`${name}\``).join(", ")}`,
+              embeds: [currentEmbed(updated)],
+              components: [createMainMenu()],
+            }).catch(() => {});
+          }
+
+          return interaction.deferUpdate().catch(() => {});
+        } catch (error) {
+          console.error("Erro no painel de filtros:", error);
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: `${client.allEmojis.x} Não foi possível aplicar os filtros.`, components: [] }).catch(() => {});
+          } else {
+            await interaction.reply({ content: `${client.allEmojis.x} Não foi possível aplicar os filtros.`, flags: 64 }).catch(() => {});
+          }
         }
       });
-      
+
       collector.on("end", async () => {
-        try {
-          const expiredQueue = client.distube.getQueue(guildId);
-          const expiredFilters = getCurrentFilters(expiredQueue);
-          await msg.edit({
-            embeds: [getEmbed(expiredFilters, true)],
-            components: createMainMenu(expiredFilters, !!expiredQueue)
-          }).catch(() => {});
-        } catch (e) {
-          console.log("End collector error:", e);
-        }
+        await msg.edit({ components: [createMainMenu(true)] }).catch(() => {});
       });
-      
-    } catch (e) {
-      console.log(e.stack ? e.stack : e);
-      message.reply({
-        content: `${client.allEmojis.x} | Erro: `,
-        embeds: [new MessageEmbed().setColor(ee.wrongcolor).setDescription(`\`\`\`${e}\`\`\``)]
-      });
+    } catch (error) {
+      console.error(error?.stack || error);
+      return message.reply({
+        content: `${client.allEmojis.x} | Erro:`,
+        embeds: [new MessageEmbed().setColor(ee.wrongcolor).setDescription(`\`\`\`${error}\`\`\``)],
+      }).catch(() => {});
     }
-  }
+  },
 };

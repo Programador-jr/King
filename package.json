@@ -1,4 +1,5 @@
 {
+  "version": "6.1.0",
   "scripts": {
     "postinstall": "node scripts/fix-sift.js",
     "start": "node index.js",
@@ -9,35 +10,35 @@
     "@discordjs/builders": "^1.14.1",
     "@discordjs/voice": "^0.19.2",
     "@distube/yt-dlp": "^2.0.1",
-    "@top-gg/sdk": "^3.1.3",
-    "axios": "^1.15.2",
+    "@top-gg/sdk": "^4.0.0",
+    "axios": "^1.20.0",
     "colors": "^1.4.0",
     "cpu-stat": "^2.0.1",
     "csrf-sync": "^4.2.1",
-    "discord.js": "^14.26.4",
+    "discord.js": "^14.27.0",
     "distube": "^5.2.3",
-    "dotenv": "^17.4.2",
-    "ejs": "^5.0.2",
-    "express": "^5.2.1",
+    "dotenv": "^18.0.8",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "express-session": "^1.19.0",
     "gifenc": "^1.0.3",
-    "helmet": "^8.1.0",
-    "lavalink-client": "^2.10.1",
+    "helmet": "^8.3.0",
+    "lavalink-client": "^2.11.0",
     "libsodium-wrappers": "^0.8.4",
-    "memorystore": "^1.6.7",
-    "mongoose": "^9.5.0",
+    "memorystore": "^1.6.8",
+    "mongoose": "^9.11.2",
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4",
     "play-dl": "^1.9.7",
-    "pretty-ms": "^9.3.0",
-    "sift": "^17.1.3",
-    "youtubei.js": "^17.0.1"
+    "pretty-ms": "^10.0.0",
+    "sift": "^17.1.4",
+    "youtubei.js": "^18.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.12.0"
   }
 }

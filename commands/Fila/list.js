@@ -80,14 +80,15 @@ module.exports = {
 				for (let i = 0; i < theSongs.length; i += 10) {
 					let qus = theSongs;
 					const current = qus.slice(i, k)
-					let j = i + 1;
-					const info = current.map((track) => `**${j++} -** [\`${String(track.name).replace(/\[/igu, "{").replace(/\]/igu, "}").substr(0, 60)}\`](${track.url}) - \`${track.formattedDuration}\``).join("\n")
+					const pageTracks = i === 0 ? current.slice(1) : current;
+					let j = i === 0 ? 1 : i;
+					const info = pageTracks.map((track) => `**${j++} -** [\`${String(track.name).replace(/\[/igu, "{").replace(/\]/igu, "}").substr(0, 60)}\`](${track.url}) - \`${track.formattedDuration}\``).join("\n")
 					const embed = new MessageEmbed()
 						.setColor(ee.color)
 						.setDescription(`${info}`)
 					if (i < 10) {
 						embed.setTitle(`\u{1F4D1} **Top ${theSongs.length > 50 ? 50 : theSongs.length} | Fila de ${guild.name}**`)
-						embed.setDescription(`**(1) Música atual:**\n> [\`${theSongs[0].name.replace(/\[/igu, "{").replace(/\]/igu, "}")}\`](${theSongs[0].url})\n\n${info}`)
+						embed.setDescription(`**(0) Música atual:**\n> [\`${theSongs[0].name.replace(/\[/igu, "{").replace(/\]/igu, "}")}\`](${theSongs[0].url})${info ? `\n\n${info}` : ""}`)
 					}
 					embeds.push(embed);
 					k += 10; //Raise k to 10
@@ -122,7 +123,7 @@ module.exports = {
 				});
 
 				collector.on("collect", async (interaction) => {
-					if (!interaction.isSelectMenu() || interaction.customId !== "QUEUEPAGES") {
+					if (!interaction.isStringSelectMenu() || interaction.customId !== "QUEUEPAGES") {
 						return interaction.deferUpdate().catch(() => {});
 					}
 

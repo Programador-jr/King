@@ -128,7 +128,7 @@ function createDashboardRequestSecurity({
     if (err?.code === "EBADCSRFTOKEN") {
       return res.status(403).json({ ok: false, error: "invalid_csrf_token" });
     }
-    if (err?.type === "entity.too.large") {
+    if (err?.type === "entity.too.large" || err?.type === "parameters.too.many") {
       return res.status(413).json({ ok: false, error: "payload_too_large" });
     }
     if (err?.type === "entity.parse.failed") {

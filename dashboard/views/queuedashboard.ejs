@@ -9,6 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
     <title>Fila | <%= websiteInfo.name %></title>
+    <link rel="stylesheet" href="/panel-refresh.css">
   </head>
   <body>
     <%- include('header'); -%>
@@ -38,14 +39,18 @@
                 : `https://cdn.discordapp.com/embed/avatars/0.png`;
               const queueSize = bot.distube.getQueue(guild.id) ? bot.distube.getQueue(guild.id).songs.length : 0;
           %>
-            <div class="col-12 col-sm-6 col-xl-4">
+            <div class="server-grid-item">
               <article class="card text-white bg-dark server-card">
-                <img src="<%= icon %>" class="card-img-top" alt="<%= guild.name %>">
                 <div class="card-body">
-                  <span class="status-pill status-pill-ok">
-                    <%= queueSize > 0 ? `${queueSize} música(s) na fila` : 'Fila vazia' %>
-                  </span>
-                  <h5 class="card-title"><%= guild.name %></h5>
+                  <div class="server-identity">
+                    <img src="<%= icon %>" class="server-avatar" alt="" loading="lazy">
+                    <div class="server-identity-copy">
+                      <h5 class="card-title"><%= guild.name %></h5>
+                      <span class="status-pill status-pill-ok">
+                        <%= queueSize > 0 ? `${queueSize} música(s) na fila` : 'Fila vazia' %>
+                      </span>
+                    </div>
+                  </div>
                   <p class="card-text">Fila atual com <b><%= queueSize %></b> músicas.</p>
                   <div class="card-actions">
                     <a href="/queue/<%- guild.id %>" class="btn btn-sm btn-primary px-3">

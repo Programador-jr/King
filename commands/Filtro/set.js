@@ -78,13 +78,13 @@ module.exports = {
       }
 
       const filters = args.map((f) => f.toLowerCase());
-      if (filters.some((f) => !FiltersSettings[f])) {
+      if (filters.some((f) => !FiltersSettings[f] || f === "custombassboost")) {
         return message.reply({
           embeds: [new MessageEmbed()
             .setColor(ee.wrongcolor)
             .setFooter(ee.footertext, ee.footericon)
             .setTitle(`${client.allEmojis.x} **Você adicionou pelo menos um filtro inválido!**`)
-            .setDescription("**Para definir vários filtros, adicione um ESPAÇO no meio (` `)!**")
+            .setDescription("**Para definir vários filtros, adicione um ESPAÇO (` `) entre.** Use `custombassboost <0-20>` para configurar o bassboost personalizado.")
             .addField("**Filtros válidos:**", Object.keys(FiltersSettings).map((f) => `\`${f}\``).join(", "))
           ]
         });

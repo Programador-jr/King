@@ -101,6 +101,7 @@
         margin-right: 8px !important;
       }
     </style>
+    <link rel="stylesheet" href="/panel-refresh.css">
   </head>
   <body class="theme-discord modern-settings">
     <%- include('header'); -%>
@@ -113,12 +114,19 @@
         </p>
       </div>
 
+      <nav class="settings-category-nav" aria-label="Categorias de configuração">
+        <a href="#settings-general"><i class="fas fa-sliders-h" aria-hidden="true"></i> Geral</a>
+        <a href="#settings-moderation"><i class="fas fa-shield-alt" aria-hidden="true"></i> Moderação</a>
+        <a href="#settings-tickets"><i class="fas fa-ticket-alt" aria-hidden="true"></i> Tickets</a>
+        <a href="#settings-music"><i class="fas fa-music" aria-hidden="true"></i> Música</a>
+      </nav>
+
       <div class="settings-container">
 
         <form method="POST" action="/dashboard/<%= guild.id %>" class="settings-form" id="settingsForm">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
           <!-- Card de Configurações Gerais -->
-          <div class="settings-card">
+          <div class="settings-card" id="settings-general">
             <div class="settings-card-header">
               <div class="settings-card-icon">
                 <i class="fas fa-sliders-h"></i>
@@ -232,7 +240,7 @@
           </div>
 
           <!-- Card de Configurações de Música -->
-          <div class="settings-card">
+          <div class="settings-card" id="settings-music">
             <div class="settings-card-header">
               <div class="settings-card-icon">
                 <i class="fas fa-music"></i>
@@ -323,7 +331,7 @@
           </div>
 
           <!-- Card de Sistema de Tickets -->
-          <div class="settings-card">
+          <div class="settings-card" id="settings-tickets">
             <div class="settings-card-header">
               <div class="settings-card-icon">
                 <i class="fas fa-ticket-alt"></i>
@@ -351,7 +359,7 @@
           </div>
 
           <!-- Card de Auto-Moderação -->
-          <div class="settings-card">
+          <div class="settings-card" id="settings-automod">
             <div class="settings-card-header">
               <div class="settings-card-icon">
                 <i class="fas fa-shield-alt"></i>
@@ -379,7 +387,7 @@
           </div>
 
           <!-- Card de Moderação -->
-          <div class="settings-card">
+          <div class="settings-card" id="settings-moderation">
             <div class="settings-card-header">
               <div class="settings-card-icon">
                 <i class="fas fa-gavel"></i>
@@ -459,7 +467,7 @@
           </div>
 
           <!-- Card de Player/Fila -->
-          <div class="settings-card">
+          <div class="settings-card" id="settings-player">
             <div class="settings-card-header">
               <div class="settings-card-icon">
                 <i class="fas fa-music"></i>

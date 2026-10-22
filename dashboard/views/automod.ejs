@@ -110,7 +110,8 @@
       margin-bottom: 16px;
     }
   </style>
-</head>
+    <link rel="stylesheet" href="/panel-refresh.css">
+  </head>
 <body class="theme-discord">
   <%- include('header'); -%>
 
@@ -119,9 +120,15 @@
       <h1><i class="fas fa-shield-alt"></i> Auto-Moderação</h1>
       <p class="section-description">Configure regras automáticas de moderação para seu servidor.</p>
     </div>
+      <nav class="panel-page-nav" aria-label="Se&#231;&#245;es do painel">
+        <a href="/dashboard/<%= guild.id %>"><i class="fas fa-sliders-h" aria-hidden="true"></i> Geral</a>
+        <a href="/dashboard/<%= guild.id %>/automod" aria-current="page"><i class="fas fa-shield-alt" aria-hidden="true"></i> Modera&#231;&#227;o</a>
+        <a href="/dashboard/<%= guild.id %>/tickets"><i class="fas fa-ticket-alt" aria-hidden="true"></i> Tickets</a>
+        <a href="/queue/<%= guild.id %>"><i class="fas fa-music" aria-hidden="true"></i> M&#250;sica</a>
+      </nav>
 
     <form method="POST" action="/dashboard/<%= guild.id %>/automod" class="settings-form">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
       <div class="row">
         <div class="col-lg-8">
           <div class="info-box">

@@ -1,6 +1,7 @@
 ﻿const { MessageEmbed, MessageActionRow, MessageSelectMenu, MessageButton } = require("discord.js");
 const config = require("../../botconfig/config.json");
 const ee = require("../../botconfig/embed.json");
+const emojis = require("../../botconfig/emojis.json");
 const {
   getDashboardBaseUrl,
   getDashboardSupportUrl,
@@ -8,17 +9,24 @@ const {
 const { isDeveloper } = require("../../handlers/devUtils");
 
 const CATEGORY_ICON = {
-  musica: "🎵",
-  fila: "📋",
-  filtro: "🎚️",
-  configuracoes: "⚙️",
-  info: "ℹ️",
-  utilidade: "🔧",
-  diversao: "🎉",
-  jogos: "🎮",
-  moderação: "🛠️",
-  outros: "📁",
+  musica: emojis.help_music || "",
+  fila: emojis.help_queue || "",
+  filtro: emojis.help_filter || "",
+  configuracoes: emojis.help_settings || "",
+  info: emojis.help_info || "",
+  utilidade: emojis.help_utility || "",
+  diversao: emojis.help_fun || "",
+  jogos: emojis.help_games || "",
+  cassino: emojis.help_casino || "",
+  economia: emojis.help_economy || "",
+  ticket: emojis.help_ticket || "",
+  dev: emojis.help_dev || "",
+  moderacao: emojis.help_moderation || "",
+  outros: emojis.help_other || "",
 };
+
+const HELP_HOME_EMOJI = emojis.help_home || "";
+const HELP_CLOSE_EMOJI = emojis.help_close || "";
 
 const CUSTOM_EMOJI_REGEX = /^<(a?):([a-zA-Z0-9_]{2,32}):(\d{17,20})>$/;
 
@@ -171,7 +179,7 @@ const buildHomeEmbed = ({ client, guild, prefix, categories, dashboardCommandsUr
   const embed = new MessageEmbed()
     .setColor(ee.color)
     .setAuthor("Central de Ajuda", client.user.displayAvatarURL({ dynamic: true }))
-    .setTitle("Painel de Comandos")
+    .setTitle(`${HELP_HOME_EMOJI} Painel de Comandos`)
     .setDescription(
       [
         "Escolha uma categoria no menu abaixo.",
@@ -277,11 +285,12 @@ const buildCommandEmbed = ({ client, guild, command, prefix, requestedBy, dashbo
 
 const buildComponents = ({ client, guild, categories, dashboardCommandsUrl, supportUrl, disabled = false }) => {
   const options = [];
+  const homeEmoji = resolveConfiguredEmoji(client, guild, HELP_HOME_EMOJI).component;
   options.push({
     label: "Inicio",
     description: "Visao geral dos comandos",
     value: "home",
-    emoji: { name: "🏠" }
+    ...(homeEmoji ? { emoji: homeEmoji } : {})
   });
 
   for (const category of categories.slice(0, 24)) {
@@ -306,9 +315,13 @@ const buildComponents = ({ client, guild, categories, dashboardCommandsUrl, supp
   const menuRow = new MessageActionRow().addComponents(menu);
 
   const buttons = [
-    new MessageButton().setCustomId("help_home_btn").setLabel("Inicio").setStyle("SECONDARY").setEmoji("🏠").setDisabled(disabled),
+    new MessageButton().setCustomId("help_home_btn").setLabel("Inicio").setStyle("SECONDARY").setDisabled(disabled),
     new MessageButton().setCustomId("help_close_btn").setLabel("Fechar").setStyle("DANGER").setDisabled(disabled)
   ];
+
+  if (homeEmoji) buttons[0].setEmoji(homeEmoji);
+  const closeEmoji = resolveConfiguredEmoji(client, guild, HELP_CLOSE_EMOJI).component;
+  if (closeEmoji) buttons[1].setEmoji(closeEmoji);
 
   if (dashboardCommandsUrl) {
     buttons.push(new MessageButton().setStyle("LINK").setLabel("Dashboard").setURL(dashboardCommandsUrl).setDisabled(disabled));
@@ -421,7 +434,7 @@ module.exports = {
         }).catch(() => {});
       }
 
-      if (!interaction.isSelectMenu() || interaction.customId !== "help_category_select") {
+      if (!interaction.isStringSelectMenu() || interaction.customId !== "help_category_select") {
         return interaction.deferUpdate().catch(() => {});
       }
 

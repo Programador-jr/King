@@ -24,7 +24,7 @@ module.exports = {
             .setFooter(ee.footertext, ee.footericon)
             .setTitle("Filtros disponiveis")
             .setDescription(filters.map((name) => `\`${name}\``).join(", "))
-            .addField("Uso rapido", `\`${prefix}setfilter <filtro1 filtro2>\`\n\`${prefix}addfilter <filtro1 filtro2>\``)
+            .addField("Uso rapido", `\`${prefix}setfilter <filtro1 filtro2>\`\n\`${prefix}addfilter <filtro1 filtro2>\`\n\`${prefix}clearfilters\``)
         ]
       });
     } catch (e) {

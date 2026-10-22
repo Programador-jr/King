@@ -82,9 +82,9 @@ module.exports = {
 						],
 					})
 				}
-				let bass_gain = parseInt(args[0])
+				const bass_gain = Number(args[0]);
 
-				if (bass_gain > 20 || bass_gain < 0) {
+				if (!Number.isInteger(bass_gain) || bass_gain > 20 || bass_gain < 0) {
 					return message.reply({
 						embeds: [
 							new MessageEmbed()

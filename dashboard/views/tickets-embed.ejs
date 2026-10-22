@@ -237,7 +237,8 @@
       to { transform: translateX(0); opacity: 1; }
     }
   </style>
-</head>
+    <link rel="stylesheet" href="/panel-refresh.css">
+  </head>
 <body class="theme-discord modern-embed-editor">
   <%- include('header'); -%>
 
@@ -276,7 +277,7 @@
       </ul>
 
       <form id="embedForm" method="POST" action="/dashboard/<%= guild.id %>/tickets/embed">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
         <input type="hidden" name="welcomeEmbed" id="welcomeEmbedData">
         <input type="hidden" name="closeEmbed" id="closeEmbedData">
         <input type="hidden" name="returnTo" value="<%= returnTo || ('/dashboard/' + guild.id + '/tickets') %>">
