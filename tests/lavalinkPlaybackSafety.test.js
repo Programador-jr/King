@@ -24,7 +24,7 @@ test("searchTracks normalizes a legacy query object instead of searching for [ob
     const result = await wrapper.searchTracks(player, { query: "test track" }, { id: "requester-id", username: "Requester" });
 
     assert.equal(result.tracks.length, 1);
-    assert.deepEqual(attempts[0], { query: "test track", source: "ytsearch" });
+    assert.deepEqual(attempts[0], { query: "test track", source: "ytmsearch" });
     assert.ok(attempts.every((attempt) => !String(attempt.query).includes("[object Object]")));
 });
 
