@@ -1157,7 +1157,9 @@ class LavalinkManagerWrapper extends EventEmitter {
             attempts.push({ query: cleanQuery });
         } else {
             if (explicitSource) attempts.push({ query: cleanQuery, source: explicitSource });
-            for (const source of ["ytsearch", "ytmsearch", "scsearch"]) {
+            // Prefer the music catalog for plain text searches. The generic YouTube
+            // and SoundCloud catalogs contain many non-music videos and clips.
+            for (const source of ["ytmsearch", "ytsearch"]) {
                 if (source !== explicitSource) attempts.push({ query: cleanQuery, source });
             }
         }
@@ -1428,7 +1430,12 @@ class LavalinkManagerWrapper extends EventEmitter {
             throw new Error("Nenhuma musica encontrada.");
         }
 
-        const tracks = result.tracks.map((track) => {
+        const isPlaylist = String(result.loadType || "").toLowerCase() === "playlist";
+        // A text search returns a list of candidates, not a playlist requested by
+        // the user. Queue only the best (first) match; preserve all tracks for
+        // actual playlist URLs.
+        const selectedTracks = isPlaylist ? result.tracks : result.tracks.slice(0, 1);
+        const tracks = selectedTracks.map((track) => {
             track.requester = requester;
             if (track.info) track.info.requester = requester;
             return track;
@@ -1505,7 +1512,7 @@ class LavalinkManagerWrapper extends EventEmitter {
 
         return {
             player,
-            tracks: result.tracks,
+            tracks,
             result,
             startedPlayback: shouldWaitForStart,
             startedTrack,
