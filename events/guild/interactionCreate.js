@@ -548,7 +548,9 @@ module.exports = async (client, interaction) => {
   if (!command) return;
 
   const musicChannels = client.settings.get(interaction.guildId, "musicChannels") || [];
-  const isMusicCommand = command.category === "Musica";
+  // Slash command modules do not declare `category`; their top-level command
+  // name identifies the music group (for example `/music play`).
+  const isMusicCommand = CategoryName === "music" || command.category === "Musica";
 
   if (isMusicCommand && musicChannels.length > 0) {
     if (!musicChannels.includes(interaction.channelId) &&

@@ -22,6 +22,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         this.voiceRecovery = new Map();
         this.trackStatsCache = new Map();
         this.disabledNodes = new Map();
+        this.connectionAttemptActive = false;
     }
 
     isNodeDisabled(nodeId) {
@@ -51,7 +52,29 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     shortError(error) {
         if (!error) return "";
-        const message = error instanceof Error ? error.message : String(error);
+        let message = "";
+        if (error instanceof Error) {
+            message = error.message || error.name || "Error";
+        } else if (typeof error === "object") {
+            message = error.message || error.reason || error.code || "";
+            if (!message) {
+                try {
+                    const seen = new WeakSet();
+                    message = JSON.stringify(error, (key, value) => {
+                        if (/token|password|authorization|secret|sessionid/i.test(key)) return "[redacted]";
+                        if (value && typeof value === "object") {
+                            if (seen.has(value)) return "[circular]";
+                            seen.add(value);
+                        }
+                        return value;
+                    });
+                } catch {
+                    message = Object.prototype.toString.call(error);
+                }
+            }
+        } else {
+            message = String(error);
+        }
         return String(message || "").replace(/\s+/g, " ").trim().slice(0, 200);
     }
 
@@ -175,21 +198,22 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     getNodeOptions() {
         const rawHost = String(process.env.LAVALINK_HOST || "localhost").trim();
-        const hostWithoutProtocol = rawHost.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
-        const host = hostWithoutProtocol.split("/")[0];
-        const port = Number.parseInt(process.env.LAVALINK_PORT || "2333", 10) || 2333;
+        const host = this.resolveHost(rawHost);
+        const rawPort = process.env.LAVALINK_PORT || "2333";
+        const port = Number.parseInt(rawPort, 10);
         const secureDefault = port === 443 || /^https:\/\//i.test(rawHost);
+        const secure = this.parseBoolean(process.env.LAVALINK_SECURE, secureDefault);
         const authorization = String(process.env.LAVALINK_PASSWORD || "").trim();
 
-        if (!authorization) {
-            throw new Error("LAVALINK_PASSWORD nao definido no .env");
+        if (!host || !/^\d+$/.test(String(rawPort)) || !Number.isInteger(port) || port < 1 || port > 65535 || !authorization) {
+            throw new Error("LAVALINK_HOST, LAVALINK_PORT e LAVALINK_PASSWORD devem estar configurados corretamente no .env");
         }
 
         return {
             id: "main-node",
             host,
             port,
-            secure: secureDefault,
+            secure,
             authorization,
             apiVersion: "v4",
         };
@@ -203,6 +227,33 @@ class LavalinkManagerWrapper extends EventEmitter {
     }
 
     loadNodesFromConfig() {
+        // Explicit node credentials take precedence over the legacy JSON node list.
+        const hasExplicitNodeEnv = Boolean(
+            String(process.env.LAVALINK_HOST || "").trim()
+            && String(process.env.LAVALINK_PASSWORD || "").trim()
+        );
+        const localMode = this.parseBoolean(process.env.LAVALINK_LOCAL, false) || hasExplicitNodeEnv;
+        if (localMode) {
+            const host = this.resolveHost(process.env.LAVALINK_HOST || "127.0.0.1");
+            const rawPort = process.env.LAVALINK_PORT || "2333";
+            const port = Number.parseInt(rawPort, 10);
+            const authorization = String(process.env.LAVALINK_PASSWORD || "").trim();
+            const secure = this.parseBoolean(process.env.LAVALINK_SECURE, false);
+
+            if (!host || !/^\d+$/.test(String(rawPort)) || !Number.isInteger(port) || port < 1 || port > 65535 || !authorization) {
+                throw new Error("Modo Lavalink local ativo, mas LAVALINK_HOST/PORT/PASSWORD estão inválidos.");
+            }
+
+            return [{
+                id: "king-lavalink-local",
+                host,
+                port,
+                secure,
+                authorization,
+                apiVersion: "v4",
+            }];
+        }
+
         const configPath = path.join(__dirname, "..", "botconfig", "lavalink.json");
         if (!fs.existsSync(configPath)) return [];
 
@@ -349,10 +400,12 @@ class LavalinkManagerWrapper extends EventEmitter {
         this.voiceStateCache.clear();
         this.voiceServerCache.clear();
         this.autoplayState.clear();
-        this.filterState.clear();
         
-        const nodeOptionsList = this.loadNodesFromConfig();
+        // Use the same node-selection logic as the initial connection. This prevents
+        // reconnects from reverting to botconfig/lavalink.json when env config is active.
+        const nodeOptionsList = this.getNodeOptionsList();
         const debugEnabled = this.parseBoolean(process.env.LAVALINK_DEBUG, false);
+        this.connectionAttemptActive = true;
         
         if (!this.rawListener) {
             this.rawListener = async (packet) => {
@@ -411,6 +464,7 @@ class LavalinkManagerWrapper extends EventEmitter {
                 });
                 
                 await this.waitForUsableNode(10000, true);
+                this.connectionAttemptActive = false;
                 this.log("info", `Reconectado com sucesso ao node ${nodeOptions.id}`);
                 return true;
             } catch (e) {
@@ -419,6 +473,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             }
         }
         
+        this.connectionAttemptActive = false;
         throw new Error("Nao foi possivel reconectar a nenhum node.");
     }
 
@@ -495,6 +550,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             const nodeId = node?.id || "unknown";
             this.log("warn", `Node desconectado: ${nodeId}${detail ? ` (${detail})` : ""}`);
             this.emit("nodeDisconnect", node, reason);
+            if (this.connectionAttemptActive) return;
             
             if (reason?.code === 1006 || reason?.code === 1000) {
                 this.disableNode(nodeId, 60000);
@@ -507,9 +563,17 @@ class LavalinkManagerWrapper extends EventEmitter {
             }
         });
 
+        this.manager.on("error", (error) => {
+            this.log("error", "Erro emitido pelo Lavalink Manager.", error);
+        });
+
         this.manager.nodeManager.on("error", async (node, error) => {
             const errorStr = this.shortError(error);
             const nodeId = node?.id || "unknown";
+            if (this.connectionAttemptActive) {
+                this.log("warn", `Erro no node ${nodeId} durante tentativa de conexão: ${errorStr}`);
+                return;
+            }
             if (errorStr.includes("WebSocket") || errorStr.includes("ECONNREFUSED") || errorStr.includes("ETIMEDOUT")) {
                 this.disableNode(nodeId, 60000);
                 this.log("warn", `Node ${nodeId} com erro de conexao: ${errorStr}. Desabilitado por 60s.`);
@@ -528,6 +592,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             const nodeId = node?.id || "unknown";
             this.log("error", `Node exception: ${nodeId}`, exception);
             this.emit("nodeException", node, exception);
+            if (this.connectionAttemptActive) return;
             
             const errorStr = this.shortError(exception);
             if (errorStr.includes("sourceManagers") || errorStr.includes("no sources")) {
@@ -672,6 +737,31 @@ class LavalinkManagerWrapper extends EventEmitter {
         }
     }
 
+    getVoiceSessionDiagnostics(guildId, minFreshAt = 0) {
+        const player = this.getPlayer(guildId);
+        const state = this.voiceStateCache.get(guildId);
+        const server = this.voiceServerCache.get(guildId);
+        const voice = player?.voice || {};
+        const stateComplete = Boolean(state?.sessionId && state?.channelId);
+        const serverComplete = Boolean(server?.token && server?.endpoint);
+        const stateFresh = Boolean(state && (minFreshAt <= 0 || (state.at || 0) >= minFreshAt));
+        const serverFresh = Boolean(server && (minFreshAt <= 0 || (server.at || 0) >= minFreshAt));
+        const channelMatches = Boolean(
+            state?.channelId &&
+            (state.channelId === (player?.voiceChannelId || player?.options?.voiceChannelId))
+        );
+
+        // Report only presence/freshness flags; never log Discord voice credentials.
+        return [
+            `state=${stateComplete ? "complete" : "missing"}`,
+            `server=${serverComplete ? "complete" : "missing"}`,
+            `stateFresh=${stateFresh}`,
+            `serverFresh=${serverFresh}`,
+            `playerVoice=${Boolean(voice.sessionId && voice.token && voice.endpoint)}`,
+            `channelMatch=${channelMatches}`,
+        ].join(" ");
+    }
+
     async syncCachedVoiceToPlayer(guildId, minFreshAt = 0) {
         const player = this.getPlayer(guildId);
         if (!player?.node?.sessionId) return false;
@@ -755,20 +845,41 @@ class LavalinkManagerWrapper extends EventEmitter {
 
     async refreshVoiceSession(guildId, timeoutMs = 12000) {
         const player = this.getPlayer(guildId);
-        if (!player || !player.voiceChannelId) return false;
+        const channelId = player?.voiceChannelId || player?.options?.voiceChannelId;
+        if (!player || !channelId) return false;
 
         const refreshAt = Date.now();
+        // Old cached packets must not be mistaken for a new Discord voice handshake.
+        this.voiceStateCache.delete(guildId);
+        this.voiceServerCache.delete(guildId);
         player.voice = {
             ...(player.voice || {}),
             sessionId: null,
             token: null,
             endpoint: null,
-            channelId: player.voiceChannelId,
+            channelId,
         };
 
-        await player.connect().catch(() => {});
+        try {
+            // Re-sending CONNECT while the bot is already in the channel may not
+            // trigger fresh VOICE_STATE_UPDATE / VOICE_SERVER_UPDATE packets.
+            // Force a real leave/join transition while keeping the Lavalink player.
+            if (typeof player.disconnect === "function") {
+                await player.disconnect(true);
+                await new Promise((resolve) => setTimeout(resolve, 350));
+            }
+            await player.connect();
+        } catch (error) {
+            this.log("warn", "Falha ao reiniciar a conexao de voz durante a recuperacao.", error);
+            return false;
+        }
+
         const voiceReady = await this.waitForVoiceSession(guildId, timeoutMs, refreshAt);
-        if (!voiceReady) return false;
+        if (!voiceReady) {
+            this.log("warn", `Handshake de voz nao renovado (${this.getVoiceSessionDiagnostics(guildId, refreshAt)}).`);
+            return false;
+        }
+
         await this.syncCachedVoiceToPlayer(guildId, refreshAt);
         return true;
     }
@@ -841,6 +952,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         }
 
         let lastError = null;
+        this.connectionAttemptActive = true;
 
         for (const nodeOptions of nodeOptionsList) {
             try {
@@ -881,20 +993,34 @@ class LavalinkManagerWrapper extends EventEmitter {
 
                 await this.waitForUsableNode(20000, true);
 
+                this.connectionAttemptActive = false;
                 this.log("info", `Usando node ${nodeOptions.id}`);
                 return this.manager;
             } catch (error) {
                 lastError = error;
                 this.log("warn", `Falha ao conectar no node ${nodeOptions.id}. Tentando o proximo...`, error);
 
+                const failedManager = this.manager;
+                const failedNodes = [...(failedManager?.nodeManager?.nodes?.values() || [])];
+                for (const node of failedNodes) {
+                    try {
+                        // Stop the Lavalink client's automatic reconnect timer before
+                        // removing listeners; a later node error would otherwise be
+                        // emitted as an unhandled EventEmitter "error".
+                        await node.destroy?.("ConnectionAttemptFailed", true);
+                    } catch {
+                        // Continue disposing the rest of the failed manager.
+                    }
+                }
+
                 try {
-                    await this.manager?.nodeManager?.disconnectAll(true, true);
+                    await failedManager?.nodeManager?.disconnectAll(true, true);
                 } catch {
                     // ignore cleanup errors
                 }
                 try {
-                    this.manager?.removeAllListeners();
-                    this.manager?.nodeManager?.removeAllListeners();
+                    failedManager?.removeAllListeners();
+                    failedManager?.nodeManager?.removeAllListeners();
                 } catch {
                     // ignore cleanup errors
                 }
@@ -902,6 +1028,7 @@ class LavalinkManagerWrapper extends EventEmitter {
             }
         }
 
+        this.connectionAttemptActive = false;
         throw lastError || new Error("Nao foi possivel conectar a nenhum node Lavalink.");
     }
 
@@ -1011,20 +1138,28 @@ class LavalinkManagerWrapper extends EventEmitter {
     }
 
     async searchTracks(player, query, requester) {
-        const cleanQuery = String(query || "").trim();
-        if (!cleanQuery) {
-            throw new Error("Consulta vazia.");
+        // Normalize strings and legacy query objects without ever searching for "[object Object]".
+        const queryOptions = query && typeof query === "object" && !Array.isArray(query)
+            ? query
+            : null;
+        const cleanQuery = String(
+            queryOptions?.query ?? queryOptions?.url ?? queryOptions?.identifier ?? query ?? ""
+        ).trim();
+        if (!cleanQuery || cleanQuery === "[object Object]") {
+            throw new Error("Consulta vazia ou inválida.");
         }
 
         const requesterUser = this.normalizeRequester(requester);
         const attempts = [];
+        const explicitSource = String(queryOptions?.source || "").trim().toLowerCase();
 
         if (this.isUrl(cleanQuery)) {
             attempts.push({ query: cleanQuery });
         } else {
-            attempts.push({ query: cleanQuery, source: "ytsearch" });
-            attempts.push({ query: cleanQuery, source: "ytmsearch" });
-            attempts.push({ query: cleanQuery, source: "scsearch" });
+            if (explicitSource) attempts.push({ query: cleanQuery, source: explicitSource });
+            for (const source of ["ytsearch", "ytmsearch", "scsearch"]) {
+                if (source !== explicitSource) attempts.push({ query: cleanQuery, source });
+            }
         }
 
         const maxRetries = 3;
@@ -1101,6 +1236,7 @@ class LavalinkManagerWrapper extends EventEmitter {
         const defaults = this.getGuildPlaybackDefaults(guildId);
         const defaultVolume = this.getSanitizedVolume(defaults.defaultvolume);
         let createdNow = false;
+        let channelChanged = false;
 
         if (!player) {
             player = this.manager.createPlayer({
@@ -1112,14 +1248,8 @@ class LavalinkManagerWrapper extends EventEmitter {
                 selfMute: false,
             });
             createdNow = true;
-        }
-
-        if (textChannelId) {
-            player.textChannelId = textChannelId;
-            player.options.textChannelId = textChannelId;
-        }
-
-        if (player.voiceChannelId !== voiceChannel.id) {
+        } else if (player.voiceChannelId !== voiceChannel.id) {
+            channelChanged = true;
             await player.changeVoiceState({
                 voiceChannelId: voiceChannel.id,
                 selfDeaf: true,
@@ -1127,35 +1257,43 @@ class LavalinkManagerWrapper extends EventEmitter {
             });
         }
 
-        const connectRequestedAt = Date.now();
-        player.voice = {
-            ...(player.voice || {}),
-            sessionId: null,
-            token: null,
-            endpoint: null,
-            channelId: voiceChannel.id,
-        };
-        await player.connect();
+        if (textChannelId) {
+            player.textChannelId = textChannelId;
+            player.options = player.options || {};
+            player.options.textChannelId = textChannelId;
+        }
 
-        const voiceReady = await this.waitForVoiceSession(guildId, 12000, connectRequestedAt);
-        if (!voiceReady) {
-            this.log("warn", "Handshake de voz pendente. Tentando reproduzir.");
+        // Preserve a valid Discord voice session when a user only adds another track.
+        // Resetting sessionId/token/endpoint on every play can interrupt active playback.
+        const voice = player.voice || {};
+        const hasVoiceSession = Boolean(
+            voice.sessionId &&
+            voice.token &&
+            voice.endpoint &&
+            (!voice.channelId || voice.channelId === player.voiceChannelId)
+        );
+        const needsConnect = createdNow || channelChanged || !player.connected || !hasVoiceSession;
+
+        if (needsConnect) {
+            const connectRequestedAt = Date.now();
+            await player.connect();
+            const voiceReady = await this.waitForVoiceSession(guildId, 12000, connectRequestedAt);
+            if (!voiceReady) {
+                this.log(
+                    "warn",
+                    `Handshake de voz pendente após conectar o player (${this.getVoiceSessionDiagnostics(guildId, connectRequestedAt)}).`,
+                );
+            }
         }
 
         if (createdNow) {
             this.autoplayState.set(guildId, Boolean(defaults.defaultautoplay));
-            const filterSet = this.getFilterSet(guildId);
-            filterSet.clear();
-            for (const filterName of this.normalizeFilters(defaults.defaultfilters)) {
-                if (filterName === "clear") continue;
-                filterSet.add(filterName);
-            }
+            this.getFilterSet(guildId);
             await this.applyFilterState(guildId);
         }
 
         return player;
     }
-
     waitForTrackStart(guildId, timeoutMs = 30000, startedAfter = Date.now()) {
         const lastStart = this.lastTrackStartAt.get(guildId) || 0;
         if (lastStart >= startedAfter) {
@@ -1166,11 +1304,8 @@ class LavalinkManagerWrapper extends EventEmitter {
         return new Promise((resolve, reject) => {
             let settled = false;
             let timer = null;
-            let poll = null;
-
             const cleanup = () => {
                 if (timer) clearTimeout(timer);
-                if (poll) clearInterval(poll);
                 this.manager.off("trackStart", onStart);
                 this.manager.off("trackError", onTrackError);
                 this.manager.off("trackStuck", onTrackStuck);
@@ -1189,14 +1324,6 @@ class LavalinkManagerWrapper extends EventEmitter {
                 settled = true;
                 cleanup();
                 reject(error instanceof Error ? error : new Error(String(error)));
-            };
-
-            const checkPlayerState = () => {
-                const player = this.getPlayer(guildId);
-                if (!player) return;
-                if (player.playing) {
-                    resolveOnce(player.queue?.current || null);
-                }
             };
 
             timer = setTimeout(async () => {
@@ -1233,8 +1360,6 @@ class LavalinkManagerWrapper extends EventEmitter {
                     rejectOnce(error);
                 }
             }, timeoutMs);
-
-            poll = setInterval(checkPlayerState, 250);
 
             const onStart = (player, track) => {
                 if (player.guildId !== guildId) return;
@@ -1286,13 +1411,16 @@ class LavalinkManagerWrapper extends EventEmitter {
         }
 
         const requester = this.normalizeRequester(options.member || options.user || options.requester);
-        const player = await this.ensureConnectedPlayer(voiceChannel, options);
+        let player = await this.ensureConnectedPlayer(voiceChannel, options);
         let voiceReady = await this.waitForVoiceSession(player.guildId, 8000);
         if (!voiceReady) {
             voiceReady = await this.refreshVoiceSession(player.guildId, 12000);
         }
         if (!voiceReady) {
-            throw new Error("Conectei ao canal de voz, mas o Discord nao enviou a sessao de voz completa para iniciar a reproducao.");
+            const details = this.getVoiceSessionDiagnostics(player.guildId);
+            throw new Error(
+                `Conectei ao canal de voz, mas o Discord nao enviou a sessao de voz completa para iniciar a reproducao. (${details})`,
+            );
         }
         const result = await this.searchTracks(player, query, requester);
 
@@ -1318,6 +1446,10 @@ class LavalinkManagerWrapper extends EventEmitter {
 
         const shouldWaitForStart = !wasPlaying || Boolean(options.skip);
         const playbackRequestStartedAt = Date.now();
+        const recoveryQueue = [
+            ...(!options.skip && player.queue.current ? [player.queue.current] : []),
+            ...(Array.isArray(player.queue.tracks) ? player.queue.tracks : []),
+        ];
 
         await this.syncCachedVoiceToPlayer(player.guildId);
 
@@ -1330,39 +1462,113 @@ class LavalinkManagerWrapper extends EventEmitter {
         } catch (playError) {
             this.log("warn", `Erro ao iniciar playback: ${this.shortError(playError)}. Tentando failover...`);
             try {
-                await this.ensureWorkingNode();
-                if (options.skip && wasPlaying) {
-                    await player.skip();
-                } else if (!wasPlaying || !player.playing) {
+                const workingNode = await this.ensureWorkingNode();
+                const currentPlayer = this.getPlayer(player.guildId);
+
+                // A manager reconnect creates a fresh player registry. The old player
+                // still points at the disconnected node, so restore its queue and voice
+                // connection on the player owned by the new manager before retrying.
+                if (currentPlayer !== player) {
+                    player = await this.ensureConnectedPlayer(voiceChannel, options);
+                    let recoveredVoice = await this.waitForVoiceSession(player.guildId, 8000);
+                    if (!recoveredVoice) {
+                        recoveredVoice = await this.refreshVoiceSession(player.guildId, 12000);
+                    }
+                    if (!recoveredVoice) {
+                        throw new Error(
+                            `O player foi recriado apos o failover, mas a sessao de voz nao ficou pronta (${this.getVoiceSessionDiagnostics(player.guildId)}).`,
+                        );
+                    }
+                    if (recoveryQueue.length) {
+                        await player.queue.add(recoveryQueue);
+                    }
                     await player.play();
+                } else {
+                    if (player.node !== workingNode && !player.node?.connected) {
+                        await player.changeNode(workingNode);
+                    }
+                    if (options.skip && wasPlaying) {
+                        await player.skip();
+                    } else if (!wasPlaying || !player.playing) {
+                        await player.play();
+                    }
                 }
             } catch (retryError) {
                 this.log("error", `Falha no playback apos failover: ${this.shortError(retryError)}`);
             }
         }
 
+        let startedTrack = null;
         if (shouldWaitForStart) {
-            await this.waitForTrackStart(player.guildId, 30000, playbackRequestStartedAt);
+            startedTrack = await this.waitForTrackStart(player.guildId, 30000, playbackRequestStartedAt);
         }
 
-        return { player, tracks: result.tracks, result };
+        return {
+            player,
+            tracks: result.tracks,
+            result,
+            startedPlayback: shouldWaitForStart,
+            startedTrack,
+        };
     }
 
     async skip(guildId) {
-        const player = this.getPlayer(guildId);
+        let player = this.getPlayer(guildId);
         if (player) {
             try {
                 await player.skip();
             } catch (e) {
                 this.log("warn", `Erro no skip: ${this.shortError(e)}. Tentando failover...`);
-                try {
-                    await this.ensureWorkingNode();
-                    await player.skip();
-                } catch (retryError) {
-                    this.log("error", `Falha no skip apos failover: ${this.shortError(retryError)}`);
+                const upcomingTracks = Array.isArray(player.queue?.tracks) ? [...player.queue.tracks] : [];
+                const voiceChannelId = player.voiceChannelId || player.options?.voiceChannelId;
+                const textChannelId = player.textChannelId || player.options?.textChannelId;
+                const repeatMode = player.repeatMode;
+                const volume = Number(player.volume);
+                const workingNode = await this.ensureWorkingNode();
+                const currentPlayer = this.getPlayer(guildId);
+
+                if (currentPlayer !== player) {
+                    if (!voiceChannelId) {
+                        throw new Error("Nao foi possivel recuperar o canal de voz do player apos o failover.");
+                    }
+                    const voiceChannel = this.client.channels.cache.get(voiceChannelId) || {
+                        id: voiceChannelId,
+                        guildId,
+                    };
+                    player = await this.ensureConnectedPlayer(voiceChannel, {
+                        textChannel: textChannelId ? { id: textChannelId } : undefined,
+                    });
+                    let voiceReady = await this.waitForVoiceSession(guildId, 8000);
+                    if (!voiceReady) {
+                        voiceReady = await this.refreshVoiceSession(guildId, 12000);
+                    }
+                    if (!voiceReady) {
+                        throw new Error(
+                            `O player foi recriado apos o failover, mas a sessao de voz nao ficou pronta (${this.getVoiceSessionDiagnostics(guildId)}).`,
+                        );
+                    }
+                    if (!upcomingTracks.length) {
+                        throw new Error("Nao ha proxima musica na fila para iniciar apos o failover.");
+                    }
+                    if (repeatMode) {
+                        await player.setRepeatMode(repeatMode);
+                    }
+                    if (Number.isFinite(volume)) {
+                        await player.setVolume(volume);
+                    }
+                    await player.queue.add(upcomingTracks);
+                    await player.play();
+                    return player;
                 }
+
+                if (player.node !== workingNode && !player.node?.connected) {
+                    await player.changeNode(workingNode);
+                }
+                await player.skip();
+                return player;
             }
         }
+        return player;
     }
 
     async stop(guildId) {
@@ -1458,8 +1664,9 @@ class LavalinkManagerWrapper extends EventEmitter {
             const seeded = new Set();
             try {
                 const defaults = this.getGuildPlaybackDefaults(guildId).defaultfilters;
-                for (const filterName of this.normalizeFilters(defaults)) {
-                    if (filterName === "clear") continue;
+                const configuredFilters = new Set(Object.keys(this.client?.distube?.customFilters || {}));
+                for (const filterName of this.normalizeFilterCombination(defaults)) {
+                    if (filterName === "clear" || !configuredFilters.has(filterName)) continue;
                     seeded.add(filterName);
                 }
             } catch {
@@ -1477,6 +1684,16 @@ class LavalinkManagerWrapper extends EventEmitter {
             .filter(Boolean)
             .map((entry) => String(entry).trim().toLowerCase())
             .filter(Boolean);
+    }
+
+    normalizeFilterCombination(filters) {
+        const exclusiveModes = new Set(["customspeed", "nightcore", "vaporwave", "8d", "surrounding", "pulsator"]);
+        const normalized = this.normalizeFilters(filters);
+        const lastModeIndex = normalized.reduce(
+            (lastIndex, name, index) => exclusiveModes.has(name) ? index : lastIndex,
+            -1,
+        );
+        return normalized.filter((name, index) => !exclusiveModes.has(name) || index === lastModeIndex);
     }
 
     getCustomFilterDefinition(filterName) {
@@ -1577,15 +1794,25 @@ class LavalinkManagerWrapper extends EventEmitter {
         const player = this.getPlayer(guildId);
         if (!player?.filterManager) return;
 
-        const activeFilters = [...this.getFilterSet(guildId)];
+        const filterSet = this.getFilterSet(guildId);
+        const configuredFilters = new Set(Object.keys(this.client?.distube?.customFilters || {}));
+        for (const filterName of filterSet) {
+            if (filterName === "clear" || !configuredFilters.has(filterName)) filterSet.delete(filterName);
+        }
+        const compatibleFilters = this.normalizeFilterCombination([...filterSet]);
+        filterSet.clear();
+        for (const filterName of compatibleFilters) filterSet.add(filterName);
+        const activeFilters = [...filterSet];
         const activeSet = new Set(activeFilters);
         const fm = player.filterManager;
+        const failures = [];
 
         const safeApply = async (label, executor) => {
             try {
                 await executor();
             } catch (error) {
                 this.log("warn", `Falha ao aplicar filtro "${label}".`, error);
+                failures.push(label);
             }
         };
 
@@ -1593,8 +1820,7 @@ class LavalinkManagerWrapper extends EventEmitter {
 
         if (activeSet.has("nightcore")) {
             await safeApply("nightcore", () => fm.toggleNightcore());
-        }
-        if (activeSet.has("vaporwave")) {
+        } else if (activeSet.has("vaporwave")) {
             await safeApply("vaporwave", () => fm.toggleVaporwave());
         }
         if (activeSet.has("karaoke")) {
@@ -1606,15 +1832,17 @@ class LavalinkManagerWrapper extends EventEmitter {
         if (activeSet.has("tremolo")) {
             await safeApply("tremolo", () => fm.toggleTremolo());
         }
-        if (activeSet.has("8d") || activeSet.has("surrounding") || activeSet.has("pulsator")) {
-            await safeApply("rotation", () => fm.toggleRotation());
+        if (activeSet.has("8d")) {
+            await safeApply("8d", () => fm.toggleRotation(0.08));
+        } else if (activeSet.has("pulsator")) {
+            await safeApply("pulsator", () => fm.toggleRotation(1));
+        } else if (activeSet.has("surrounding")) {
+            await safeApply("surrounding", () => fm.toggleRotation(0.2));
         }
 
-        if (!activeSet.has("nightcore") && !activeSet.has("vaporwave")) {
-            const customSpeed = this.getSpeedLevelFromFilter("customspeed");
-            if (customSpeed && customSpeed !== 1) {
-                await safeApply("customspeed", () => fm.setSpeed(customSpeed));
-            }
+        const customSpeed = this.getSpeedLevelFromFilter("customspeed");
+        if (activeSet.has("customspeed") && customSpeed && customSpeed !== 1) {
+            await safeApply("customspeed", () => fm.setSpeed(customSpeed));
         }
 
         const equalizer = this.buildEqualizerFromFilters(activeFilters);
@@ -1625,11 +1853,29 @@ class LavalinkManagerWrapper extends EventEmitter {
         if (activeSet.has("earrape")) {
             await safeApply("earrape", () => fm.setVolume(1.35));
         }
+
+        if (failures.length) {
+            throw new Error(`Falha ao aplicar: ${[...new Set(failures)].join(", ")}.`);
+        }
     }
 
     createFiltersFacade(player) {
         const guildId = player.guildId;
         const getNames = () => [...this.getFilterSet(guildId)];
+        const updateFilters = async (mutate) => {
+            const set = this.getFilterSet(guildId);
+            const previous = [...set];
+            mutate(set);
+            try {
+                await this.applyFilterState(guildId);
+            } catch (error) {
+                set.clear();
+                for (const name of previous) set.add(name);
+                await this.applyFilterState(guildId).catch(() => {});
+                throw error;
+            }
+            return getNames();
+        };
 
         return {
             get names() {
@@ -1639,43 +1885,35 @@ class LavalinkManagerWrapper extends EventEmitter {
                 return new Map(getNames().map((name) => [name, true]));
             },
             has: (name) => this.getFilterSet(guildId).has(String(name || "").toLowerCase()),
-            set: async (filters) => {
-                const set = this.getFilterSet(guildId);
+            set: async (filters) => updateFilters((set) => {
                 set.clear();
-                for (const filterName of this.normalizeFilters(filters)) {
-                    if (filterName === "clear") continue;
-                    set.add(filterName);
-                }
-                await this.applyFilterState(guildId);
-                return getNames();
-            },
-            add: async (filters) => {
-                const normalized = this.normalizeFilters(filters);
-                if (normalized.includes("clear")) {
-                    this.getFilterSet(guildId).clear();
-                    await this.applyFilterState(guildId);
-                    return getNames();
-                }
-                const set = this.getFilterSet(guildId);
+                const configuredFilters = new Set(Object.keys(this.client?.distube?.customFilters || {}));
+                const normalized = this.normalizeFilterCombination(filters)
+                    .filter((filterName) => filterName !== "clear" && configuredFilters.has(filterName));
                 for (const filterName of normalized) {
                     set.add(filterName);
                 }
-                await this.applyFilterState(guildId);
-                return getNames();
+            }),
+            add: async (filters) => {
+                const normalized = this.normalizeFilters(filters);
+                return updateFilters((set) => {
+                    if (normalized.includes("clear")) {
+                        set.clear();
+                        return;
+                    }
+                    const configuredFilters = new Set(Object.keys(this.client?.distube?.customFilters || {}));
+                    const supported = this.normalizeFilterCombination([...set, ...normalized])
+                        .filter((filterName) => filterName !== "clear" && configuredFilters.has(filterName));
+                    set.clear();
+                    for (const filterName of supported) set.add(filterName);
+                });
             },
-            remove: async (filters) => {
-                const set = this.getFilterSet(guildId);
+            remove: async (filters) => updateFilters((set) => {
                 for (const filterName of this.normalizeFilters(filters)) {
                     set.delete(filterName);
                 }
-                await this.applyFilterState(guildId);
-                return getNames();
-            },
-            clear: async () => {
-                this.getFilterSet(guildId).clear();
-                await this.applyFilterState(guildId);
-                return getNames();
-            },
+            }),
+            clear: async () => updateFilters((set) => set.clear()),
         };
     }
 

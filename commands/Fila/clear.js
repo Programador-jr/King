@@ -82,7 +82,7 @@ module.exports = {
 						],
 					});
 				}
-				let amount = newQueue.songs.length - 2;
+				let amount = Math.max(0, newQueue.songs.length - 1);
 				await newQueue.clear();
 				message.reply({
 					embeds: [new MessageEmbed()

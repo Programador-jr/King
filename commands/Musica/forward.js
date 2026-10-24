@@ -82,7 +82,19 @@ module.exports = {
 						],
 					})
 				}
-				let seekNumber = Number(args[0])
+				const seekNumber = Number(args[0]);
+				if (!Number.isFinite(seekNumber) || seekNumber <= 0) {
+					return message.reply({
+						embeds: [new MessageEmbed()
+							.setColor(ee.wrongcolor)
+							.setTitle(`${client.allEmojis.x} Informe uma quantidade de segundos maior que zero.`)]
+					});
+				}
+				if (newQueue.songs[0].isStream || !Number.isFinite(Number(newQueue.songs[0].duration)) || Number(newQueue.songs[0].duration) <= 0) {
+					return message.reply({
+						embeds: [new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} Esta faixa não permite avançar por posição.`)]
+					});
+				}
 				let seektime = newQueue.currentTime + seekNumber;
 				if (seektime >= newQueue.songs[0].duration) seektime = newQueue.songs[0].duration - 1;
 				if (check_if_dj(client, member, newQueue.songs[0])) {

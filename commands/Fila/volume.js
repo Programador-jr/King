@@ -93,8 +93,8 @@ module.exports = {
 						],
 					});
 				}
-				let volume = Number(args[0])
-				if (volume > 150 || volume < 0) return message.reply({
+				const volume = Number(args[0]);
+				if (!Number.isFinite(volume) || !Number.isInteger(volume) || volume > 150 || volume < 0) return message.reply({
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **O volume deve estar entre \`0\` e \`150\`!**`)
 					],

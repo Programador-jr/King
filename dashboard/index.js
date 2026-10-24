@@ -1,8 +1,14 @@
 const express = require("express");
-const http = require("http");  
+const http = require("http");
 const url = require(`url`);
 const path = require(`path`);
-const { Permissions, MessageEmbed } = require("discord.js");
+const {
+  PermissionFlagsBits,
+  ButtonStyle,
+  EmbedBuilder: MessageEmbed,
+  ActionRowBuilder: MessageActionRow,
+  ButtonBuilder: MessageButton,
+} = require("discord.js");
 const ejs = require("ejs");
 const fs = require("fs")
 const passport = require(`passport`);
@@ -20,11 +26,13 @@ const GuildAudit = require("../databases/guildAudit");
 const BotMetrics = require("../databases/botMetrics");
 const GuildStats = require("../databases/infos");
 const CasinoHistory = require("../databases/casinoHistory");
+const { articles: docsArticles, categories: docsCategories } = require("./docsContent");
 const {
   getDashboardPort,
   getDashboardBaseUrl,
   getDashboardCallbackUrl,
 } = require("../handlers/dashboardConfig");
+const { createDashboardSessionConfig } = require("./sessionConfig");
 
 const getBotData = (client) => ({
   avatar: client.user.displayAvatarURL({ size: 128 }),
@@ -48,22 +56,37 @@ const getQueueBotData = (client) => {
 
 /**
  *  STARTING THE WEBSITE
- * @param {*} client THE DISCORD BOT CLIENT 
+ * @param {*} client THE DISCORD BOT CLIENT
  */
 module.exports = client => {
     const getPublicCommands = () => client.commands.filter((cmd) => String(cmd.category || "").toLowerCase() !== "dev");
     const getPublicCategories = () => client.categories.filter((category) => String(category || "").toLowerCase() !== "dev");
+    const resolveDashboardButtonStyle = (style) => {
+      const styles = {
+        PRIMARY: ButtonStyle.Primary,
+        SECONDARY: ButtonStyle.Secondary,
+        SUCCESS: ButtonStyle.Success,
+        DANGER: ButtonStyle.Danger,
+      };
+      return styles[String(style || "PRIMARY").toUpperCase()] || ButtonStyle.Primary;
+    };
     //Start teh website
     console.log("Loading DashBoard settings")
     const settings = require("./settings.json");
     const dashboardClientId = process.env.DASHBOARD_CLIENT_ID || settings?.config?.clientID || "";
     const dashboardClientSecret = process.env.DASHBOARD_CLIENT_SECRET || settings?.config?.secret || "";
-    const dashboardSessionSecret = process.env.DASHBOARD_SESSION_SECRET || `#@%#&^$^$%@$^$&%#$%@#$%$^%&$%^#$%@#$%#E%#%@$FEErfgr3g#%GT%536c53cc6%5%tv%4y4hrgrggrgrgf4n`;
-
     if (!dashboardClientId || !dashboardClientSecret) {
       console.log("[dashboard] Desativado: DASHBOARD_CLIENT_ID/DASHBOARD_CLIENT_SECRET ausentes no .env (ou dashboard/settings.json).");
       return;
     }
+
+    const production = process.env.NODE_ENV === "production";
+    const sessionConfig = createDashboardSessionConfig({
+      env: process.env,
+      production,
+      secureCookie: production,
+      trustProxy: process.env.DASHBOARD_TRUST_PROXY === "1",
+    });
 
     const httpPort = getDashboardPort(settings);
     const resolvedDomain = getDashboardBaseUrl(settings) || `http://127.0.0.1:${httpPort}`;
@@ -135,7 +158,7 @@ module.exports = client => {
       return raw;
     };
 
-    const DASHBOARD_HIDDEN_FILTERS = new Set(["custombassboost", "customspeed", "clear"]);
+    const DASHBOARD_HIDDEN_FILTERS = new Set(["custombassboost", "clear"]);
     const sanitizeDashboardFilters = (filtersInput) => {
       const filtersArray = Array.isArray(filtersInput)
         ? filtersInput
@@ -252,22 +275,28 @@ module.exports = client => {
     passport.use(new Strategy({
       clientID: dashboardClientId,
       clientSecret: dashboardClientSecret,
-      callbackURL: resolvedCallback,      
+      callbackURL: resolvedCallback,
       scope: [`identify`, `guilds`, `guilds.join`]
     },
-    (accessToken, refreshToken, profile, done) => { 
+    (accessToken, refreshToken, profile, done) => {
       process.nextTick(() => done(null, profile));
     }));
 
-    
+
     /**
      * @INFO - ADD A SESSION SAVER
      */
+    if (sessionConfig.trustProxy) app.set("trust proxy", sessionConfig.trustProxy);
     app.use(session({
         store: new MemoryStore({ checkPeriod: 86400000 }),
-        secret: dashboardSessionSecret,
+        secret: sessionConfig.secret,
         resave: false,
         saveUninitialized: false,
+        cookie: {
+          ...sessionConfig.cookie,
+          httpOnly: true,
+          sameSite: "lax",
+        },
     }));
 
     // initialize passport middleware.
@@ -377,6 +406,10 @@ module.exports = client => {
             return res.redirect("/?error=oauth_user");
           }
 
+          const backURL = typeof req.session.backURL === "string" && req.session.backURL.startsWith("/")
+            ? req.session.backURL
+            : "/dashboard";
+
           req.logIn(user, (loginErr) => {
             if (loginErr) {
               console.error("[dashboard][oauth] Session login failed:", loginErr.message);
@@ -384,7 +417,14 @@ module.exports = client => {
               req.session.oauthCallback = null;
               return res.redirect("/?error=oauth_login");
             }
-            return next();
+            req.session.backURL = backURL;
+            return req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error("[dashboard][oauth] Session save failed:", saveErr.message);
+                return res.redirect("/?error=oauth_session");
+              }
+              return next();
+            });
           });
         })(req, res, next);
     }, async (req, res) => {
@@ -414,11 +454,12 @@ module.exports = client => {
           user: req.isAuthenticated() ? req.user : null,
           //guild: client.guilds.cache.get(req.params.guildID),
           bot: getBotData(client),
-          Permissions: Permissions,
+          topggVoteUrl: "https://top.gg/discord/servers/821126636597288960/vote",
+          Permissions: PermissionFlagsBits,
           websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
-          categories: client.categories, 
-          commands: client.commands, 
+          categories: client.categories,
+          commands: client.commands,
           BotConfig: BotConfig,
           BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -428,13 +469,39 @@ module.exports = client => {
         });
     })
 
+    const docsSearchEntries = docsArticles.map((article) => ({
+      ...article,
+      searchText: [article.title, article.category, article.summary, ...article.sections.flatMap((section) => [section.title, ...(section.paragraphs || []), ...(section.commands || [])])].join(" ").toLocaleLowerCase("pt-BR"),
+    }));
+    const renderDocs = (req, res, { doc = null, notFound = false, status = 200 } = {}) => {
+      res.status(status).render("docs", {
+        req,
+        user: req.isAuthenticated() ? req.user : null,
+        bot: getBotData(client),
+        Permissions: PermissionFlagsBits,
+        websiteInfo,
+        callback: resolveCallbackForRequest(req),
+        docs: docsSearchEntries,
+        categories: docsCategories,
+        doc,
+        notFound,
+      });
+    };
+
+    app.get("/docs", (req, res) => renderDocs(req, res));
+    app.get("/docs/:slug", (req, res) => {
+      const doc = docsSearchEntries.find((article) => article.slug === req.params.slug);
+      if (!doc) return renderDocs(req, res, { notFound: true, status: 404 });
+      return renderDocs(req, res, { doc });
+    });
+
 
     app.get("/termos", (req, res) => {
       res.render("termos", {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
       });
     })
@@ -444,7 +511,7 @@ module.exports = client => {
         req: req,
         user: req.isAuthenticated() ? req.user : null,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
       });
     })
@@ -457,11 +524,11 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         //guild: client.guilds.cache.get(req.params.guildID),
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
-        categories: getPublicCategories(), 
-        commands: getPublicCommands(), 
+        categories: getPublicCategories(),
+        commands: getPublicCommands(),
         BotConfig: BotConfig,
         BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -473,15 +540,23 @@ module.exports = client => {
 
     //Logout the user and move him back to the main page
     app.get(`/logout`, function (req, res) {
-      req.session.destroy(() => {
-        req.logout();
-        res.redirect(`/`);
+      req.logout((err) => {
+        if (err) return res.status(500).send("Não foi possível encerrar a sessão.");
+        if (!req.session) {
+          res.clearCookie("connect.sid");
+          return res.redirect("/");
+        }
+        req.session.destroy((err) => {
+          if (err) return res.status(500).send("Não foi possível encerrar a sessão.");
+          res.clearCookie("connect.sid");
+          return res.redirect("/");
+        });
       });
     });
 
     // Dashboard endpoint.
     app.get("/dashboard", checkAuth, async (req,res) => {
-      if(!req.isAuthenticated() || !req.user) 
+      if(!req.isAuthenticated() || !req.user)
       return res.redirect("/?error=" + encodeURIComponent("Login First!"));
       if(!req.user.guilds)
       return res.redirect("/?error=" + encodeURIComponent("Unable to get your Guilds!"));
@@ -490,11 +565,11 @@ module.exports = client => {
           user: req.isAuthenticated() ? req.user : null,
           //guild: client.guilds.cache.get(req.params.guildID),
           bot: getBotData(client),
-          Permissions: Permissions,
+          Permissions: PermissionFlagsBits,
           websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
-          categories: client.categories, 
-          commands: client.commands, 
+          categories: client.categories,
+          commands: client.commands,
           BotConfig: BotConfig,
           BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -644,7 +719,7 @@ module.exports = client => {
         req,
         user: req.isAuthenticated() ? req.user : null,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
@@ -731,11 +806,11 @@ module.exports = client => {
         }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Unable to fetch you, sorry!"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("You are not allowed to do that!"));
       }
       client.settings.ensure(guild.id, {
-        prefix: BotConfig.prefix,      
+        prefix: BotConfig.prefix,
         defaultvolume: 50,
         defaultautoplay: false,
         defaultfilters: [],
@@ -769,11 +844,11 @@ module.exports = client => {
           user: req.isAuthenticated() ? req.user : null,
           guild: client.guilds.cache.get(req.params.guildID),
           bot: getBotData(client),
-          Permissions: Permissions,
+          Permissions: PermissionFlagsBits,
           websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
-          categories: client.categories, 
-          commands: client.commands, 
+          categories: client.categories,
+          commands: client.commands,
           BotConfig: BotConfig,
           BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -798,16 +873,16 @@ module.exports = client => {
         }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("Can't Information Data about you!"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("You are not allowed to do that!"));
       }
-      
+
       // VerificaÃ§Ã£o de seguranÃ§a para req.body
       if (!req.body) {
         console.error('[ERROR] req.body is undefined - Headers:', req.headers);
         return res.redirect("/dashboard?error=" + encodeURIComponent("Erro ao processar formulÃ¡rio"));
       }
-      
+
       if(req.body.prefix) client.settings.set(guild.id, String(req.body.prefix).split(" ")[0], "prefix")
       if(req.body.defaultvolume) client.settings.set(guild.id, Number(req.body.defaultvolume), "defaultvolume")
       // Corrigir lÃ³gica do autoplay - sÃ³ salvar se vier no formulÃ¡rio
@@ -815,7 +890,7 @@ module.exports = client => {
         const autoplayValue = req.body.defaultautoplay === 'on' || req.body.defaultautoplay === 'true';
         client.settings.set(guild.id, autoplayValue, "defaultautoplay");
       }
-      
+
       //mix default (spotify or youtube)
       if (req.body.mixDefault) {
         const validMixDefaults = ["spotify", "youtube"];
@@ -826,7 +901,7 @@ module.exports = client => {
         const mixDefault = validMixDefaults.includes(normalizedMixDefault) ? normalizedMixDefault : "youtube";
         client.settings.set(guild.id, mixDefault, "mixDefault");
       }
-      
+
       // defaultfilters / roles / channels must always be stored as arrays
       const safeFilters = sanitizeDashboardFilters(req.body.defaultfilters);
       client.settings.set(guild.id, safeFilters, "defaultfilters");
@@ -916,12 +991,12 @@ module.exports = client => {
           user: req.isAuthenticated() ? req.user : null,
           guild: client.guilds.cache.get(req.params.guildID),
           bot: getBotData(client),
-          
-          Permissions: Permissions,
+
+          Permissions: PermissionFlagsBits,
           websiteInfo: websiteInfo,
           callback: resolveCallbackForRequest(req),
-          categories: client.categories, 
-          commands: client.commands, 
+          categories: client.categories,
+          commands: client.commands,
           BotConfig: BotConfig,
           BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -939,13 +1014,20 @@ module.exports = client => {
           return res.json({ success: false, message: "Servidor nÃ£o encontrado" });
         }
 
-        const member = guild.members.cache.get(req.user.id);
-        if (!member || !member.permissions.has("MANAGE_GUILD")) {
+        let member = guild.members.cache.get(req.user.id);
+        if (!member) {
+          try {
+            member = await guild.members.fetch(req.user.id);
+          } catch {
+            member = null;
+          }
+        }
+        if (!member || !member.permissions.has(PermissionFlagsBits.ManageGuild)) {
           return res.json({ success: false, message: "VocÃª nÃ£o tem permissÃ£o para isso" });
         }
 
         const { defaultautoplay } = req.body;
-        
+
         // Validar o valor
         if (typeof defaultautoplay !== 'boolean') {
           return res.json({ success: false, message: "Valor invÃ¡lido" });
@@ -966,15 +1048,15 @@ module.exports = client => {
           }
         }
 
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           message: `ReproduÃ§Ã£o automÃ¡tica ${defaultautoplay ? 'ativada' : 'desativada'} com sucesso.`
         });
       } catch (error) {
         console.error('Erro no endpoint de autoplay:', error);
-        res.json({ 
-          success: false, 
-          message: 'Erro ao salvar configuraÃ§Ã£o.' 
+        res.json({
+          success: false,
+          message: 'Erro ao salvar configuraÃ§Ã£o.'
         });
       }
     });
@@ -997,11 +1079,11 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         guild: client.guilds.cache.get(req.params.guildID),
         bot: getQueueBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
-        categories: client.categories, 
-        commands: client.commands, 
+        categories: client.categories,
+        commands: client.commands,
         BotConfig: BotConfig,
         BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -1182,7 +1264,7 @@ module.exports = client => {
 
     //Queue Dashes
     app.get("/queuedashboard", checkAuth, async (req,res) => {
-      if(!req.isAuthenticated() || !req.user) 
+      if(!req.isAuthenticated() || !req.user)
       return res.redirect("/?error=" + encodeURIComponent("Login First!"));
       if(!req.user.guilds)
       return res.redirect("/?error=" + encodeURIComponent("Unable to get your Guilds!"));
@@ -1191,11 +1273,11 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         //guild: client.guilds.cache.get(req.params.guildID),
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
-        categories: client.categories, 
-        commands: client.commands, 
+        categories: client.categories,
+        commands: client.commands,
         BotConfig: BotConfig,
         BotFilters: BotFilters,
           SPOTIFY_MIXES: SPOTIFY_MIXES,
@@ -1210,14 +1292,14 @@ module.exports = client => {
     app.get("/dashboard/:guildID/tickets", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -1252,7 +1334,7 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
@@ -1284,13 +1366,13 @@ module.exports = client => {
     app.post("/dashboard/:guildID/tickets/settings", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
         try { member = await guild.members.fetch(req.user.id); } catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -1307,7 +1389,7 @@ module.exports = client => {
       client.settings.set(guild.id, !!req.body.ticketLogCloseEnabled, "ticketLogCloseEnabled");
       client.settings.set(guild.id, (req.body.ticketLogOpenType === "webhook") ? "webhook" : "channel", "ticketLogOpenType");
       client.settings.set(guild.id, (req.body.ticketLogCloseType === "webhook") ? "webhook" : "channel", "ticketLogCloseType");
-      
+
       const openChannel = String(req.body.ticketLogOpenChannel || "").trim();
       const closeChannel = String(req.body.ticketLogCloseChannel || "").trim();
       const openWebhook = String(req.body.ticketLogOpenWebhook || "").trim();
@@ -1353,14 +1435,14 @@ module.exports = client => {
     app.get("/dashboard/:guildID/tickets/embed", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -1374,7 +1456,7 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
@@ -1395,14 +1477,14 @@ module.exports = client => {
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
       const returnTo = resolveEmbedReturnTo(guild.id, req.body.returnTo || req.query.returnTo || req?.session?.ticketEmbedReturnTo);
       if (req?.session) req.session.ticketEmbedReturnTo = returnTo;
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -1427,14 +1509,14 @@ module.exports = client => {
     app.get("/tickets/:guildID/:ticketNumber", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -1454,7 +1536,7 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         ticket: ticket
       });
@@ -1465,7 +1547,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const ticketNumber = parseInt(req.params.ticketNumber);
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -1495,7 +1577,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const ticketNumber = parseInt(req.params.ticketNumber);
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -1524,7 +1606,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const { channelId, title, description, buttonLabel } = req.body;
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -1545,7 +1627,7 @@ module.exports = client => {
           return res.status(400).json({ ok: false, message: "Canal de texto invÃ¡lido" });
         }
 
-        const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
+
 
         const embed = new MessageEmbed()
           .setColor("#00BFFF")
@@ -1558,7 +1640,7 @@ module.exports = client => {
             new MessageButton()
               .setCustomId("create_ticket")
               .setLabel(buttonLabel || "ðŸŽ« Criar Ticket")
-              .setStyle("PRIMARY")
+              .setStyle(ButtonStyle.Primary)
           );
 
         const panelMessage = await channel.send({
@@ -1591,7 +1673,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const { panelId } = req.body;
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -1608,7 +1690,7 @@ module.exports = client => {
 
         const panels = client.ticketHandler.getGuildPanels(guildId);
         const panel = panels.find(p => p.id === panelId);
-        
+
         if (panel) {
           try {
             const channel = guild.channels.cache.get(panel.channelId);
@@ -1637,7 +1719,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const { panelId } = req.body;
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -1654,7 +1736,7 @@ module.exports = client => {
 
         const panels = client.ticketHandler.getGuildPanels(guildId);
         const panel = panels.find(p => p.id === panelId);
-        
+
         if (!panel) {
           return res.status(404).json({ ok: false, message: "Painel nÃ£o encontrado" });
         }
@@ -1664,7 +1746,7 @@ module.exports = client => {
           return res.status(400).json({ ok: false, message: "Canal do painel nÃ£o encontrado" });
         }
 
-        const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
+
 
         const discordEmbeds = (panel.embeds || []).map(embed => {
           const e = new MessageEmbed();
@@ -1677,14 +1759,14 @@ module.exports = client => {
           if (embed.author?.name) {
             e.setAuthor({
               name: embed.author.name,
-              url: embed.author.url || null,
-              iconURL: embed.author.icon_url || null
+              ...(embed.author.url ? { url: embed.author.url } : {}),
+              ...(embed.author.icon_url ? { iconURL: embed.author.icon_url } : {})
             });
           }
           if (embed.footer?.text) {
             e.setFooter({
               text: embed.footer.text,
-              iconURL: embed.footer.icon_url || null
+              ...(embed.footer.icon_url ? { iconURL: embed.footer.icon_url } : {})
             });
           }
           return e;
@@ -1692,12 +1774,12 @@ module.exports = client => {
 
         const rows = [];
         const buttonRow = new MessageActionRow();
-        
+
         (panel.buttons || []).forEach(btn => {
           const button = new MessageButton()
             .setCustomId(btn.customId || 'create_ticket')
             .setLabel(btn.label || 'Criar Ticket')
-            .setStyle(btn.style || 'PRIMARY');
+            .setStyle(resolveDashboardButtonStyle(btn.style));
           if (btn.emoji) button.setEmoji(btn.emoji);
           buttonRow.addComponents(button);
         });
@@ -1723,7 +1805,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const { ticketNumber } = req.body;
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -1760,7 +1842,7 @@ module.exports = client => {
         if (channel) {
           await channel.setName(`closed-${ticketNumber}`);
 
-          const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
+
 
           const customCloseEmbed = client.settings.get(guild.id, "ticketCloseEmbed");
           let embed;
@@ -1777,20 +1859,26 @@ module.exports = client => {
                 .replace(/{usertag}/g, ticket.userTag || "Unknown")
                 .replace(/{closer}/g, req.user.tag)
             );
-            if (customCloseEmbed.footer?.text) embed.setFooter({ text: customCloseEmbed.footer.text, iconURL: customCloseEmbed.footer.icon_url || null });
+            if (customCloseEmbed.footer?.text) embed.setFooter({ text: customCloseEmbed.footer.text, ...(customCloseEmbed.footer.icon_url ? { iconURL: customCloseEmbed.footer.icon_url } : {}) });
             if (customCloseEmbed.image) embed.setImage(customCloseEmbed.image);
             if (customCloseEmbed.thumbnail) embed.setThumbnail(customCloseEmbed.thumbnail);
-            if (customCloseEmbed.author?.name) embed.setAuthor({ name: customCloseEmbed.author.name, url: customCloseEmbed.author.url || null, iconURL: customCloseEmbed.author.icon_url || null });
-            if (customCloseEmbed.fields?.length) customCloseEmbed.fields.forEach(f => { if (f.name) embed.addField(f.name, f.value || '\u200b', f.inline || false); });
-            embed.addField("ðŸŽ« Ticket", `#${ticketNumber}`, true);
-            embed.addField("ðŸ‘¤ Fechado por", req.user.tag, true);
+            if (customCloseEmbed.author?.name) embed.setAuthor({ name: customCloseEmbed.author.name, ...(customCloseEmbed.author.url ? { url: customCloseEmbed.author.url } : {}), ...(customCloseEmbed.author.icon_url ? { iconURL: customCloseEmbed.author.icon_url } : {}) });
+            embed.addFields(
+              ...(customCloseEmbed.fields || []).filter((field) => field.name).map((field) => ({
+                name: field.name,
+                value: field.value || '\u200b',
+                inline: Boolean(field.inline),
+              })),
+              { name: "Ticket", value: `#${ticketNumber}`, inline: true },
+              { name: "Fechado por", value: req.user.tag, inline: true },
+            );
             embed.setTimestamp();
           } else {
             embed = new MessageEmbed()
               .setColor("#ed4245")
               .setTitle("ðŸŽ« Ticket Fechado")
               .setDescription(`Ticket fechado por ${req.user.tag}.`)
-              .addField("Ticket", `#${ticketNumber}`, true)
+              .addFields({ name: "Ticket", value: `#${ticketNumber}`, inline: true })
               .setTimestamp();
           }
 
@@ -1801,11 +1889,11 @@ module.exports = client => {
               new MessageButton()
                 .setCustomId("reopen_ticket")
                 .setLabel("ðŸ”“ Reabrir")
-                .setStyle("SECONDARY"),
+                .setStyle(ButtonStyle.Secondary),
               new MessageButton()
                 .setCustomId("delete_ticket")
                 .setLabel("ðŸ—‘ï¸ Deletar")
-                .setStyle("DANGER")
+                .setStyle(ButtonStyle.Danger)
             );
 
           await channel.send({
@@ -1825,14 +1913,14 @@ module.exports = client => {
     app.get("/dashboard/:guildID/tickets/create", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -1841,7 +1929,7 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
@@ -1859,14 +1947,14 @@ module.exports = client => {
     app.get("/dashboard/:guildID/tickets/edit/:panelId", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -1877,7 +1965,7 @@ module.exports = client => {
 
       const panels = client.ticketHandler.getGuildPanels(guild.id);
       const panel = panels.find(p => p.id === req.params.panelId);
-      
+
       if (!panel) {
         return res.redirect("/dashboard/" + guild.id + "/tickets?error=" + encodeURIComponent("Painel nÃ£o encontrado"));
       }
@@ -1887,7 +1975,7 @@ module.exports = client => {
         user: req.isAuthenticated() ? req.user : null,
         guild: guild,
         bot: getBotData(client),
-        Permissions: Permissions,
+        Permissions: PermissionFlagsBits,
         websiteInfo: websiteInfo,
         callback: resolveCallbackForRequest(req),
         categories: client.categories,
@@ -1906,7 +1994,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const { channelId, categoryId, categoryEnabled, embeds, buttons, logs, questions } = req.body;
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -1944,7 +2032,7 @@ module.exports = client => {
           }
         }
 
-        const { MessageEmbed, MessageActionRow, MessageButton, ComponentType } = require("discord.js");
+
         const resolvedPanelLogs = await resolveValidatedPanelLogs(guild, logs);
         if (!resolvedPanelLogs.ok) {
           return res.status(400).json({ ok: false, message: resolvedPanelLogs.message });
@@ -1961,14 +2049,14 @@ module.exports = client => {
           if (embed.author?.name) {
             e.setAuthor({
               name: embed.author.name,
-              url: embed.author.url || null,
-              iconURL: embed.author.icon_url || null
+              ...(embed.author.url ? { url: embed.author.url } : {}),
+              ...(embed.author.icon_url ? { iconURL: embed.author.icon_url } : {})
             });
           }
           if (embed.footer?.text) {
             e.setFooter({
               text: embed.footer.text,
-              iconURL: embed.footer.icon_url || null
+              ...(embed.footer.icon_url ? { iconURL: embed.footer.icon_url } : {})
             });
           }
           return e;
@@ -1978,15 +2066,15 @@ module.exports = client => {
 
         const rows = [];
         const buttonRow = new MessageActionRow();
-        
+
         buttons.forEach(btn => {
-          const customId = btn.customId && btn.customId !== 'create_ticket' 
-            ? btn.customId 
+          const customId = btn.customId && btn.customId !== 'create_ticket'
+            ? btn.customId
             : `create_ticket_${panelId}`;
           const button = new MessageButton()
             .setCustomId(customId)
             .setLabel(btn.label || 'Criar Ticket')
-            .setStyle(btn.style || 'PRIMARY');
+            .setStyle(resolveDashboardButtonStyle(btn.style));
           if (btn.emoji) button.setEmoji(btn.emoji);
           buttonRow.addComponents(button);
         });
@@ -2007,8 +2095,8 @@ module.exports = client => {
 
         const updatedButtons = buttons.map(btn => ({
           ...btn,
-          customId: btn.customId && btn.customId !== 'create_ticket' 
-            ? btn.customId 
+          customId: btn.customId && btn.customId !== 'create_ticket'
+            ? btn.customId
             : `create_ticket_${panelId}`
         }));
 
@@ -2029,7 +2117,7 @@ module.exports = client => {
           ticketRoles: [],
           ticketWebhook: null
         });
-        
+
         return res.json({ ok: true, message: "Painel criado com sucesso" });
       } catch (err) {
         console.error("[Create Panel Advanced] Erro:", err);
@@ -2042,7 +2130,7 @@ module.exports = client => {
       try {
         const guildId = req.params.guildID;
         const { panelId, channelId, categoryId, categoryEnabled, embeds, buttons, logs, questions } = req.body;
-        
+
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           return res.status(404).json({ ok: false, message: "Servidor nÃ£o encontrado" });
@@ -2059,7 +2147,7 @@ module.exports = client => {
 
         const panels = client.ticketHandler.getGuildPanels(guildId);
         const panelIndex = panels.findIndex(p => p.id === panelId);
-        
+
         if (panelIndex === -1) {
           return res.status(404).json({ ok: false, message: "Painel nÃ£o encontrado" });
         }
@@ -2145,14 +2233,14 @@ module.exports = client => {
     app.get("/dashboard/:guildID/automod", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -2160,7 +2248,7 @@ module.exports = client => {
 
       res.render("automod", {
         req, user: req.isAuthenticated() ? req.user : null, guild, bot: getBotData(client),
-        Permissions, websiteInfo: websiteInfo, callback: resolveCallbackForRequest(req),
+        Permissions: PermissionFlagsBits, websiteInfo: websiteInfo, callback: resolveCallbackForRequest(req),
         categories: client.categories, commands: client.commands,
         BotConfig, BotFilters, SPOTIFY_MIXES, YT_MIXES, BotEmojis,
         settings
@@ -2170,14 +2258,14 @@ module.exports = client => {
     app.post("/dashboard/:guildID/automod", checkAuth, async (req, res) => {
       const guild = client.guilds.cache.get(req.params.guildID);
       if (!guild) return res.redirect("/dashboard?error=" + encodeURIComponent("Servidor nÃ£o encontrado"));
-      
+
       let member = guild.members.cache.get(req.user.id);
       if (!member) {
-        try { member = await guild.members.fetch(req.user.id); } 
+        try { member = await guild.members.fetch(req.user.id); }
         catch (err) { console.error(err); }
       }
       if (!member) return res.redirect("/dashboard?error=" + encodeURIComponent("NÃ£o foi possÃ­vel obter seus dados"));
-      if (!member.permissions.has("MANAGE_GUILD")) {
+      if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return res.redirect("/dashboard?error=" + encodeURIComponent("VocÃª nÃ£o tem permissÃ£o para isso"));
       }
 
@@ -2218,9 +2306,9 @@ module.exports = client => {
       client.settings.set(guild.id, !!automodAntiInviteEnabled, "automodAntiInviteEnabled");
 
       client.settings.set(guild.id, !!automodAntiWordsEnabled, "automodAntiWordsEnabled");
-      
+
       client.settings.set(guild.id, automodAntiWordsWarnMessage || "VocÃª usou palavras proibidas neste servidor.", "automodAntiWordsWarnMessage");
-      
+
       let wordsList = [];
       if (automodAntiWordsList) {
           if (Array.isArray(automodAntiWordsList)) {
@@ -2238,49 +2326,6 @@ module.exports = client => {
     });
 
     /**
-     * @API ENDPOINTS
-     */
-    // Status endpoint for KingStatus
-    app.get(`/api/status`, async (req, res) => {
-        try {
-            const nodes = client.lavalink?.manager?.nodeManager?.nodes || [];
-            const nodeList = Array.from(nodes.values()).map(node => ({
-                id: node.id,
-                connected: node.connected,
-                stats: node.stats
-            }));
-
-            res.json({
-                status: client.isReady() ? "online" : "offline",
-                uptime: client.uptime,
-                ping: client.ws.ping,
-                guilds: client.guilds.cache.size,
-                users: client.users.cache.size,
-                lavalink: nodeList
-            });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    });
-
-    app.get(`/api/status/bot`, async (req, res) => {
-        try {
-            res.json({
-                id: client.user?.id || null,
-                username: client.user?.username || null,
-                status: client.isReady() ? "operational" : "major_outage",
-                online: client.isReady(),
-                uptime_ms: client.uptime || 0,
-                ping_ms: Number.isFinite(client.ws?.ping) ? client.ws.ping : null,
-                guilds: client.guilds.cache.size,
-                users: client.users.cache.size
-            });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    });
-
-    /**
      * @TOP.GG WEBHOOK
      */
     const Topgg = require("@top-gg/sdk");
@@ -2289,10 +2334,10 @@ module.exports = client => {
     const topggWebhookAuth = process.env.TOPGG_WEBHOOK_AUTH;
     if (topggWebhookAuth) {
       const topggWebhook = new Topgg.Webhook(topggWebhookAuth);
-      
+
       app.post("/webhooks/topgg", topggWebhook.listener(async (vote) => {
         console.log(`[TopGG] Voto recebido de usuário: ${vote.user} | bot: ${vote.bot} | isWeekend: ${vote.isWeekend}`);
-        
+
         if (vote.type === "test") {
           console.log("[TopGG] Teste de webhook recebido!");
           return;
@@ -2300,12 +2345,12 @@ module.exports = client => {
 
         try {
           const result = await handleVote(vote);
-          
+
           if (result.success) {
             console.log(`[TopGG] Recompensa de ${result.reward} KC dada ao usuário ${vote.user} (weekend: ${result.isWeekend})`);
-            
+
             await sendVoteLog(client, result);
-            
+
             const discordUser = await client.users.fetch(vote.user).catch(() => null);
             if (discordUser) {
               try {

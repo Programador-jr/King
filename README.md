@@ -1,15 +1,15 @@
-# 👑 King Bot
+#  King Bot
 
-[English](README.md) | [Português](README-pt.md)
+**English** | [Português](README-pt.md)
 
 A powerful, feature-rich Discord bot with advanced moderation, music streaming, automated systems, and a comprehensive web dashboard.
 
 ![Discord.js](https://img.shields.io/badge/discord.js-v14-blue?style=flat-square&logo=discord)
 ![Node.js](https://img.shields.io/badge/Node.js-v24.13.0-green?style=flat-square&logo=node.js)
 ![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)
-![Version](https://img.shields.io/badge/version-6.0.0-orange?style=flat-square)
+![Version](https://img.shields.io/badge/version-6.1.0-orange?style=flat-square)
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
@@ -22,9 +22,9 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 - [Contributing](#-contributing)
 - [Support](#-support)
 
-## ✨ Features
+##  Features
 
-### 🛡️ **Advanced Moderation System**
+###  **Advanced Moderation System**
 - **Complete moderation suite** with ban, kick, mute, warn commands
 - **Auto-Moderation system** with customizable rules
   - Anti-spam protection with progressive penalties
@@ -36,7 +36,7 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 - **Channel management** with lock/unlock and slowmode controls
 - **Bulk message deletion** with purge command
 
-### 🎵 **Professional Music System**
+###  **Professional Music System**
 - **High-quality music playback** via Lavalink
 - **Multiple sources support**:
   - YouTube
@@ -53,7 +53,7 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 - **Song statistics** with caching for performance
 - **Multiple Lavalink nodes** with automatic failover
 
-### 🎫 **Ticket System**
+###  **Ticket System**
 - **Complete ticket lifecycle** management
 - **Dashboard panel** for creation and configuration
 - **Ticket statistics** and history tracking
@@ -61,7 +61,7 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 - **Automated templates** for messages and logging
 - **Webhook integration** for notifications
 
-### 🤖 **Automation & Utilities**
+###  **Automation & Utilities**
 - **User information** commands (profile, avatar, guild info)
 - **Server management** tools
 - **Fun commands** and games
@@ -69,7 +69,7 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 - **Help system** with command categories
 - **Message filtering** with categories
 
-### 📊 **Web Dashboard**
+###  **Web Dashboard**
 - **Discord OAuth2 authentication** for secure login
 - **Server management** interface
 - **Real-time statistics** and status
@@ -79,7 +79,7 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 - **Responsive design** with Bootstrap 5
 - **Modern UI components** and alerts system
 
-### 🔒 **Security Features**
+###  **Security Features**
 - **Role-based access control** (RBAC)
 - **Webhook validation** and secure integration
 - **Input sanitization** and validation
@@ -87,11 +87,11 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 - **Secret management** via environment variables
 - **Audit logging** with detailed action tracking
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| **Runtime** | Node.js | >= 20.19.0 |
+| **Runtime** | Node.js | >= 22.12.0 |
 | **Discord Library** | discord.js | v14 |
 | **Music System** | Lavalink Client | v2.9.7 |
 | **Web Framework** | Express | v5.2.1 |
@@ -103,10 +103,10 @@ A powerful, feature-rich Discord bot with advanced moderation, music streaming, 
 | **Audio Processing** | libsodium-wrappers | v0.8.2 |
 | **Media Sources** | play-dl, youtubei.js, yt-dlp | Latest |
 
-## 📦 Installation
+##  Installation
 
 ### Prerequisites
-- Node.js >= 20.19.0
+- Node.js >= 22.12.0
 - npm or yarn
 - MongoDB (local or Atlas)
 - Discord Bot Token
@@ -130,7 +130,23 @@ cp .env.example .env
 nano .env
 ```
 
-## ⚙️ Configuration
+## Local Lavalink integration
+
+The Lavalink service is maintained separately in [King-Lavalink](https://github.com/Programador-jr/King-Lavalink). Follow that repository's README to install Java, prepare the server, and enable the official `youtube-source` plugin.
+
+To connect a local copy of this bot to your local Lavalink instance, set these variables in the King's `.env`, using the same password stored in `King-Lavalink/application.yml`:
+
+```env
+LAVALINK_LOCAL=true
+LAVALINK_HOST=127.0.0.1
+LAVALINK_PORT=2333
+LAVALINK_SECURE=false
+LAVALINK_PASSWORD=YOUR_APPLICATION_YML_PASSWORD
+```
+
+With `LAVALINK_LOCAL=true`, the bot selects only the local node and ignores `botconfig/lavalink.json`. Remove the variable or set it to `false` to keep using the configured node list as before. Do not commit the password or use this local configuration on production hosting.
+
+##  Configuration
 
 ### Environment Variables (`.env`)
 
@@ -144,7 +160,7 @@ PREFIX=k
 # ============================================
 # DATABASE
 # ============================================
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/king
+MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/king
 DNS_RESULT_ORDER=ipv4first
 # Optional custom DNS resolvers (comma-separated IPv4/IPv6 addresses, optionally with ports)
 # DNS_SERVERS=1.1.1.1,8.8.8.8
@@ -226,7 +242,7 @@ When `antiCrash` is enabled, an uncaught exception or unhandled rejection is log
    - Production: `https://yourdomain.com/callback`
 5. Copy **Client ID** and **Client Secret** to `.env`
 
-## 🚀 Usage
+##  Usage
 
 ### Starting the Bot
 
@@ -252,7 +268,7 @@ The bot will:
 4. Access your server's settings
 5. Configure moderation, music, and bot features
 
-## 🎮 Commands
+##  Commands
 
 ### Music Commands (`/music` or `kmusic`)
 - `play` - Play a song from YouTube, Spotify, or SoundCloud
@@ -311,7 +327,7 @@ The bot will:
 - `prefix` - Change command prefix
 - `settings` - Manage server settings
 
-## 📊 Dashboard Features
+##  Dashboard Features
 
 ### Authentication
 - Secure Discord OAuth2 login
@@ -329,7 +345,7 @@ The bot will:
 
 Ticket access policy: ticket owners may close or reopen their own tickets; members with a configured `ticketRoles` support role or `Manage Guild`/Administrator permission may close and reopen any ticket. Only support staff and administrators may delete a closed ticket. Discord interactions and dashboard APIs enforce the same policy.
 
-## 🔐 Security
+##  Security
 
 ### Best Practices
 
@@ -348,12 +364,12 @@ Ticket access policy: ticket owners may close or reopen their own tickets; membe
 - Webhook URL validation
 - Role-based bypass system for AutoMod
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Bot not starting
 ```bash
 # Check Node version
-node --version  # Should be >= 20.11.1
+node --version  # Should be >= 22.12.0
 
 # Clear cache and reinstall
 rm -rf node_modules package-lock.json
@@ -387,14 +403,14 @@ cat .env
 # Logs: Check console for Express errors
 ```
 
-## 📖 Documentation
+##  Documentation
 
 - [Discord.js Documentation](https://discord.js.org)
 - [Lavalink Documentation](https://lavalink.dev)
 - [Express.js Guide](https://expressjs.com)
 - [MongoDB Documentation](https://docs.mongodb.com)
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -404,16 +420,16 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 💬 Support
+##  Support
 
 - **Issues** - Open an [issue](https://github.com/Programador-jr/King/issues) on GitHub
 - **Discussions** - Join our [GitHub Discussions](https://github.com/Programador-jr/King/discussions)
 - **Discord** - Check our [support channel](https://discord.gg/NypBbRgBJ3)
 
-## 🌟 Show Your Support
+##  Show Your Support
 
-Give this project a ⭐ if it helped you! It means a lot.
+Give this project a  if it helped you! It means a lot.

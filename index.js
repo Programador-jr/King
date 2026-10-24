@@ -92,7 +92,6 @@ client.ticketHandler = new TicketHandler(client);
 
 const AutoModHandler = require("./handlers/automod");
 client.automodHandler = new AutoModHandler(client);
-const startKingApi = require("./handlers/kingApi");
 
 const automodDefaults = {
     automodEnabled: false,
@@ -119,8 +118,6 @@ const automodDefaults = {
 
 async function startBot() {
   try {
-    startKingApi(client);
-
     await connectMongoDB();
     const cachedGuildSettings = await client.settings.warmCache();
     console.log(`[MongoDBEnmap] ${cachedGuildSettings} servidor(es) com settings em cache`);
@@ -137,19 +134,30 @@ async function startBot() {
     //Start the Bot
     client.login(process.env.token || process.env.TOKEN || config.token);
     
-    // Load statuspage handler early
-    const statuspageHandler = require("./handlers/statuspage");
-    
-    // Connect to Lavalink after bot is ready
-    client.once("clientReady", async () => {
-      try {
-        await client.lavalink.connect();
-        console.log("[Lavalink] Conectado ao servidor Lavalink");
-        
-        statuspageHandler(client).load();
-      } catch (error) {
-        console.error("[Lavalink] Erro ao conectar:", error);
+    // Keep the bot online when Lavalink is temporarily unavailable. Retry with
+    // bounded backoff until a node accepts the connection.
+    const connectLavalinkWhenAvailable = async () => {
+      let retryDelay = 5000;
+
+      while (true) {
+        try {
+          await client.lavalink.connect();
+          console.log("[Lavalink] Conectado ao servidor Lavalink");
+          return;
+        } catch (error) {
+          console.error(
+            `[Lavalink] Erro ao conectar: ${error?.message || error}. Nova tentativa em ${Math.round(retryDelay / 1000)}s.`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          retryDelay = Math.min(retryDelay * 2, 60000);
+        }
       }
+    };
+
+    client.once("clientReady", () => {
+      void connectLavalinkWhenAvailable().catch((error) => {
+        console.error("[Lavalink] Erro inesperado no ciclo de conexão:", error);
+      });
     });
   } catch (error) {
     console.error("❌ Erro ao iniciar o bot:", error);

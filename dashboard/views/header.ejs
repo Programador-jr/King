@@ -25,7 +25,7 @@
 
       <ul class="links modern-nav" id="nav-links">
         <li>
-          <a href="/" class="nav-link <%= isActive('/') && !isActive('/dashboard') && !isActive('/commands') && !isActive('/queue') && !isActive('/queuedashboard') && !isActive('/termos') && !isActive('/privacidade') ? 'active-link' : '' %>">
+          <a href="/" class="nav-link <%= isActive('/') && !isActive('/dashboard') && !isActive('/commands') && !isActive('/docs') && !isActive('/queue') && !isActive('/queuedashboard') && !isActive('/termos') && !isActive('/privacidade') ? 'active-link' : '' %>">
             <i class="fas fa-home"></i>
             <span>Início</span>
           </a>
@@ -34,6 +34,12 @@
           <a href="/commands" class="nav-link <%= isActive('/commands') ? 'active-link' : '' %>">
             <i class="fas fa-terminal"></i>
             <span>Comandos</span>
+          </a>
+        </li>
+        <li>
+          <a href="/docs" class="nav-link <%= isActive('/docs') ? 'active-link' : '' %>">
+            <i class="fas fa-book-open"></i>
+            <span>Ajuda</span>
           </a>
         </li>
         <li>
@@ -283,23 +289,6 @@
       syncBackToTop();
       window.addEventListener('scroll', syncBackToTop, { passive: true });
       backToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-
-      const scrollRevealElements = document.querySelectorAll('.scroll-reveal');
-      if (scrollRevealElements.length) {
-        if (!('IntersectionObserver' in window)) {
-          scrollRevealElements.forEach(el => el.classList.add('visible'));
-        } else {
-          const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (!entry.isIntersecting) return;
-              entry.target.classList.add('visible');
-              observer.unobserve(entry.target);
-            });
-          }, { threshold: 0.1 });
-
-          scrollRevealElements.forEach(el => observer.observe(el));
-        }
-      }
 
       const menuCheckbox = document.getElementById('show-menu');
       const menuToggle = document.getElementById('menu-toggle');

@@ -9,94 +9,58 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
     <link rel="stylesheet" href="/index.css">
     <title><%= websiteInfo.name %></title>
+    <link rel="stylesheet" href="/panel-refresh.css">
   </head>
   <body class="theme-discord">
     <%- include('header'); -%>
 
-    <section class="hero">
-      <div class="hero-card">
-        <span class="hero-badge"><i class="fas fa-crown"></i>PAINEL OFICIAL</span>
-        <h1><%= bot.username %> | Bot Completo para Comunidades</h1>
-        <p class="subtext hero-lead">
-          Gerencie comandos, configurações, utilidades, jogos e música em uma interface moderna, rápida e responsiva.
-        </p>
-        <div class="hero-actions">
-          <a class="btn-modern btn-modern-primary" href="/dashboard"><i class="fas fa-tachometer-alt"></i> Abrir Dashboard</a>
-          <a class="btn-modern btn-modern-secondary" href="/commands"><i class="fas fa-terminal"></i> Ver Comandos</a>
+    <main class="home-page">
+      <section class="home-hero">
+        <div class="home-hero-copy">
+          <span class="home-eyebrow">M&Uacute;SICA E FERRAMENTAS PARA DISCORD</span>
+          <h1>O som da sua comunidade, <span>do seu jeito.</span></h1>
+          <p>Toque suas playlists, organize a fila e cuide do servidor em um s&oacute; lugar. O King deixa a experi&ecirc;ncia simples para quem administra e para quem s&oacute; quer dar o play.</p>
+          <div class="hero-actions">
+            <a class="btn-modern btn-modern-primary" href="https://discord.com/oauth2/authorize?client_id=<%= bot.id %>&amp;scope=bot%20applications.commands&amp;permissions=2102658175" target="_blank" rel="noopener noreferrer">Adicionar ao Discord</a>
+            <a class="btn-modern btn-modern-secondary" href="/dashboard">Abrir painel</a>
+            <a class="btn-modern btn-modern-vote" href="<%= topggVoteUrl %>" target="_blank" rel="noopener noreferrer">Votar no Top.gg</a>
+          </div>
+          <div class="home-source-list" aria-label="Fontes de m&uacute;sica compat&iacute;veis"><span>YouTube</span><span>Spotify</span><span>SoundCloud</span><span>Playlists</span></div>
         </div>
-      </div>
-
-      <div class="hero-card">
-        <h5 class="hero-summary-title"><i class="fas fa-chart-bar"></i> Resumo rápido</h5>
-        <div class="feature-grid feature-grid-summary">
-          <div class="feature-card feature-stat">
-            <div class="feature-icon"><i class="fas fa-terminal"></i></div>
-            <div class="feature-body">
-              <h5><%= typeof commands.size === 'number' ? commands.size : commands.length %> Comandos</h5>
-              <p>Todos organizados por categoria, com uso e aliases.</p>
-            </div>
-          </div>
-          <div class="feature-card feature-stat">
-            <div class="feature-icon"><i class="fas fa-sliders-h"></i></div>
-            <div class="feature-body">
-              <h5><%= Object.keys(BotFilters).length %> Filtros</h5>
-              <p>Recursos avancados para personalizar a experiencia do seu servidor.</p>
-            </div>
-          </div>
-          <div class="feature-card feature-stat">
-            <div class="feature-icon"><i class="fas fa-robot"></i></div>
-            <div class="feature-body">
-              <h5>Automações e controle</h5>
-              <p>Configure comportamento padrão, permissão por cargo e canais dedicados.</p>
-            </div>
-          </div>
-          <div class="feature-card feature-stat">
-            <div class="feature-icon"><i class="fas fa-server"></i></div>
-            <div class="feature-body">
-              <h5>Gestão por servidor</h5>
-              <p>Cada guild com configuração independente.</p>
-            </div>
-          </div>
+        <div class="home-hero-art">
+          <img src="/images/home/music.svg" alt="Ilustra&ccedil;&atilde;o de m&uacute;sica, fones e equalizador" fetchpriority="high">
+          <div class="home-art-caption"><span class="home-live-dot"></span><div><strong>Seu servidor, sua trilha</strong><small>Fila, filtros e controles em harmonia</small></div></div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="legacy-floating">
-      <div class="custom-1 pt-10">
-        <div class="legacy-icon legacy-icon-command" aria-hidden="true"><i class="fas fa-code"></i></div>
-        <h3>Todos os comandos necessários para o seu servidor</h3>
-<p>
-          Você está cansado de ter um Bot de Música com milhares de comandos? King tem todos os comandos necessários em apenas um único bot!
-          <br>
-          Embora eles não vejam "muito", você pode usar nossas estruturas de comando para adicionar um dos <b><%= Object.keys(BotFilters).length %> Filtros!</b>
-        </p>
-      </div>
+      <section class="home-quick-stats" aria-label="Recursos do King">
+        <div><strong><%= typeof commands.size === 'number' ? commands.size : commands.length %></strong><span>comandos para sua comunidade</span></div>
+        <div><strong><%= Object.keys(BotFilters).length %></strong><span>filtros de &aacute;udio</span></div>
+        <div><strong><%= SPOTIFY_MIXES ? SPOTIFY_MIXES.length : ytMixesTotal %></strong><span>mixes para come&ccedil;ar</span></div>
+      </section>
 
-      <div class="custom-2 pt-16">
-        <div class="legacy-icon legacy-icon-filter" aria-hidden="true"><i class="fas fa-play"></i></div>
-        <h3>Experiência de Música definitiva significa <%= Object.keys(BotFilters).length %> Filtros para ajustar o seu áudio!</h3>
-        <p>Estamos usando o FFMPEG para dar a você a mais alta qualidade de áudio possível. Na verdade, nós os geramos instantaneamente e quase não temos lag!</p>
-      </div>
+      <section class="home-features">
+        <div class="home-section-heading"><span class="home-eyebrow">FEITO PARA O DIA A DIA</span><h2>Mais tempo curtindo. Menos tempo configurando.</h2><p>Recursos essenciais para manter sua comunidade em movimento.</p></div>
+        <div class="home-feature-grid">
+          <article class="home-feature-card"><img class="home-feature-image" src="/images/home/community.svg" alt="Ilustra&ccedil;&atilde;o de ferramentas para comunidades" loading="lazy"><h3>Uma casa para sua comunidade</h3><p>Modera&ccedil;&atilde;o, utilidades, jogos e m&uacute;sica organizados em um s&oacute; bot.</p></article>
+          <article class="home-feature-card"><img class="home-feature-image" src="/images/home/music.svg" alt="Ilustra&ccedil;&atilde;o de controles de m&uacute;sica e &aacute;udio" loading="lazy"><h3>Som com a sua identidade</h3><p>Personalize a reprodu&ccedil;&atilde;o com filtros e mantenha o controle da fila.</p></article>
+          <article class="home-feature-card"><img class="home-feature-image" src="/images/home/sources.svg" alt="Ilustra&ccedil;&atilde;o de fontes de m&uacute;sica conectadas" loading="lazy"><h3>Suas playlists, sem complica&ccedil;&atilde;o</h3><p>Encontre m&uacute;sicas e use mixes prontos para preencher a pr&oacute;xima sess&atilde;o.</p></article>
+          <article class="home-feature-card"><img class="home-feature-image" src="/images/home/settings.svg" alt="Ilustra&ccedil;&atilde;o de configura&ccedil;&otilde;es e automa&ccedil;&otilde;es" loading="lazy"><h3>Configura&ccedil;&otilde;es sem mist&eacute;rio</h3><p>Gerencie permiss&otilde;es, canais e prefer&ecirc;ncias do servidor pelo painel.</p></article>
+          <article class="home-feature-card"><img class="home-feature-image" src="/images/home/tickets.svg" alt="Ilustra&ccedil;&atilde;o de atendimento por tickets" loading="lazy"><h3>Atendimento organizado</h3><p>Centralize solicita&ccedil;&otilde;es com tickets, automa&ccedil;&otilde;es e registros para a equipe.</p></article>
+          <article class="home-feature-card home-vote-card"><img class="home-feature-image" src="/images/home/vote.svg" alt="Ilustra&ccedil;&atilde;o de um voto apoiando o King" loading="lazy"><h3>Ajude o King a crescer</h3><p>Seu voto no Top.gg ajuda outras comunidades a encontrarem o bot. Voc&ecirc; tamb&eacute;m recebe moedas King como recompensa.</p><a class="home-vote-link" href="<%= topggVoteUrl %>" target="_blank" rel="noopener noreferrer">Votar no Top.gg</a></article>
+        </div>
+      </section>
 
-      <div class="custom-1 pt-16">
-        <div class="legacy-icon legacy-icon-music" aria-hidden="true"><i class="fas fa-music"></i></div>
-<h3>Spotify, Soundcloud, Youtube e 1100+ outros links suportados!</h3>
-        <p>Apoiamos tudo o que você ouve! INCLUINDO PLAYLISTS E <b><%= SPOTIFY_MIXES ? SPOTIFY_MIXES.length : ytMixesTotal %> PLAYLISTS PREDEFINIDAS, otimizadas! (mix)</b></p>
-      </div>
-
-      <div class="custom-2 pt-16">
-        <div class="legacy-icon legacy-icon-dashboard" aria-hidden="true"><i class="fas fa-cog"></i></div>
-        <h3>Interface clara, com logs e botões instantâneos!</h3>
-        <p>Para que voce possa obter tudo o que deseja instantaneamente do Bot e ver tudo o que / quem aconteceu!</p>
-      </div>
-
-      <div class="custom-1 pt-16">
-        <div class="legacy-icon legacy-icon-ticket" aria-hidden="true"><i class="fas fa-ticket-alt"></i></div>
-        <h3>Sistema de Tickets Completo</h3>
-        <p>Suporte profissional com painel de gerenciamento, automações e logs detalhados para organizar o atendimento do seu servidor.</p>
-      </div>
-    </section>
-
+      <section class="home-get-started">
+        <div class="home-section-heading"><span class="home-eyebrow">COMECE EM POUCOS PASSOS</span><h2>Pronto para dar o play?</h2></div>
+        <div class="home-steps">
+          <article><span>01</span><h3>Adicione o King</h3><p>Convide o bot para o seu servidor pelo Discord.</p></article>
+          <article><span>02</span><h3>Entre no canal de voz</h3><p>Escolha onde a comunidade vai ouvir junto.</p></article>
+          <article><span>03</span><h3>Escolha a m&uacute;sica</h3><p>Use um comando ou abra o painel para controlar a fila.</p></article>
+        </div>
+        <a class="btn-modern btn-modern-primary" href="https://discord.com/oauth2/authorize?client_id=<%= bot.id %>&amp;scope=bot%20applications.commands&amp;permissions=2102658175" target="_blank" rel="noopener noreferrer">Adicionar King ao servidor</a>
+      </section>
+    </main>
     <%- include('footer'); -%>
     <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">↑</button>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>

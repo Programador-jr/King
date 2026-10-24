@@ -92,7 +92,7 @@ module.exports = {
 					});
 				}
 				let songIndex = Number(args[0]);
-				if (!songIndex) {
+				if (!Number.isInteger(songIndex) || songIndex < 1) {
 					return message.reply({
 						embeds: [new MessageEmbed()
 							.setColor(ee.wrongcolor)
@@ -102,12 +102,16 @@ module.exports = {
 						],
 					});
 				}
-				let amount = Number(args[1] ? args[1] : "1");
-				if (!amount) amount = 1;
+				let amount = args[1] === undefined ? 1 : Number(args[1]);
+				if (!Number.isInteger(amount) || amount < 1) {
+					return message.reply({
+						embeds: [new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} A quantidade deve ser um número inteiro maior que zero.`)]
+					});
+				}
 				if (songIndex > newQueue.songs.length - 1) return message.reply({
 					embeds: [
 						new MessageEmbed().setColor(ee.wrongcolor).setTitle(`${client.allEmojis.x} **Esta música não existe!**`)
-						.setDescription(`**A última música da fila tem o índice: \`${newQueue.songs.length}\`**`)
+						.setDescription(`**A última posição disponível é: \`${newQueue.songs.length - 1}\`**`)
 					],
 
 				})
@@ -124,6 +128,7 @@ module.exports = {
 					],
 
 				})
+				amount = Math.min(amount, newQueue.songs.length - songIndex);
 				await newQueue.remove(songIndex, amount);
 				message.reply({
 					embeds: [new MessageEmbed()

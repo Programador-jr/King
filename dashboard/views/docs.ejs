@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="<%= bot.avatar %>">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="/panel-refresh.css">
+    <link rel="stylesheet" href="/docs.css">
+    <title><%= doc ? `${doc.title} | Central de ajuda` : 'Central de ajuda' %> | <%= websiteInfo.name %></title>
+  </head>
+  <body class="theme-discord">
+    <%- include('header'); -%>
+    <main class="docs-page">
+      <% if (!doc) { %>
+        <section class="docs-hero">
+          <span class="docs-eyebrow">CENTRAL DE AJUDA DO KING</span>
+          <h1>Encontre seu próximo passo.</h1>
+          <p>Guias rápidos para configurar o King, usar os recursos e resolver dúvidas comuns.</p>
+          <label class="docs-search-wrap" for="docs-search">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input id="docs-search" type="search" placeholder="Buscar por música, fila, filtros..." autocomplete="off" aria-label="Buscar na central de ajuda">
+            <kbd>/</kbd>
+          </label>
+          <p class="docs-search-status" id="docs-search-status" aria-live="polite"><%= docs.length %> guias disponíveis</p>
+        </section>
+
+        <% if (notFound) { %>
+          <div class="docs-not-found" role="status">Esse guia não foi encontrado. Escolha um dos artigos abaixo.</div>
+        <% } %>
+
+        <section class="docs-list" aria-label="Guias por categoria">
+          <% categories.forEach((category) => { const categoryDocs = docs.filter((entry) => entry.category === category); %>
+            <section class="docs-category" data-doc-category>
+              <div class="docs-category-heading"><h2><%= category %></h2><span><%= categoryDocs.length %> guias</span></div>
+              <div class="docs-card-grid">
+                <% categoryDocs.forEach((entry) => { %>
+                  <a class="docs-card" href="/docs/<%= entry.slug %>" data-doc-card data-search="<%= entry.searchText %>">
+                    <span class="docs-card-category"><%= entry.category %></span>
+                    <h3><%= entry.title %></h3>
+                    <p><%= entry.summary %></p>
+                    <span class="docs-card-more">Ler guia <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                  </a>
+                <% }); %>
+              </div>
+            </section>
+          <% }); %>
+          <div class="docs-empty" id="docs-empty" hidden>Nenhum guia corresponde à busca. Tente outros termos.</div>
+        </section>
+        <div class="docs-bottom-link">Não encontrou o que procurava? <a href="/commands">Consulte a lista de comandos</a>.</div>
+      <% } else { %>
+        <div class="docs-breadcrumb"><a href="/docs">Central de ajuda</a><span aria-hidden="true">/</span><span><%= doc.category %></span></div>
+        <div class="docs-article-layout">
+          <aside class="docs-sidebar" aria-label="Guias da central de ajuda">
+            <a class="docs-back-link" href="/docs"><i class="fas fa-arrow-left" aria-hidden="true"></i> Todos os guias</a>
+            <% categories.forEach((category) => { const categoryDocs = docs.filter((entry) => entry.category === category); %>
+              <div class="docs-sidebar-group">
+                <h2><%= category %></h2>
+                <% categoryDocs.forEach((entry) => { %>
+                  <a href="/docs/<%= entry.slug %>" class="<%= entry.slug === doc.slug ? 'is-current' : '' %>" <%= entry.slug === doc.slug ? 'aria-current="page"' : '' %>><%= entry.title %></a>
+                <% }); %>
+              </div>
+            <% }); %>
+          </aside>
+          <article class="docs-article">
+            <header class="docs-article-header">
+              <span class="docs-eyebrow"><%= doc.category %></span>
+              <h1><%= doc.title %></h1>
+              <p><%= doc.summary %></p>
+            </header>
+            <nav class="docs-toc" aria-label="Nesta página">
+              <strong>Neste guia</strong>
+              <% doc.sections.forEach((section, index) => { %>
+                <a href="#secao-<%= index + 1 %>"><%= section.title %></a>
+              <% }); %>
+            </nav>
+            <% doc.sections.forEach((section, index) => { %>
+              <section class="docs-article-section" id="secao-<%= index + 1 %>">
+                <h2><%= section.title %></h2>
+                <% (section.paragraphs || []).forEach((paragraph) => { %><p><%= paragraph %></p><% }); %>
+                <% if (section.commands && section.commands.length) { %>
+                  <div class="docs-command-list" aria-label="Exemplos">
+                    <% section.commands.forEach((command) => { %><code><%= command %></code><% }); %>
+                  </div>
+                <% } %>
+              </section>
+            <% }); %>
+            <footer class="docs-article-footer"><a href="/docs">Voltar à central de ajuda</a><a href="/commands">Ver todos os comandos</a></footer>
+          </article>
+        </div>
+      <% } %>
+    </main>
+    <%- include('footer'); -%>
+    <script src="/docs.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+  </body>
+</html>
